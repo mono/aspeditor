@@ -1,0 +1,25 @@
+Introduction
+============
+This is a pre-release version of AspNetEdit, Mono's Graphical Editor for ASP.NET. This version is provided as a preview for curious developers only. Not all functionality is present or working, so please do not judge it until a final release is made.
+
+At the moment you will need the cutting edge subversion Mono class libraries (module mcs).
+
+
+Installation
+============
+For installation instruction please read the INSTALL file.
+
+
+Developers
+==========
+A list of contributors can be found in the AUTHORS file.
+If you are interested in contributing to AspNetEdit, please contact Michael Hutchinson <m.j.hutchinson@gmail.com>.
+
+
+Release Notes
+=============
+Pre-alpha 0.0.1:
+	Initial commit to SVN.
+	The PropertyGrid and Toolbox are functional, but incomplete.
+	The design surface cannot yet be modified directly. Use the control selector above the PropertyGrid.
+	Saving ASPX files works, but page directives are not supported.

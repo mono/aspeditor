@@ -1,0 +1,2 @@
+#!/bin/sh
+exec @MONO@ --debug @prefix@/lib/aspnetedit/aspnetedit.exe $MONO_EXTRA_ARGS "$@"

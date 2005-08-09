@@ -1,0 +1,35 @@
+Prerequisites
+=============
+You will need:
+	Mono 1.1.9 (okay, *very* recent subversion Mono class libraries will do)
+	Gtk# 2.5.5.99
+	Gecko# 0.10
+	GCC 3.3
+	Gtk+ 2.6.4
+	Mozilla 1.7.10 
+	
+And of course the devoloper libraries for all of these.
+
+
+Building AspNetEdit
+===================
+Open a terminal in the root aspnetedit director and run the following commands
+
+./autoconf.sh --prefix=PREFIX
+make
+
+
+Running AspNetEdit
+=================
+You can run AspNetEdit out of the build directory with the command
+
+make run
+
+
+Installing AspNetEdit
+=====================
+To install AspNetEdit into the PREFIX directory you specified when running autoconf.sh, simly run
+
+make install
+
+The executable and libraries will be installed into PREFIX/lib, and a script 'aspnetedit' is provided in PREFIX/bin to launch the application 

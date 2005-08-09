@@ -1,0 +1,21 @@
+//
+// AssemblyInfo.cs.in for editor.dll in aspnetedit
+//
+// Authors:
+//	Michael Hutchinson <m.j.hutchinson@gmail.com>
+//
+using System.Reflection;
+using System.Runtime.CompilerServices;
+
+[assembly: AssemblyTitle ("AspNetEdit Editor")]
+[assembly: AssemblyDescription ("Core library for AspNetEdit Graphical ASP.NET Editor ")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("AspNetEdit")]
+[assembly: AssemblyCopyright ("Copyright © 2005 Michael Hutchinson")]
+[assembly: AssemblyTrademark("")]
+
+[assembly: AssemblyCulture("")]
+[assembly: AssemblyConfiguration("")]
+
+[assembly: AssemblyVersion("@VERSION@")]
+[assembly: AssemblyFileVersion("@VERSION@")]

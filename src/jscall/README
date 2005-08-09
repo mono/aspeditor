@@ -1,0 +1,25 @@
+INTRODUCTION
+============
+This is the AspNetEdit.JSGlue layer for calling C# functions from JavaScript in a Gecko# control, and vice versa. It should work with any .NET language but I've referrred to C# for simplicity. I don't expect many people to use this, so the documentation is little more than minimal; please contact me <m.j.hutchinson@gmail.com> if you need help working out how it works.
+
+BUILDING
+========
+Use automake (./autogen.sh --prefix=/usr/local) at the application level.
+
+USAGE
+=====
+On the CLR side of things, create an instance of AspNetEdit.JSGlue.CommandManager by passing the constructor the Gecko# control. This object has the following methods:
+	RegisterJSHandler(string name, ClrCall handler)
+		Register a ClrCall delegate as the handler when JS calls the named 'name' function.
+	UnregisterJSHandler(string name)
+		Unregister the 'name' function.
+	JSCall(string function, string returnTo, string[] args)
+		Call the 'function' JS function, with 'returnTo' as the callback for any return value. Arguments as a string array.
+
+On the JS side, load the JSGlue.js file into your document and call JSGlueInit(). You then have the following functions available, mirroring the C# functions but a bit more "javascripty".
+	JSGluePlaceClrCall(fn, returnTo, args)
+		Call the 'fn' C# function, with 'returnTo' as the callback for any return value. Arguments as a string array.
+	JSGlueRegisterClrHandler(n, fn)
+		Register a the 'fn' function as the handler when C# calls the named 'n' function.
+	JSGlueUnregisterClrHandler()
+		Unregister the 'name' function.
