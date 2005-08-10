@@ -1,0 +1,28 @@
+<Combine name="aspnetedit" fileversion="2.0">
+  <Configurations active="Debug">
+    <Configuration name="Debug" ctype="CombineConfiguration">
+      <Entry configuration="Debug" build="True" name="aspnetedit" />
+      <Entry configuration="Debug" build="True" name="editor" />
+      <Entry configuration="Debug" build="True" name="propertygrid" />
+      <Entry configuration="Debug" build="True" name="jscall" />
+    </Configuration>
+    <Configuration name="Release" ctype="CombineConfiguration">
+      <Entry configuration="Release" build="True" name="aspnetedit" />
+      <Entry configuration="Release" build="True" name="editor" />
+      <Entry configuration="Release" build="True" name="propertygrid" />
+      <Entry configuration="Release" build="True" name="jscall" />
+    </Configuration>
+  </Configurations>
+  <StartMode startupentry="aspnetedit" single="True">
+    <Execute type="None" entry="aspnetedit" />
+    <Execute type="None" entry="editor" />
+    <Execute type="None" entry="propertygrid" />
+    <Execute type="None" entry="jscall" />
+  </StartMode>
+  <Entries>
+    <Entry filename="./src/aspnetedit/aspnetedit.mdp" />
+    <Entry filename="./src/editor/editor.mdp" />
+    <Entry filename="./src/propertygrid/propertygrid.mdp" />
+    <Entry filename="./src/jscall/jscall.mdp" />
+  </Entries>
+</Combine>
