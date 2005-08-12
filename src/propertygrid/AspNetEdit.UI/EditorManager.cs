@@ -43,6 +43,7 @@ namespace AspNetEdit.UI
 	internal class EditorManager
 	{
 		private Hashtable editors = new Hashtable ();
+		private Hashtable inheritingEditors = new Hashtable ();
 		private Hashtable surrogates = new Hashtable ();
 
 		internal EditorManager ()
@@ -55,13 +56,17 @@ namespace AspNetEdit.UI
 			foreach (Type t in editorAssembly.GetTypes ()) {
 				foreach (Attribute currentAttribute in Attribute.GetCustomAttributes (t)) {
 					if (currentAttribute.GetType() == typeof (PropertyEditorTypeAttribute)) {
-						Type editorType = (currentAttribute as PropertyEditorTypeAttribute).Type;
+						PropertyEditorTypeAttribute peta = (PropertyEditorTypeAttribute)currentAttribute;
+						Type editsType = peta.Type;
 						if (t.IsSubclassOf (typeof (BaseEditor)))
-							editors.Add (editorType, t);
+							if (peta.Inherits)
+								inheritingEditors.Add (editsType, t);
+							else
+								editors.Add (editsType, t);
 					}
 					else if (currentAttribute.GetType () == typeof (SurrogateUITypeEditorAttribute)) {
-						Type editorType = (currentAttribute as SurrogateUITypeEditorAttribute).Type;
-						surrogates.Add (editorType, t);
+						Type editsType = (currentAttribute as SurrogateUITypeEditorAttribute).Type;
+						surrogates.Add (editsType, t);
 					}
 				}
 			}
@@ -83,7 +88,12 @@ namespace AspNetEdit.UI
 			Type editType = pd.PropertyType;
 			if (editors.Contains (editType))
 				return instantiateEditor ((Type) editors[editType], parentRow);
-
+			
+			//editors that edit derived types
+			foreach (DictionaryEntry de in inheritingEditors)
+				if (editType.IsSubclassOf((Type) de.Key))
+					return instantiateEditor ((Type) de.Value, parentRow);
+				
 			//special cases
 			if (editType.IsEnum)
 				return new EnumEditor (parentRow);
@@ -112,6 +122,10 @@ namespace AspNetEdit.UI
 			foreach (DictionaryEntry editor in editors)
 				if (tc.CanConvertFrom((Type) editor.Key) && tc.CanConvertTo((Type) editor.Key))
 					return instantiateEditor((Type) editor.Value, parentRow);
+					
+			foreach (DictionaryEntry de in inheritingEditors)
+				if (tc.CanConvertFrom((Type) de.Key) && tc.CanConvertTo((Type) de.Key))
+					return instantiateEditor((Type) de.Value, parentRow);
 
 			//nothing found - just display type
 			return new DefaultEditor (parentRow);

@@ -165,10 +165,16 @@ namespace AspNetEdit.UI.PropertyEditors
 		protected bool IsDefaultValue ()
 		{
 			DefaultValueAttribute attrib = (DefaultValueAttribute) parentRow.PropertyDescriptor.Attributes [typeof(DefaultValueAttribute)];
-			if (attrib != null && ((DefaultValueAttribute) attrib).Value != null)
-				if (((DefaultValueAttribute)attrib).Value == parentRow.PropertyValue)
-					return true;
-			return false;
+			
+			if (attrib == null)
+				return false;
+				
+			if (attrib.Value == null && parentRow.PropertyValue == null)
+				return true;
+			else if (attrib.Value == null || parentRow.PropertyValue == null)
+				return false;
+			else
+				return (attrib.Value.Equals(parentRow.PropertyValue));
 		}
 	}
 }

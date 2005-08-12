@@ -138,7 +138,7 @@ namespace System.Web.UI.Design
 			if (refMan == null)
 				throw new Exception("Could not obtain IWebFormReferenceManager service");
 			string prefix = refMan.GetTagPrefix (control.GetType ());
-
+			
 			//write tag to HtmlTextWriter
 			writer.WriteBeginTag (prefix + ":" + control.GetType().Name);
 			
@@ -149,6 +149,15 @@ namespace System.Web.UI.Design
 			
 			if (runAtServer)
 				writer.WriteAttribute ("runat", "server");
+			
+			//do the same for events
+			IComponent comp = control as IComponent;
+			if (comp != null && comp.Site != null) {
+				IEventBindingService evtBind = (IEventBindingService) comp.Site.GetService (typeof (IEventBindingService));
+				if (evtBind != null)
+					foreach (EventDescriptor e in TypeDescriptor.GetEvents (comp))
+						ProcessEvent (e, comp, writer, evtBind);
+			}	
 			
 
 			//ControlDesigner designer = (ControlDesigner) host.GetDesigner(control);
@@ -166,6 +175,21 @@ namespace System.Web.UI.Design
 			writer.WriteLine ();
 			writer.Flush ();
 		}
+		
+		private static void ProcessEvent (EventDescriptor e, IComponent comp, HtmlTextWriter writer, IEventBindingService evtBind)
+		{
+			PropertyDescriptor prop = evtBind.GetEventProperty (e);
+			string value = prop.GetValue (comp) as string;
+			
+			if (prop.SerializationVisibility != DesignerSerializationVisibility.Visible
+				|| value == null
+				|| prop.DesignTimeOnly
+				|| prop.IsReadOnly
+				|| !prop.ShouldSerializeValue (comp))
+				return;
+			
+			writer.WriteAttribute ("On" + prop.Name, value);
+		}
 
 		/// <summary>
 		/// Writes an attribute to an HtmlTextWriter if it needs serializing
@@ -180,7 +204,7 @@ namespace System.Web.UI.Design
 				|| !prop.ShouldSerializeValue (o)
 				|| prop.Converter == null
 				|| !prop.Converter.CanConvertTo (typeof(string)))
-				return false;
+				return false;	
 
 			bool foundAttrib = false;
 				
@@ -190,7 +214,7 @@ namespace System.Web.UI.Design
 			{
 				if (prop.SerializationVisibility == DesignerSerializationVisibility.Visible) {
 					if (prefix == string.Empty)
-						writer.WriteAttribute (prop.Name, prop.Converter.ConvertToString (prop.GetValue(o)));
+						writer.WriteAttribute (prop.Name, prop.Converter.ConvertToString (prop.GetValue (o)));
 					else
 						writer.WriteAttribute (prefix + "-" + prop.Name, prop.Converter.ConvertToString (prop.GetValue(o)));
 					foundAttrib = true;

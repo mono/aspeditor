@@ -37,6 +37,7 @@ using System.IO;
 using Gtk;
 using System.Collections;
 using System.ComponentModel;
+using System.Windows.Forms.Design;
 
 namespace AspNetEdit.UI
 {
@@ -56,10 +57,12 @@ public class PropertyGrid : Gtk.VBox
 	private VBox expanderBox;
 	private ScrolledWindow scrolledWindow;
 	private VPaned vpaned;
+	
+	private Tooltips tips;
 
 	private Toolbar toolbar;
-	private ToggleButton catButton;
-	private ToggleButton alphButton;
+	private RadioToolButton catButton;
+	private RadioToolButton alphButton;
 
 	private ScrolledWindow textScroll;
 	private VBox desc;
@@ -76,24 +79,31 @@ public class PropertyGrid : Gtk.VBox
 		: base (false, 0)
 	{
 		this.editorManager = editorManager;
-
-		toolbar = new Toolbar ();
-		base.PackStart (toolbar, false, false, 0);
-
-		catButton = new ToggleButton ("Categorised");
-		catButton.Clicked += new EventHandler (toolbarClick);
-		//initial state of this widget is sorted by category
-		catButton.Active = true;
-		viewState = ViewState.ByCategory;
-		ToolItem t = new ToolItem ();
-		t.Add (catButton);
-		toolbar.Insert (t, 0);
 		
-		alphButton = new ToggleButton ("Alphabetical");
+		tips = new Tooltips ();
+		
+		#region Toolbar
+		toolbar = new Toolbar ();
+		toolbar.ToolbarStyle = ToolbarStyle.Icons;
+		toolbar.IconSize = IconSize.SmallToolbar;
+		base.PackStart (toolbar, false, false, 0);
+		
+		catButton = new RadioToolButton (new GLib.SList (IntPtr.Zero), Stock.MissingImage);
+		catButton.SetTooltip (tips, "Sort in categories", null);
+		catButton.Toggled += new EventHandler (toolbarClick);
+		toolbar.Insert (catButton, 0);
+		
+		alphButton = new RadioToolButton (catButton, Stock.SortAscending);
+		alphButton.SetTooltip (tips, "Sort alphabetically", null);
 		alphButton.Clicked += new EventHandler (toolbarClick);
-		t = new ToolItem ();
-		t.Add (alphButton);
-		toolbar.Insert (t, 1);
+		toolbar.Insert (alphButton, 1);
+		
+		catButton.Active = true;
+		
+		SeparatorToolItem sep = new SeparatorToolItem();
+		toolbar.Insert (sep, 2);
+		
+		#endregion
 
 		vpaned = new VPaned ();
 
@@ -131,6 +141,9 @@ public class PropertyGrid : Gtk.VBox
 
 		vpaned.Pack1 (scrolledWindow, true, true);
 		vpaned.Pack2 (descFrame, false, true);
+		
+		AddPropertyTab (new DefaultPropertyTab ());
+		AddPropertyTab (new EventPropertyTab ());
 
 		base.PackEnd (vpaned);
 		Populate ();
@@ -142,95 +155,63 @@ public class PropertyGrid : Gtk.VBox
 	
 	#region Toolbar state and handlers
 	
-	private ViewState viewState;
+	private const int FirstTabIndex = 3;
 	
-	// FIXME: Hacky. For some reason, changing ToggleButton.Active
-	// on toolbar fires Clicked event as well as Toggle event.
-	private bool ignoreClicks = false;
-
 	void toolbarClick (object sender, EventArgs e)
 	{
-		if (ignoreClicks)
-			return;
-
-		ignoreClicks = true;
-		((ToggleButton) sender).Active = true;
-		ignoreClicks = false;
-
 		if (sender == alphButton)
-			View = ViewState.Alphabetical;
+			PropertySort = System.Windows.Forms.PropertySort.Alphabetical;
 		else if (sender == catButton)
-			View = ViewState.ByCategory;
+			PropertySort = System.Windows.Forms.PropertySort.Categorized;
+		else {
+			int index = toolbar.GetItemIndex ((RadioToolButton) sender) - FirstTabIndex;
+			
+			PropertyTab tab = (PropertyTab) propertyTabs[index];
+			if (selectedTab == tab) return;
+			
+			selectedTab = tab;
+			Populate (); 
+		}
 	}
 	
-	void setButtonState ()
-	{
+	private System.Windows.Forms.PropertySort propertySort = System.Windows.Forms.PropertySort.Categorized;
 	
-	}
-
-	public ViewState View {
-		get { return viewState;	}
+	public System.Windows.Forms.PropertySort PropertySort {
+		get { return propertySort; }
 		set {
-			if (value != viewState)	{
-				viewState = value;
-				Populate();
+			if (value != propertySort) {
+				propertySort = value;
+				Populate ();
 			}
 		}
+	}
+	
+	private ArrayList propertyTabs = new ArrayList ();
+	private PropertyTab selectedTab;
+	
+	public PropertyTab SelectedTab {
+		get { return selectedTab; }
+	}
+	
+	private void AddPropertyTab (PropertyTab tab)
+	{
+		RadioToolButton rtb;
+		if (propertyTabs.Count == 0) {
+			selectedTab = tab;
+			rtb = new RadioToolButton (new GLib.SList (IntPtr.Zero), Stock.MissingImage);
+			rtb.Active = true;
+		}
+		else
+			rtb = new RadioToolButton ((RadioToolButton) toolbar.GetNthItem (propertyTabs.Count + FirstTabIndex - 1), Stock.MissingImage);
+		rtb.SetTooltip (tips, tab.TabName, null);
+		rtb.Toggled += new EventHandler (toolbarClick);	
+		
+		toolbar.Insert (rtb, propertyTabs.Count + FirstTabIndex);
+		
+		propertyTabs.Add(tab);
 	}
 		
 	#endregion
-
-	private void Populate ()
-	{
-		ignoreClicks = true;
-
-		alphButton.Active = false;
-		catButton.Active = false;
-
-		if (viewState == ViewState.Alphabetical) {
-			alphButton.Active = true;
-			PopulateView (false);
-		}
-		else if (viewState == ViewState.ByCategory) {
-			catButton.Active = true;
-			PopulateView (true);
-		}
-		ignoreClicks = false;
-
-		
-	}
-
-	private string DefaultPropertyName {
-		get {	//only calculate once for each currentObject
-			if (defaultPropertyName == null) {
-				defaultPropertyName = string.Empty;
-				if (currentObject != null) {
-					DefaultPropertyAttribute defaultProperty = (DefaultPropertyAttribute) TypeDescriptor.GetAttributes (currentObject)[typeof (DefaultPropertyAttribute)];
-					if (defaultProperty != null)
-						defaultPropertyName = defaultProperty.Name;
-				}
-			}
-
-			return defaultPropertyName;
-		}
-	}
-
-	private string DefaultEventName {
-		get {	//only calculate once for each currentObject
-			if (defaultEventName == null)
-			{
-				defaultEventName = string.Empty;
-				if (currentObject == null) {
-					DefaultEventAttribute defaultEvent = (DefaultEventAttribute) TypeDescriptor.GetAttributes (currentObject)[typeof (DefaultEventAttribute)];
-					if (defaultEvent != null)
-						defaultEventName = defaultEvent.Name;
-				}
-			}
-
-			return defaultPropertyName;
-		}
-	}
-
 
 	public object CurrentObject {
 		get { return currentObject; }
@@ -252,10 +233,12 @@ public class PropertyGrid : Gtk.VBox
 		}
 	}
 
-	private void PopulateView(bool categorised)
+	private void Populate()
 	{
+		bool categorised = PropertySort == System.Windows.Forms.PropertySort.Categorized;
+		
 		if (currentObject != null)
-			properties = TypeDescriptor.GetProperties (currentObject);
+			properties = selectedTab.GetProperties (currentObject);
 		else
 			properties = new PropertyDescriptorCollection (new PropertyDescriptor[0] {});
 
@@ -269,18 +252,9 @@ public class PropertyGrid : Gtk.VBox
 		//transcribe browsable properties
 		ArrayList sorted = new ArrayList();
 
-		foreach (PropertyDescriptor descriptor in properties) {
-			bool browsable = true;
-
-			foreach (Attribute attr in descriptor.Attributes)
-				if (attr is BrowsableAttribute)
-					browsable = ((BrowsableAttribute) attr).Browsable;
-			
-			//TODO: Make this work under Linux Mono
-			//if (descriptor.IsBrowsable)
-			if (browsable)
+		foreach (PropertyDescriptor descriptor in properties)
+			if (descriptor.IsBrowsable)
 				sorted.Add (descriptor);
-		}
 
 		//expands to fill empty space
 		EventBox bottomWidget = new EventBox ();
@@ -369,7 +343,7 @@ public class PropertyGrid : Gtk.VBox
 				currentRow += 1;
 				Rows.Add (newRow);
 
-				if (newRow.PropertyDescriptor.Name == DefaultPropertyName)
+				if (newRow.PropertyDescriptor == SelectedTab.GetDefaultProperty (this.CurrentObject))
 					this.SelectedRow = newRow;
 			}
 				

@@ -38,10 +38,26 @@ namespace AspNetEdit.UI
 	[AttributeUsage (AttributeTargets.Class, AllowMultiple = true)]
 	public class PropertyEditorTypeAttribute : Attribute
 	{
-		public Type Type;
-		public PropertyEditorTypeAttribute (Type myType)
+		private Type type;
+		private bool inherits = false;
+		
+		public PropertyEditorTypeAttribute (Type type)
 		{
-			this.Type = myType;
+			this.type = type;
+		}
+		
+		public PropertyEditorTypeAttribute (Type myType, bool inherits)
+		{
+			this.type = myType;
+			this.inherits = inherits;
+		}
+		
+		public bool Inherits {
+			get { return inherits; }
+		}
+		
+		public Type Type {
+			get {return type; }
 		}
 	}
 }

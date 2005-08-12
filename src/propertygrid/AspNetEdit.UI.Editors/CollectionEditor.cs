@@ -125,12 +125,16 @@ namespace AspNetEdit.UI.PropertyEditors
 			VButtonBox sortButtonBox = new VButtonBox ();
 			sortButtonBox.LayoutStyle = ButtonBoxStyle.Start;
 			Button upButton = new Button ();
-			Image upImage = new Image (Stock.GoUp, IconSize.SmallToolbar);
-			upButton.Child = upImage;
+			Image upImage = new Image (Stock.GoUp, IconSize.Button);
+			upImage.Show ();
+			upButton.Add (upImage);
+			upButton.Show ();
 			sortButtonBox.Add (upButton);
 			Button downButton = new Button ();
-			Image downImage = new Image (Stock.GoDown, IconSize.SmallToolbar);
-			downButton.Child = downImage;
+			Image downImage = new Image (Stock.GoDown, IconSize.Button);
+			downImage.Show ();
+			downButton.Add (downImage);
+			downButton.Show ();
 			sortButtonBox.Add (downButton);
 			hBox.PackEnd (sortButtonBox, false, false, 5);
 

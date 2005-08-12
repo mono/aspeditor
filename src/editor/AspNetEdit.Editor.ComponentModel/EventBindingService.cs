@@ -111,18 +111,25 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		public System.ComponentModel.PropertyDescriptor GetEventProperty (System.ComponentModel.EventDescriptor e)
 		{
+			if (e == null) throw new ArgumentNullException ("e");
 			return new EventPropertyDescriptor (e);
 		}
 
 		//TODO: actually show code and return true if exists
 		public bool ShowCode (System.ComponentModel.IComponent component, System.ComponentModel.EventDescriptor e)
 		{
-			string name = (string) GetEventProperty (e).GetValue (component);
+			PropertyDescriptor pd = GetEventProperty (e);
+			string name = (string) pd.GetValue (component);
+			
+			if (name == null) {
+				name = CreateUniqueMethodName (component, e);
+				pd.SetValue (component, name);
+			}
 			
 			if (eventHandlers.ContainsKey (name))
 				ShowMessage("In an IDE this would show the existing CodeBehind method \"" + name + "\".");
 			else {
-				eventHandlers.Add ( e.EventType, GetEventParameters (e) );
+				eventHandlers.Add (name, GetEventParameters (e) );
 				ShowMessage("In an IDE this would create and show the CodeBehind method \"" + name + "\".");
 			}
 			
@@ -173,7 +180,7 @@ namespace AspNetEdit.Editor.ComponentModel
 		public override object GetValue(object component)
 		{
 			IDictionaryService dict = GetDictionaryService (component);
-			return dict.GetValue (base.Name);
+			return dict.GetValue (base.Name) as string;
 		}
 
 		public override bool IsReadOnly

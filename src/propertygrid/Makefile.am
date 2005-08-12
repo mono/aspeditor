@@ -10,7 +10,8 @@ PROPERTYGRID_REFERENCES =						\
 	$(GTKSHARP_LIBS)						\
 	-r:System.Web							\
 	-r:System.Design						\
-	-r:System.Drawing
+	-r:System.Drawing						\
+	-r:System.Windows.Forms
 
 PROPERTYGRID_CSFILES =							\
 	$(srcdir)/AssemblyInfo.cs					\
@@ -21,6 +22,8 @@ PROPERTYGRID_CSFILES =							\
 	$(srcdir)/AspNetEdit.UI/PropertyValueChangedEventArgs.cs	\
 	$(srcdir)/AspNetEdit.UI/PropertyValueChangedEventHandler.cs	\
 	$(srcdir)/AspNetEdit.UI/SurrogateUITypeEditorAttribute.cs	\
+	$(srcdir)/AspNetEdit.UI/DefaultPropertyTab.cs			\
+	$(srcdir)/AspNetEdit.UI/EventPropertyTab.cs			\
 	$(srcdir)/AspNetEdit.UI.Editors/StringEditor.cs			\
 	$(srcdir)/AspNetEdit.UI.Editors/NumberEditor.cs			\
 	$(srcdir)/AspNetEdit.UI.Editors/EnumEditor.cs			\
@@ -28,7 +31,8 @@ PROPERTYGRID_CSFILES =							\
 	$(srcdir)/AspNetEdit.UI.Editors/ColorEditor.cs			\
 	$(srcdir)/AspNetEdit.UI.Editors/CollectionEditor.cs		\
 	$(srcdir)/AspNetEdit.UI.Editors/BoolEditor.cs			\
-	$(srcdir)/AspNetEdit.UI.Editors/BaseEditor.cs
+	$(srcdir)/AspNetEdit.UI.Editors/BaseEditor.cs			\
+	$(srcdir)/AspNetEdit.UI.Editors/EventEditor.cs
 
 EXTRA_DIST = $(PROPERTYGRID_CSFILES)
 CLEANFILES = $(ASSEMBLY) $(ASSEMBLY).mdb

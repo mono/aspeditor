@@ -44,7 +44,7 @@ namespace AspNetEdit.Editor.ComponentModel
 {
 	internal class WebFormPage : System.Web.UI.Page
 	{
-		private const string newDocument = "<html>\n<head>\n\t<title>{0}</title>\n</head>\n<body>\n<form runat=\"server\"\n<cursor/>\n</form></body>\n</html>";
+		private const string newDocument = "<html>\n<head>\n\t<title>{0}</title>\n</head>\n<body>\n<form runat=\"server\">\n<cursor/>\n</form></body>\n</html>";
 		private const string cursor = "<cursor/>";
 		private const string controlSubstitute = "<aspcontrol name=\"{0}\" />";
 

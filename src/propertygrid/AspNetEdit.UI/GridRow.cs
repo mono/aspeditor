@@ -72,8 +72,13 @@ namespace AspNetEdit.UI
 			}
 
 			#region Name label
-
-			propertyNameLabel = new Label (descriptor.DisplayName);
+			
+			string name = descriptor.DisplayName; 
+			ParenthesizePropertyNameAttribute paren = descriptor.Attributes[typeof (ParenthesizePropertyNameAttribute)] as ParenthesizePropertyNameAttribute;
+			if (paren != null && paren.NeedParenthesis)
+				name = "(" + name + ")";
+			
+			propertyNameLabel = new Label (name);
 			propertyNameLabel.Xalign = 0;
 			propertyNameLabel.Xpad = 3;
 			propertyNameLabel.HeightRequest = 20;
