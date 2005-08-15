@@ -291,8 +291,8 @@ namespace AspNetEdit.Editor.ComponentModel
 
 			foreach (Type t in types)
 			{
-				if (t.IsAbstract) continue;
-
+				if (t.IsAbstract || t.IsNotPublic) continue;
+				
 				AttributeCollection atts = TypeDescriptor.GetAttributes (t);
 				
 				bool containsAtt = false;

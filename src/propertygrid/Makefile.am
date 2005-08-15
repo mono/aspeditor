@@ -1,6 +1,7 @@
 ASSEMBLY_NAME = propertygrid
 ASSEMBLY = $(top_builddir)/build/lib/$(ASSEMBLY_NAME).dll
 TARGET = $(ASSEMBLY)
+resdir = $(top_builddir)/resources
 
 propertygriddir=$(pkglibdir)
 propertygrid_SCRIPTS = $(ASSEMBLY)
@@ -25,6 +26,7 @@ PROPERTYGRID_CSFILES =							\
 	$(srcdir)/AspNetEdit.UI/DefaultPropertyTab.cs			\
 	$(srcdir)/AspNetEdit.UI/EventPropertyTab.cs			\
 	$(srcdir)/AspNetEdit.UI.Editors/StringEditor.cs			\
+	$(srcdir)/AspNetEdit.UI.Editors/ExpandableObjectEditor.cs	\
 	$(srcdir)/AspNetEdit.UI.Editors/NumberEditor.cs			\
 	$(srcdir)/AspNetEdit.UI.Editors/EnumEditor.cs			\
 	$(srcdir)/AspNetEdit.UI.Editors/DefaultEditor.cs		\
@@ -34,11 +36,16 @@ PROPERTYGRID_CSFILES =							\
 	$(srcdir)/AspNetEdit.UI.Editors/BaseEditor.cs			\
 	$(srcdir)/AspNetEdit.UI.Editors/EventEditor.cs
 
+RESOURCE_FILES = \
+	$(resdir)/icons/AspNetEdit.UI.EventPropertyTab.bmp \
+	$(resdir)/icons/AspNetEdit.UI.DefaultPropertyTab.bmp \
+	$(resdir)/icons/AspNetEdit.UI.PropertyGrid.SortByCat.png
+
 EXTRA_DIST = $(PROPERTYGRID_CSFILES)
 CLEANFILES = $(ASSEMBLY) $(ASSEMBLY).mdb
 
 $(ASSEMBLY): $(PROPERTYGRID_CSFILES)
-	$(MCS) $(PROPERTYGRID_REFERENCES) -debug -target:library -out:$@ $(PROPERTYGRID_CSFILES)
+	$(MCS) $(PROPERTYGRID_REFERENCES) $(RESOURCE_FILES:%=/resource:%) -debug -target:library -out:$@ $(PROPERTYGRID_CSFILES)
 
 $(ASSEMBLY).mdb: $(ASSEMBLY) 
 	

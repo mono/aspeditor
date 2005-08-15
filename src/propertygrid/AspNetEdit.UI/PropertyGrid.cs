@@ -88,7 +88,8 @@ public class PropertyGrid : Gtk.VBox
 		toolbar.IconSize = IconSize.SmallToolbar;
 		base.PackStart (toolbar, false, false, 0);
 		
-		catButton = new RadioToolButton (new GLib.SList (IntPtr.Zero), Stock.MissingImage);
+		catButton = new RadioToolButton (new GLib.SList (IntPtr.Zero));
+		catButton.IconWidget = new Image (new Gdk.Pixbuf (null, "AspNetEdit.UI.PropertyGrid.SortByCat.png"));
 		catButton.SetTooltip (tips, "Sort in categories", null);
 		catButton.Toggled += new EventHandler (toolbarClick);
 		toolbar.Insert (catButton, 0);
@@ -202,7 +203,15 @@ public class PropertyGrid : Gtk.VBox
 			rtb.Active = true;
 		}
 		else
-			rtb = new RadioToolButton ((RadioToolButton) toolbar.GetNthItem (propertyTabs.Count + FirstTabIndex - 1), Stock.MissingImage);
+			rtb = new RadioToolButton ((RadioToolButton) toolbar.GetNthItem (propertyTabs.Count + FirstTabIndex - 1));
+		
+		//load image from PropertyTab's bitmap
+		if (tab.Bitmap != null)
+			rtb.IconWidget = new Gtk.Image (ImageToPixbuf (tab.Bitmap));
+		else
+			rtb.IconWidget = new Gtk.Image (Stock.MissingImage, IconSize.SmallToolbar);
+		
+		//Console.WriteLine (rtb.IconWidget.GetType().ToString());
 		rtb.SetTooltip (tips, tab.TabName, null);
 		rtb.Toggled += new EventHandler (toolbarClick);	
 		
@@ -439,6 +448,16 @@ public class PropertyGrid : Gtk.VBox
 					vpaned.Pack2 (descFrame, false, true);
 				else
 					vpaned.Remove (descFrame);
+		}
+	}
+	
+	//for PropertyTab images
+	private Gdk.Pixbuf ImageToPixbuf(System.Drawing.Image image)
+	{
+		using (MemoryStream stream = new MemoryStream ()) {
+			image.Save (stream, System.Drawing.Imaging.ImageFormat.Tiff);
+			stream.Position = 0;
+			return new Gdk.Pixbuf (stream);
 		}
 	}
 }

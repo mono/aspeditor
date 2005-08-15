@@ -112,6 +112,11 @@ namespace AspNetEdit.UI
 
 			//can we use a type converter with a built-in editor?
 			TypeConverter tc = pd.Converter;
+			
+			//TODO: build this functionality into the grid 
+			if (tc.GetType () == typeof (ExpandableObjectConverter)) {
+				return new ExpandableObjectEditor (parentRow);
+			}
 
 			//This is a temporary workaround *and* and optimisation
 			//First, most unknown types will be most likely to convert to/from strings

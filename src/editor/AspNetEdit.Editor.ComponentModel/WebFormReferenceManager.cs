@@ -29,6 +29,7 @@
  */
 
 using System;
+using System.Collections;
 using System.Web.UI.Design;
 
 namespace AspNetEdit.Editor.ComponentModel
@@ -53,5 +54,18 @@ namespace AspNetEdit.Editor.ComponentModel
 		}
 
 		#endregion
+		/*
+		public string RegisterTagPrefix (Type objectType)
+		{
+		}
+		
+		public string GetUserControlPath (string tagPrefix, string tagName)
+		{
+		}
+		
+		public Type GetType(string tagPrefix, string tagName)
+		{
+		}
+		*/
 	}
 }

@@ -215,16 +215,18 @@ namespace AspNetEdit.Editor.ComponentModel
 			return builder.ToString ();
 		}
 
-		public void AddControlAtCursor (Control control)
+		public void AddControl (Control control)
 		{
 			string subst = String.Format (controlSubstitute, control.Site.Name);
 			document.Replace (cursor, subst+cursor);
+			base.Controls.Add (control);
 		}
 
 		public void RemoveControl (Control control)
 		{
 			string subst = String.Format (controlSubstitute, control.Site.Name);
 			document.Replace (subst, string.Empty);
+			base.Controls.Remove (control);
 		}
 
 		internal void RenameControl (string oldName, string newName)
@@ -236,5 +238,10 @@ namespace AspNetEdit.Editor.ComponentModel
 		}
 
 		#endregion
+		
+		//TODO:enforce this...
+		public override void VerifyRenderingInServerForm (Control control)
+		{
+		}
 	}
 }

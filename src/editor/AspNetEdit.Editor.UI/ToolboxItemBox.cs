@@ -29,15 +29,19 @@
  */
 
 using System;
+using System.IO;
 using Gtk;
 using System.Drawing.Design;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace AspNetEdit.Editor.UI
 {
 	internal class ToolboxItemBox : EventBox
 	{
 		private ToolboxItem item;
-		Image image;
+		Gtk.Image image;
+		HBox hbox;
 
 		public ToolboxItemBox (ToolboxItem item)
 		{
@@ -49,10 +53,14 @@ namespace AspNetEdit.Editor.UI
 			lab.Xalign = 0;
 			lab.Xpad = 3;
 
-			//TODO: load image from ToolboxItem's bitmap (need to implement that too!)
-			image = new Image (Stock.MissingImage, IconSize.SmallToolbar);
+			//load image from ToolboxItem's bitmap
+			if (item.Bitmap != null)
+				image = new Gtk.Image (ImageToPixbuf (item.Bitmap));
+			else
+				image = new Gtk.Image (Stock.MissingImage, IconSize.SmallToolbar);
+			image.Ypad = 2;
 
-			HBox hbox = new HBox ();
+			hbox = new HBox ();
 			hbox.PackStart (image, false, false, 2);
 			hbox.PackEnd (lab, true, true, 2);
 
@@ -76,8 +84,17 @@ namespace AspNetEdit.Editor.UI
 			base.ModifyFg (StateType.Normal, Parent.Style.Foreground (StateType.Normal));
 		}
 
-		public Image Image {
+		public Gtk.Image Image {
 			get { return image; }
+		}
+		
+		private Gdk.Pixbuf ImageToPixbuf(System.Drawing.Image image)
+		{
+			using (MemoryStream stream = new MemoryStream ()) {
+				image.Save (stream, ImageFormat.Tiff);
+				stream.Position = 0;
+				return new Gdk.Pixbuf (stream);
+			}
 		}
 	}
 }

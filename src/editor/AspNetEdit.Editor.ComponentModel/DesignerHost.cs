@@ -73,7 +73,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			//check arguments
 			if (componentClass == null)
 				throw new ArgumentNullException ("componentClass");
-			if (!componentClass.IsSubclassOf (typeof (System.Web.UI.Control)))
+			if (!componentClass.IsSubclassOf (typeof (System.Web.UI.Control)) && componentClass.GetType() != typeof (System.Web.UI.Control))
 				throw new ArgumentException ("componentClass must be a subclass of System.Web.UI.Control", "componentClass");
 
 			if (componentClass.IsSubclassOf (typeof (System.Web.UI.Page)))
@@ -96,10 +96,6 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		public void DestroyComponent (IComponent component)
 		{
-			//remove from document
-			if ( !(component is Page))
-				((WebFormPage) RootComponent).RemoveControl ((Control) component);
-			
 			//remove from container
 			container.Remove (component);
 			component.Dispose ();			
@@ -362,5 +358,13 @@ namespace AspNetEdit.Editor.ComponentModel
 			writer.Write(((WebFormPage) RootComponent).PersistDocument ());
 			writer.Flush ();
 		}
+		
+		/*TODO: Some .NET 2.0 System.Web.UI.Design.WebFormsRootDesigner methods
+		public abstract void RemoveControlFromDocument(Control control);
+		public virtual void SetControlID(Control control, string id);
+		public abstract string AddControlToDocument(Control newControl,	Control referenceControl, ControlLocation location);
+		public virtual string GenerateEmptyDesignTimeHtml(Control control);
+		public virtual string GenerateErrorDesignTimeHtml(Control control, Exception e, string errorMessage);
+		*/
 	}
 }

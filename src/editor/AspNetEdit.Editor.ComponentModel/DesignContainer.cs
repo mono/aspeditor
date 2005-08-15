@@ -117,7 +117,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			
 			//add to document unless root			
 			if (components.Count != 0)
-				((WebFormPage) host.RootComponent).AddControlAtCursor ((Control) component);
+				((WebFormPage) host.RootComponent).AddControl ((Control) component);
 			
 			//TODO: add references to referenceManager
 
@@ -359,38 +359,6 @@ namespace AspNetEdit.Editor.ComponentModel
 			
 			#endregion
 		}
-
-		/* Decided to watch existing controls' ID property instead of messing about with hiding it and 
-		 * using this extender provider. May bring it back. Version control not online yet.
-		 * 
-		 * [ProvideProperty("(ID)", typeof(IComponent))]
-		 * ((IExtenderProviderService)host.GetService(typeof(IExtenderProviderService))).AddExtenderProvider(this);
-		 *  
-		#region IExtenderProvider Members
-		
-		//we entend the "(ID)" property to childern of the container
-		public bool CanExtend(object extendee)
-		{
-			if ((extendee as IComponent).Site == this)
-				return true;
-			else
-				return false;
-		}
-
-		[Description("Programmatic name of the control")]
-		[Category("Misc")]
-		public string GetID(IComponent component)
-		{
-			return component.Site.Name;
-		}
-
-		public void SetID(IComponent component, string value)
-		{
-			component.Site.Name = value;
-		}
-		
-		#endregion
-		*/
 
 		#region IDisposable Members
 

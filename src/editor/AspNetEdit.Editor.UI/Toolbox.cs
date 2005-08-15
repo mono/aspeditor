@@ -124,12 +124,25 @@ namespace AspNetEdit.Editor.UI
 
 			//get the items and add them all
 			ToolboxItemCollection tools = toolboxService.GetToolboxItems (category, host);
-			foreach (ToolboxItem item in tools) {
+			
+			ToolboxItem[] toolsArr = new ToolboxItem[tools.Count];
+			tools.CopyTo (toolsArr, 0);
+			Array.Sort (toolsArr, new SortByName ());
+			
+			foreach (ToolboxItem item in toolsArr) {
 				ToolboxItemBox itemBox = new ToolboxItemBox (item);
 				itemBox.ButtonReleaseEvent += new ButtonReleaseEventHandler (itemBox_ButtonReleaseEvent);
 				itemBox.ButtonPressEvent += new ButtonPressEventHandler (itemBox_ButtonPressEvent);
 				itemBox.MotionNotifyEvent += new MotionNotifyEventHandler (itemBox_MotionNotifyEvent);
-				((VBox) ((Expander) (expanders[category])).Child).PackEnd (itemBox);
+				((VBox) ((Expander) (expanders[category])).Child).PackEnd (itemBox, false, false, 0);
+			}
+		}
+		
+		private class SortByName : IComparer
+		{
+			public int Compare(object x, object y)
+			{
+				return ((ToolboxItem) y).DisplayName.CompareTo (((ToolboxItem) x).DisplayName);
 			}
 		}
 
@@ -228,12 +241,9 @@ namespace AspNetEdit.Editor.UI
 					Drag.SetIconPixmap (context, im.Colormap, im.Pixmap, im.Mask, 0, 0);
 					break;
 				case ImageType.Pixbuf:
-					Drag.SetIconStock (context, im.Stock, 0, 0);
+					Drag.SetIconPixbuf (context, im.Pixbuf, -8, -8);
 					break;
 			}
-			
-			
-			Console.WriteLine (toolboxService.SerializeToolboxItem (itemBox.ToolboxItem).ToString ());;
 		}
 
 		#endregion
