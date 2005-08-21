@@ -1,10 +1,10 @@
 //
-// TODOAttribute.cs
+// System.Web.Compilation.TagType
 //
-// Author:
-//   Ravi Pratap (ravi@ximian.com)
+// Authors:
+//	Gonzalo Paniagua Javier (gonzalo@ximian.com)
 //
-// (C) Ximian, Inc.  http://www.ximian.com
+// (C) 2003 Ximian, Inc (http://www.ximian.com)
 //
 
 //
@@ -27,32 +27,20 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-using System;
-
-namespace System.Web.UI.Design {
-
-	/// <summary>
-	///   The TODO attribute is used to flag all incomplete bits in our class libraries
-	/// </summary>
-	///
-	/// <remarks>
-	///   Use this to decorate any element which you think is not complete
-	/// </remarks>
-	[AttributeUsage (AttributeTargets.All)]
-	internal class MonoTODOAttribute : Attribute {
-
-		string comment;
-
-		public MonoTODOAttribute ()
-		{}
-
-		public MonoTODOAttribute (string comment)
-		{
-			this.comment = comment;
-		}
-
-		public string Comment {
-			get { return comment; }
-		}
+namespace AspNetEdit.Editor.Persistence
+{
+	enum TagType
+	{
+		Text,
+		Tag,
+		Close,
+		SelfClosing,
+		Directive,
+		ServerComment,
+		DataBinding,
+		CodeRender,
+		CodeRenderExpression,
+		Include
 	}
 }
+

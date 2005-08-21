@@ -37,211 +37,398 @@ using System.IO;
 using System.Web.Compilation;
 using System.Collections;
 using System.Web.UI;
-using System.Web.UI.Design;
 using System.ComponentModel.Design;
+using AspNetEdit.Editor.Persistence;
 
 namespace AspNetEdit.Editor.ComponentModel
 {
 	internal class WebFormPage : System.Web.UI.Page
 	{
-		private const string newDocument = "<html>\n<head>\n\t<title>{0}</title>\n</head>\n<body>\n<form runat=\"server\">\n<cursor/>\n</form></body>\n</html>";
-		private const string cursor = "<cursor/>";
-		private const string controlSubstitute = "<aspcontrol name=\"{0}\" />";
-
-		private StringBuilder document;
-		private Hashtable directives;
-
-		//loads an existing page from a file stream
-		public WebFormPage (Stream fileStream, string fileName)
-			: base ()
+		public WebFormPage ()
 		{
-			//this is where the parsed, substituted document goes
-			document = new StringBuilder ();
-			directives = new Hashtable ();
+			pdc = TypeDescriptor.GetProperties (this);
 		}
 
-		//new blank document
-		public WebFormPage (string documentName)
-		{
-			document = new StringBuilder (String.Format (newDocument, documentName));
-		}
-
-		#region Parser
-		/*
-		  
-			//initialise our parser and hook up events
-			//StreamReader reader = new StreamReader(fileStream);
-			//AspParser parser = new System.Web.Compilation.AspParser(fileName, reader);
-			//reader.Close();
-			
-			//parser.Error += new ParseErrorHandler(parser_Error);
-			//parser.TagParsed += new TagParsedHandler(parser_TagParsed);
-			//parser.TextParsed += new TextParsedHandler(parser_TextParsed);
-
-			//and go!
-			//parser.Parse();
-		 * 
-		#region Parser event handlers
-
-		void parser_TextParsed(ILocation location, string text)
-		{
-			//This one's simple. Nothing to initialise or worry about
-			document.Append(text);
-		}
-
-		void parser_TagParsed(ILocation location, TagType tagtype, string id, TagAttributes attributes)
-		{
-			switch (tagtype)
-			{
-				case TagType.Directive:
-					AddDirective(id, attributes);					
-					break;
-				case TagType.Close:
-					break;
-				case TagType.CodeRender:
-					break;
-				case TagType.CodeRenderExpression:
-					break;
-				case TagType.DataBinding:
-					break;
-				case TagType.Include:
-					break;
-				case TagType.SelfClosing:
-					break;
-				case TagType.ServerComment:
-					break;
-				case TagType.Tag:
-					break;
-				case TagType.Text:
-					break;
-			}
-		}
-
-		private void parser_Error(ILocation location, string message)
-		{
-			document = new StringBuilder();
-			document.Append(ErrorDocument("Error loading document", message + "on line " + location.BeginLine));
-			throw new Exception("The method or operation is not implemented.");
-		}
-
-		#endregion
-
-		#region Parser eventhandler support
-
-		private void AddDirective(string id, TagAttributes attributes)
-		{
-			document.Append("<directive no=''>");
-			//directives.Add(directiveIndex);
-		}
-
-		private string ErrorDocument(string errorTitle, string errorDetails)
-		{
-			return "<html><body fgcolor='red'><h1>"
-				+ errorTitle
-				+ "</h1><p>"
-				+ errorDetails
-				+ "</p></body></html>";
-		}
-
-		#endregion
-		*/
-		#endregion
-
-		#region Document handling
-
-		public string ViewDocument ()
-		{
-			//TODO: Parse document instead of StringBuilder.Replace
-			StringBuilder builder = new StringBuilder (document.ToString ());
-
-			//get a host to work with
-			if (Site == null)
-				throw new Exception ("The WebFormsPage cannot be persisted without a site");
-			IDesignerHost host = Site.GetService (typeof(IDesignerHost)) as IDesignerHost;
-			if (host == null)
-				throw new Exception ("The WebFormsPage cannot be persisted without a host");
-			
-			
-			//substitute all components
-			foreach (IComponent comp in host.Container.Components)
-			{
-				if (!(comp is Control) || comp.Site == null)
-					throw new Exception ("The component is not a sited System.Web.UI.Control");
-
-				System.IO.StringWriter strWriter = new System.IO.StringWriter ();
-				System.Web.UI.HtmlTextWriter writer = new System.Web.UI.HtmlTextWriter (strWriter);
-
-				string substituteText = String.Format (controlSubstitute, comp.Site.Name);
-				((Control) comp).RenderControl (writer);
-				writer.Flush ();
-				strWriter.Flush ();
-				builder.Replace(substituteText, strWriter.ToString ());
-			}
-
-			//remove cursor
-			builder.Replace (cursor, string.Empty);
-
-			return builder.ToString ();
-		}
-
-		public string PersistDocument()
-		{
-			//TODO: Parse document instead of StringBuilder.Replace
-			StringBuilder builder = new StringBuilder (document.ToString ());
-
-			//get a host to work with
-			if (Site == null)
-				throw new Exception ("The WebFormsPage cannot be persisted without a site");
-			IDesignerHost host = Site.GetService (typeof (IDesignerHost)) as IDesignerHost;
-			if (host == null)
-				throw new Exception ("The WebFormsPage cannot be persisted without a host");
-
-			//substitute all components
-			foreach (IComponent comp in host.Container.Components)
-			{
-				if (!(comp is Control) || comp.Site == null)
-					throw new Exception ("The component is not a sited System.Web.UI.Control");
-
-				((Control) comp).ID = comp.Site.Name;
-
-				string substituteText = String.Format (controlSubstitute, comp.Site.Name);
-				string persistedControl = ControlPersister.PersistControl ((Control) comp, host);
-				builder.Replace (substituteText, persistedControl);
-			}
-
-			//remove cursor
-			builder.Replace (cursor, string.Empty);
-
-			return builder.ToString ();
-		}
-
-		public void AddControl (Control control)
-		{
-			string subst = String.Format (controlSubstitute, control.Site.Name);
-			document.Replace (cursor, subst+cursor);
-			base.Controls.Add (control);
-		}
-
-		public void RemoveControl (Control control)
-		{
-			string subst = String.Format (controlSubstitute, control.Site.Name);
-			document.Replace (subst, string.Empty);
-			base.Controls.Remove (control);
-		}
-
-		internal void RenameControl (string oldName, string newName)
-		{
-			string oldSubstituteText = String.Format (controlSubstitute, oldName);
-			string newSubstituteText = String.Format (controlSubstitute, newName);
-
-			document.Replace (oldSubstituteText, newSubstituteText);
-		}
-
-		#endregion
-		
-		//TODO:enforce this...
+		//FIXME: enforce this...
 		public override void VerifyRenderingInServerForm (Control control)
 		{
 		}
+
+		#region Property browser -> page directive linkage
+
+		private PropertyDescriptorCollection pdc = null;
+		private DocumentDirective pageDirective;
+		private DocumentDirective PageDirective
+		{
+			get {
+				if (pageDirective == null) {
+					DesignerHost host = this.Site.GetService (typeof (IDesignerHost)) as DesignerHost;
+					if (host == null)
+						throw new Exception ("Could not obtain DesignerHost service");
+					pageDirective = host.RootDocument.GetFirstDirective ("Page", true);
+				}
+
+				return pageDirective;
+			}	
+		}
+
+		private object GetConvertedProperty (string name)
+		{
+			PropertyDescriptor pd = pdc.Find (name, true);
+			string currentVal = PageDirective[name];
+			if (currentVal == null || currentVal == string.Empty)
+				return ((DefaultValueAttribute)pd.Attributes[typeof (DefaultValueAttribute)]).Value;
+			return pd.Converter.ConvertFromInvariantString (currentVal);
+		}
+
+		private void SetProperty (string name, object value)
+		{
+			PropertyDescriptor pd = pdc.Find (name, true);
+			if (value == ((DefaultValueAttribute)pd.Attributes[typeof(DefaultValueAttribute)]).Value)
+				PageDirective[name] = null;
+			PageDirective[name] = pd.Converter.ConvertToInvariantString (value);
+		}
+
+		#endregion
+
+		#region Property browser attributes for @Page attributes
+
+		[DefaultValue (false)]
+		[Category("Behaviour")]
+		//TODO: Add for .NET 2.0
+		//[DisplayNameAttribute("AspCompat")
+		[Description ("Whether the page can be executed on a single-threaded apartment thread")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public bool AspCompat
+		{
+			get { return (bool) GetConvertedProperty ("AspCompat"); }
+			set { SetProperty ("AspCompat", value); }
+		}
+
+		[DefaultValue(true)]
+		[Category("Compilation")]
+		[Description("Whether the page events are automatically wired up")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public bool AutoEventWireup
+		{
+			get { return (bool)GetConvertedProperty("AutoEventWireup"); }
+			set { SetProperty("AutoEventWireup", value); }
+		}
+
+		[DefaultValue(true)]
+		[Category("Behaviour")]
+		[Description("Whether HTTP response buffering is enabled")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new bool Buffer
+		{
+			get { return (bool)GetConvertedProperty("Buffer"); }
+			set { SetProperty("Buffer", value); }
+		}
+
+		[DefaultValue("")]
+		[Category("Compilation")]
+		[ReadOnly(true)]
+		[Description("The class name for the page when it is compiled")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public string ClassName
+		{
+			get { return (string)GetConvertedProperty("ClassName"); }
+			set { SetProperty("ClassName", value); }
+		}
+
+		[DefaultValue("")]
+		[Category("Behaviour")]
+		[Description("The user agent which controls should target when rendering")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new string ClientTarget
+		{
+			get { return (string)GetConvertedProperty("ClientTarget"); }
+			set { SetProperty("ClientTarget", value); }
+		}
+
+		[DefaultValue("")]
+		[ReadOnly(true)]
+		[Category("Designer")]
+		[Description("The codebehind file associated with the page")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public string CodeBehind
+		{
+			get { return (string)GetConvertedProperty("CodeBehind"); }
+			set { SetProperty("CodeBehind", value); }
+		}
+
+		[DefaultValue(0)]
+		[Category("Globalization")]
+		[Description("The code page used for the response")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new int CodePage
+		{
+			get { return (int)GetConvertedProperty("CodePage"); }
+			set { SetProperty("CodePage", value); }
+		}
+
+		[DefaultValue("")]
+		[Category("Compilation")]
+		[Description("Command-line options used when compiling the page")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public string CompilerOptions
+		{
+			get { return (string)GetConvertedProperty("CompilerOptions"); }
+			set { SetProperty("CompilerOptions", value); }
+		}
+
+		[DefaultValue("text/html")]
+		[Category("Behaviour")]
+		[Description("The MIME type of the HTTP response content")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new string ContentType
+		{
+			get { return (string)GetConvertedProperty("ContentType"); }
+			set { SetProperty("ContentType", value); }
+		}
+
+		[DefaultValue(null)]
+		[Category("Globalization")]
+		[Description("The culture setting for the page")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new CultureInfo Culture
+		{
+			get { return (CultureInfo)GetConvertedProperty("Culture"); }
+			set { SetProperty("Culture", value); }
+		}
+
+		[DefaultValue(false)]
+		[Category("Compilation")]
+		[Description("Whether the page should be compiled with debugging symbols")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public bool Debug
+		{
+			get { return (bool)GetConvertedProperty("Debug"); }
+			set { SetProperty("Debug", value); }
+		}
+
+		[DefaultValue("")]
+		[Category("Designer")]
+		[Description("A description of the page")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public string Description
+		{
+			get { return (string)GetConvertedProperty("Description"); }
+			set { SetProperty("Description", value); }
+		}
+
+		[DefaultValue("true")]
+		[Category("Behaviour")]
+		[Description("Whether SessionState is enabled (true), read-only (ReadOnly) or disabled (false)")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public string EnableSessionState
+		{
+			get { return (string)GetConvertedProperty("EnableSessionState"); }
+			set { SetProperty("EnableSessionState", value); }
+		}
+
+		[DefaultValue(true)]
+		[Category("Behaviour")]
+		[Description("Whether view state is enabled")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new bool EnableViewState
+		{
+			get { return (bool)GetConvertedProperty("EnableViewState"); }
+			set { SetProperty("EnableViewState", value); }
+		}
+
+		[DefaultValue(false)]
+		[Category("Behaviour")]
+		[Description("Whether a machine authentication check should be run on the view state")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public bool ViewStateMac
+		{
+			get { return (bool)GetConvertedProperty("ViewStateMac"); }
+			set { SetProperty("ViewStateMac", value); }
+		}
+
+		[DefaultValue("")]
+		[Category("Behaviour")]
+		[Description("The URL to redirect to in the event of an unhandled page exception")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new string ErrorPage
+		{
+			get { return (string)GetConvertedProperty("ErrorPage"); }
+			set { SetProperty("ErrorPage", value); }
+		}
+
+		[DefaultValue(false)]
+		[Category("Compilation")]
+		[Description("Whether the page should be compiled with Option Explicit for VB 2005")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public bool Explicit
+		{
+			get { return (bool)GetConvertedProperty("Explicit"); }
+			set { SetProperty("Explicit", value); }
+		}
+
+		[DefaultValue("")]
+		[Category("Compilation")]
+		[Description("The code-behind class from which the page inherits")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public string Inherits
+		{
+			get { return (string)GetConvertedProperty("Inherits"); }
+			set { SetProperty("Inherits", value); }
+		}
+
+		[DefaultValue("")]
+		[ReadOnly(true)]
+		[Category("Compilation")]
+		[Description("The language used for compiling inline rendering and block code")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public string Language
+		{
+			get { return (string)GetConvertedProperty("Language"); }
+			set { SetProperty("Language", value); }
+		}
+
+		[DefaultValue(0)]
+		[Category("Globalization")]
+		[Description("The locale identifier of the page. Defaults to the web server's locale")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new int LCID
+		{
+			get { return (int)GetConvertedProperty("LCID"); }
+			set { SetProperty("LCID", value); }
+		}
+
+		[DefaultValue(null)]
+		[Category("Globalization")]
+		[Description("The encoding of the HTTP response content")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new Encoding ResponseEncoding
+		{
+			get { return (Encoding)GetConvertedProperty("ResponseEncoding"); }
+			set { SetProperty("ResponseEncoding", value); }
+		}
+
+		[DefaultValue("")]
+		[ReadOnly(true)]
+		[Category("Compilation")]
+		[Description("The optional code-behind source file to compile when the page is requested")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public string Src
+		{
+			get { return (string)GetConvertedProperty("Src"); }
+			set { SetProperty("Src", value); }
+		}
+
+		[DefaultValue(false)]
+		[Category("Behaviour")]
+		[Description("Whether to maintain scroll position and focus during refreshes. IE5.5 or later only.")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new bool SmartNavigation
+		{
+			get { return (bool)GetConvertedProperty("SmartNavigation"); }
+			set { SetProperty("SmartNavigation", value); }
+		}
+
+		[DefaultValue(false)]
+		[Category("Compilation")]
+		[Description("Whether the page should be compiled with Option Strict for VB 2005")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public bool Strict
+		{
+			get { return (bool)GetConvertedProperty("Strict"); }
+			set { SetProperty("Strict", value); }
+		}
+
+		[DefaultValue(false)]
+		[Category("Behaviour")]
+		[Description("Whether tracing is enabled")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new bool Trace
+		{
+			get { return (bool)GetConvertedProperty("Trace"); }
+			set { SetProperty("Trace", value); }
+		}
+
+		[DefaultValue(TraceMode.Default)]
+		[Category("Behaviour")]
+		[Description("The sorting mode for tracing message")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public TraceMode TraceMode
+		{
+			get { return (TraceMode)GetConvertedProperty("TraceMode"); }
+			set { SetProperty("TraceMode", value); }
+		}
+
+		[DefaultValue("Disabled")]
+		[Category("Behaviour")]
+		[Description("How transactions are supported. Disabled,	NotSupported, Supported, Required, or RequiresNew")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public string Transaction
+		{
+			get { return (string)GetConvertedProperty("Transaction"); }
+			set { SetProperty("Transaction", value); }
+		}
+
+		[DefaultValue(null)]
+		[Category("Globalization")]
+		[Description("The UI culture to use")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public new CultureInfo UICulture
+		{
+			get { return (CultureInfo)GetConvertedProperty("UICulture"); }
+			set { SetProperty("UICulture", value); }
+		}
+
+		[DefaultValue(true)]
+		[Category("Behaviour")]
+		[Description("Whether to use request validation to increase security")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public bool ValidateRequest
+		{
+			get { return (bool)GetConvertedProperty("ValidateRequest"); }
+			set { SetProperty("ValidateRequest", value); }
+		}
+
+		[DefaultValue(4)]
+		[Category("Compilation")]
+		[Description("The compiler warning level at which to abort compilation")]
+		[Bindable(false)]
+		[Browsable(true)]
+		public int WarningLevel
+		{
+			get { return (int)GetConvertedProperty("WarningLevel"); }
+			set { SetProperty("WarningLevel", value); }
+		}
+
+		#endregion
 	}
 }

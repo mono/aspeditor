@@ -1,11 +1,12 @@
-//
-// System.Web.UI.Design.ControlPersister
+// AspNetEdit.Editor.Persistence.ControlPersister
+//	based on Mono's System.Web.UI.Design.ControlPersister
 //
 // Authors:
 //      Gert Driesen (drieseng@users.sourceforge.net)
-//	Michael Hutchinson <m.j.hutchinson@dur.ac.uk>
+//	Michael Hutchinson <m.j.hutchinson@gmail.com>
 //
 // (C) 2004 Novell
+// (c) 2205 Michael Hutchinson
 
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -28,13 +29,16 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-using System.ComponentModel.Design;
+using System;
 using System.IO;
-using System.ComponentModel;
-using System.Collections;
 using System.Text;
+using System.Collections;
+using System.ComponentModel;
+using System.ComponentModel.Design;
+using System.Web.UI;
+using System.Web.UI.Design;
 
-namespace System.Web.UI.Design
+namespace AspNetEdit.Editor.Persistence
 {
 	public sealed class ControlPersister
 	{
@@ -131,7 +135,7 @@ namespace System.Web.UI.Design
 
 		#endregion
 
-		private static void PersistObject (HtmlTextWriter writer, Object control, IDesignerHost host, bool runAtServer)
+		private static void PersistObject (HtmlTextWriter writer, object control, IDesignerHost host, bool runAtServer)
 		{
 			//look up tag prefix from host
 			IWebFormReferenceManager refMan = host.GetService (typeof (IWebFormReferenceManager)) as IWebFormReferenceManager;

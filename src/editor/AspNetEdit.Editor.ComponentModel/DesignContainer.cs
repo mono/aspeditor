@@ -104,7 +104,6 @@ namespace AspNetEdit.Editor.ComponentModel
 
 			
 			if (designer == null) {
-				
 				//component.Site = null;
 				//throw new Exception ("Designer could not be obtained for this component.");
 			}
@@ -115,11 +114,9 @@ namespace AspNetEdit.Editor.ComponentModel
 				designer.Initialize (component);
 			}
 			
-			//add to document unless root			
-			if (components.Count != 0)
-				((WebFormPage) host.RootComponent).AddControl ((Control) component);
-			
-			//TODO: add references to referenceManager
+			//add references to referenceManager, unless root component
+			if (components.Count != 1)
+				host.WebFormReferenceManager.AddReference (component.GetType ());
 
 			//Finally put in container
 			components.Add (component);
@@ -157,8 +154,6 @@ namespace AspNetEdit.Editor.ComponentModel
 				throw new ArgumentNullException ("component");
 			if (component.Site == null || component.Site.Container != this)
 				throw new ArgumentException ("Component is not sited in this container");
-			if (component == host.RootComponent)
-				throw new Exception ("You cannot remove the root component directly");
 
 			//broadcast start of removal process
 			OnComponentRemoving (component);
@@ -176,17 +171,12 @@ namespace AspNetEdit.Editor.ComponentModel
 			//if someone tries to kill root component, must destroy all children too
 			if (component == host.RootComponent)
 			{
-				host.SetRootComponent (null);
-
 				//clean everything up
 				foreach (System.Web.UI.Control control in Components)
 					host.DestroyComponent (control);
-
+				host.SetRootComponent (null);
 				host.Reset ();
 			}
-			
-			//remove from container
-			((WebFormPage) host.RootComponent).RemoveControl ((Control) component);
 			
 			//TODO: remove references from referenceManager
 
@@ -275,7 +265,7 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		protected void OnComponentRename(object component, string oldName, string newName)
 		{
-			((WebFormPage) host.RootComponent).RenameControl (oldName, newName);
+			host.RootDocument.RenameControl (oldName, newName);
 
 			if (ComponentRename != null)
 				ComponentRename (this, new ComponentRenameEventArgs (component, oldName, newName));

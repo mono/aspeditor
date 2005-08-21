@@ -23,7 +23,6 @@ EDITOR_CSFILES =									\
 	$(srcdir)/AspNetEdit.Editor.ComponentModel/SelectionService.cs			\
 	$(srcdir)/AspNetEdit.Editor.ComponentModel/DesignerHost.cs			\
 	$(srcdir)/AspNetEdit.Editor.ComponentModel/ToolboxService.cs			\
-	$(srcdir)/AspNetEdit.Editor.ComponentModel/Directive.cs				\
 	$(srcdir)/AspNetEdit.Editor.ComponentModel/EventBindingService.cs		\
 	$(srcdir)/AspNetEdit.Editor.ComponentModel/Transaction.cs			\
 	$(srcdir)/AspNetEdit.Editor.ComponentModel/ExtenderListService.cs		\
@@ -38,9 +37,23 @@ EDITOR_CSFILES =									\
 	$(srcdir)/AspNetEdit.Editor.UI/RootDesignerView.cs				\
 	$(srcdir)/AspNetEdit.Editor.UI/Toolbox.cs					\
 	$(srcdir)/AspNetEdit.Editor.UI/ToolboxItemBox.cs				\
-	$(srcdir)/System.Web.UI.Design/ControlParser.cs					\
-	$(srcdir)/System.Web.UI.Design/TODOAttribute.cs					\
-	$(srcdir)/System.Web.UI.Design/ControlPersister.cs
+	$(srcdir)/AspNetEdit.Editor.Persistence/AspParser.cs				\
+	$(srcdir)/AspNetEdit.Editor.Persistence/AspTokenizer.cs				\
+	$(srcdir)/AspNetEdit.Editor.Persistence/ControlPersister.cs			\
+	$(srcdir)/AspNetEdit.Editor.Persistence/Directive.cs				\
+	$(srcdir)/AspNetEdit.Editor.Persistence/ILocation.cs				\
+	$(srcdir)/AspNetEdit.Editor.Persistence/Location.cs				\
+	$(srcdir)/AspNetEdit.Editor.Persistence/ParseException.cs			\
+	$(srcdir)/AspNetEdit.Editor.Persistence/ParsingObject.cs			\
+	$(srcdir)/AspNetEdit.Editor.Persistence/DesignTimeParser.cs			\
+	$(srcdir)/AspNetEdit.Editor.Persistence/HtmlParsingObject.cs			\
+	$(srcdir)/AspNetEdit.Editor.Persistence/RootParsingObject.cs			\
+	$(srcdir)/AspNetEdit.Editor.Persistence/ServerControlParsingObject.cs		\
+	$(srcdir)/AspNetEdit.Editor.Persistence/StrUtils.cs				\
+	$(srcdir)/AspNetEdit.Editor.Persistence/TagAttributes.cs			\
+	$(srcdir)/AspNetEdit.Editor.Persistence/TagType.cs				\
+	$(srcdir)/AspNetEdit.Editor.ComponentModel/Document.cs				\
+	$(srcdir)/AspNetEdit.Editor.ComponentModel/DocumentDirective.cs
 
 $(ASSEMBLY): $(EDITOR_CSFILES)
 	$(MCS) $(EDITOR_REFERENCES) -debug -target:library -out:$@ $(EDITOR_CSFILES)

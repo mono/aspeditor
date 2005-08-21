@@ -38,6 +38,7 @@ using System.Drawing.Design;
 using System.IO;
 using System.Web.UI;
 using System.Web.UI.Design;
+using AspNetEdit.Editor.Persistence;
 
 namespace AspNetEdit.Editor.ComponentModel
 {
@@ -50,18 +51,24 @@ namespace AspNetEdit.Editor.ComponentModel
 		{
 			this.parentServices = parentServices;
 			container = new DesignContainer (this);
-			referenceManager = new WebFormReferenceManager ();
+			referenceManager = new WebFormReferenceManager (this);
 
 			//register services
 			parentServices.AddService (typeof (IDesignerHost), this);
 			parentServices.AddService (typeof (IComponentChangeService), container);
-			parentServices.AddService (typeof (IWebFormReferenceManager), referenceManager);
+			parentServices.AddService (typeof (IWebFormReferenceManager), referenceManager);		
+		}
+
+		public WebFormReferenceManager WebFormReferenceManager
+		{
+			get { return referenceManager; }
 		}
 
 		#region Component management
 
 		private DesignContainer container;
 		private IComponent rootComponent = null;
+		private Document rootDocument;
 
 		public IContainer Container
 		{
@@ -80,12 +87,16 @@ namespace AspNetEdit.Editor.ComponentModel
 				throw new InvalidOperationException ("You cannot directly add a page to the host. Use NewFile() instead");
 
 			//create the object
-			ConstructorInfo constructor = componentClass.GetConstructor (new Type[] { });
-			IComponent component = constructor.Invoke(new object[] { }) as IComponent;
+			IComponent component = (IComponent) Activator.CreateInstance (componentClass);
 
 			//and add to container
 			container.Add (component, name);
 
+			//add to document
+			((Control)RootComponent).Controls.Add ((Control) component);
+			RootDocument.AddControl ((Control)component);
+
+			
 			return component;
 		}
 
@@ -96,6 +107,12 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		public void DestroyComponent (IComponent component)
 		{
+			if (component != RootComponent) {
+				//remove from component and dcument
+				((Control) RootComponent).Controls.Remove ((Control) component);
+				RootDocument.RemoveControl ((Control)component);
+			}
+
 			//remove from container
 			container.Remove (component);
 			component.Dispose ();			
@@ -123,9 +140,22 @@ namespace AspNetEdit.Editor.ComponentModel
 			get { return rootComponent; }
 		}
 
+		public Document RootDocument
+		{
+			get { return rootDocument; }
+		}
+
 		internal void SetRootComponent (IComponent rootComponent)
 		{
 			this.rootComponent = rootComponent;
+			if (rootComponent == null) {
+				rootDocument = null;
+				return;
+			}
+
+			if (!(rootComponent is Control))
+				throw new InvalidOperationException ("The root component must be a Control");
+			this.rootDocument = new Document ((Control)rootComponent, this);
 		}
 
 		public string RootComponentClassName {
@@ -319,21 +349,25 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		public void NewFile ()
 		{
-			if (activated)
-				throw new InvalidOperationException ("You must reset the host before creating another file.");
+			if (activated || RootComponent != null)
+				throw new InvalidOperationException ("You must reset the host before loading another file.");
+			loading = true;
 
-			this.container.Add (new WebFormPage ("New document"));
+			this.Container.Add (new WebFormPage ());
+			RootDocument.New ("New Document");
+
+			loading = false;
+			OnLoadComplete ();
 		}
 
 		public void Load(Stream file, string fileName)
 		{
-			if (activated)
+			if (activated || RootComponent != null)
 				throw new InvalidOperationException ("You must reset the host before loading another file.");
 			loading = true;
 
-			WebFormPage page = new WebFormPage (file, fileName);
-
-			this.Container.Add (page);
+			this.Container.Add (new WebFormPage());			
+			RootDocument.LoadFile (file, fileName);
 
 			loading = false;
 			OnLoadComplete ();
@@ -355,7 +389,7 @@ namespace AspNetEdit.Editor.ComponentModel
 		{
 			StreamWriter writer = new StreamWriter (file);
 
-			writer.Write(((WebFormPage) RootComponent).PersistDocument ());
+			writer.Write(RootDocument.PersistDocument ());
 			writer.Flush ();
 		}
 		

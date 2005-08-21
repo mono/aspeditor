@@ -117,8 +117,9 @@ namespace AspNetEdit.Editor.UI
 			//TODO: FIX!!!!
 			System.IO.FileStream stream = new System.IO.FileStream(mozPath + "temp.html", System.IO.FileMode.Create);
 			System.IO.StreamWriter w = new System.IO.StreamWriter(stream);
-				
-			string doc = ((WebFormPage) host.RootComponent).ViewDocument();
+			
+
+			string doc = ((DesignerHost)host).RootDocument.ViewDocument();
 			w.Write(doc);
 			w.Flush();
 			stream.Close();
@@ -131,8 +132,8 @@ namespace AspNetEdit.Editor.UI
 			//TODO: FIX!!!!
 			System.IO.FileStream stream = new System.IO.FileStream (mozPath + "temp.html", System.IO.FileMode.Create);
 			System.IO.StreamWriter w = new System.IO.StreamWriter (stream);
-				
-			string doc = ((WebFormPage) host.RootComponent).ViewDocument ();
+
+			string doc = ((DesignerHost)host).RootDocument.ViewDocument ();
 			w.Write (doc);
 			w.Flush ();
 			stream.Close ();

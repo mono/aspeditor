@@ -52,7 +52,7 @@ namespace AspNetEdit.SampleHost
 			Application.Init ();
 
 			#region Packing and layout
-			
+
 			Window window = new Window ("AspNetEdit Host Sample");
 			window.SetDefaultSize (1000, 700);
 			window.DeleteEvent += new DeleteEventHandler (window_DeleteEvent);
@@ -79,6 +79,10 @@ namespace AspNetEdit.SampleHost
 			ToolButton saveButton = new ToolButton (Stock.Save);
 			buttons.Add (saveButton);
 			saveButton.Clicked += new EventHandler (saveButton_Clicked);
+
+			ToolButton openButton = new ToolButton(Stock.Open);
+			buttons.Add(openButton);
+			openButton.Clicked += new EventHandler(openButton_Clicked);
 
 			ToolButton undoButton = new ToolButton (Stock.Undo);
 			buttons.Add (undoButton);
@@ -107,9 +111,9 @@ namespace AspNetEdit.SampleHost
 			//set up the services
 			ServiceContainer services = new ServiceContainer ();
 			services.AddService (typeof (INameCreationService), new AspNetEdit.Editor.ComponentModel.NameCreationService ());
-			services.AddService (typeof (ITypeResolutionService), new AspNetEdit.Editor.ComponentModel.TypeResolutionService ());
 			services.AddService (typeof (ISelectionService), new AspNetEdit.Editor.ComponentModel.SelectionService ());
 			services.AddService (typeof (IEventBindingService), new AspNetEdit.Editor.ComponentModel.EventBindingService (window));
+			services.AddService (typeof (ITypeResolutionService), new AspNetEdit.Editor.ComponentModel.TypeResolutionService ());
 			ExtenderListService extListServ = new AspNetEdit.Editor.ComponentModel.ExtenderListService ();
 			services.AddService (typeof (IExtenderListService), extListServ);
 			services.AddService (typeof (IExtenderProviderService), extListServ);
@@ -152,19 +156,52 @@ namespace AspNetEdit.SampleHost
 
 		static void saveButton_Clicked (object sender, EventArgs e)
 		{
-			//FileChooserDialog fcd = new FileChooserDialog()
-			FileSelection fs = new FileSelection ("Choose a file");
-			fs.Filename = ((System.Web.UI.Control) host.RootComponent).ID + ".aspx";
-			fs.SelectMultiple = false;
-			fs.Run ();
-         		fs.Hide ();
-			
-			FileStream fileStream = new FileStream (fs.Filename, FileMode.Create);
-			if (fileStream == null)
-				return;
+			FileChooserDialog fcd = new FileChooserDialog ("Save page as...", (Window)((Widget)sender).Toplevel, FileChooserAction.Save);
+			fcd.AddButton (Stock.Cancel, ResponseType.Cancel);
+			fcd.AddButton (Stock.Save, ResponseType.Ok);
+			fcd.DefaultResponse = ResponseType.Ok;
+			fcd.Filter = new FileFilter();
+			fcd.Filter.AddPattern ("*.aspx");
+			fcd.SelectMultiple = false;
+			fcd.SetFilename (((System.Web.UI.Control)host.RootComponent).ID + ".aspx");
 
-			host.SaveDocument (fileStream);
-			fileStream.Close ();
+			ResponseType response = (ResponseType) fcd.Run();
+			fcd.Hide();
+
+			if (response == ResponseType.Ok && fcd.Filename != null)
+				using (FileStream fileStream = new FileStream (fcd.Filename, FileMode.Create))
+				{
+					if (fileStream == null)
+						return;
+					host.SaveDocument (fileStream);
+				}
+			fcd.Destroy ();
+		}
+
+		static void openButton_Clicked(object sender, EventArgs e)
+		{
+			FileChooserDialog fcd = new FileChooserDialog ("Open page...", (Window)((Widget)sender).Toplevel, FileChooserAction.Open);
+			fcd.AddButton(Stock.Cancel, ResponseType.Cancel);
+			fcd.AddButton(Stock.Open, ResponseType.Ok);
+			fcd.DefaultResponse = ResponseType.Ok;
+			fcd.Filter = new FileFilter();
+			fcd.Filter.AddPattern ("*.aspx");
+			fcd.SelectMultiple = false;
+			fcd.SetFilename (((System.Web.UI.Control)host.RootComponent).ID + ".aspx");
+
+			ResponseType response = (ResponseType) fcd.Run( );
+			fcd.Hide ();
+
+			if (response == ResponseType.Ok && fcd.Filename != null)
+				using (FileStream fileStream = new FileStream (fcd.Filename, FileMode.Open))
+				{
+					if (fileStream == null)
+						return;
+					host.Reset ();
+					host.Load (fileStream, fcd.Filename);
+					host.Activate ();
+				}
+			fcd.Destroy();
 		}
 
 		static void redoButton_Clicked (object sender, EventArgs e)
