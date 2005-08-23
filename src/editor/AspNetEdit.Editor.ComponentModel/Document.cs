@@ -43,10 +43,10 @@ namespace AspNetEdit.Editor.ComponentModel
 {
 	public class Document
 	{
-		public readonly string newDocument = "<html>\n<head>\n\t<title>{0}</title>\n</head>\n<body>\n<form runat=\"server\">\n<cursor/>\n</form></body>\n</html>";
-		public readonly string cursor = "<cursor/>";
-		public readonly string ControlSubstituteStructure = "<aspcontrol name=\"{0}\" />";
-		public readonly string DirectivePlaceholderStructure = "<directiveplaceholder id =\"{0}\" />";
+		public static readonly string newDocument = "<html>\n<head>\n\t<title>{0}</title>\n</head>\n<body>\n<form runat=\"server\">\n<cursor/>\n</form></body>\n</html>";
+		public static readonly string cursor = "<cursor/>";
+		public static readonly string ControlSubstituteStructure = "<aspcontrol name=\"{0}\" />";
+		public static readonly string DirectivePlaceholderStructure = "<directiveplaceholder id =\"{0}\" />";
 
 		StringBuilder document;
 		Hashtable directives;
@@ -121,8 +121,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			DesignTimeParser ps = new DesignTimeParser (host);
 
 			TextReader reader = new StreamReader (fileStream);
-			try
-			{
+			try {
 				string doc;
 				Control[] controls;
 				ps.ParseDocument (reader.ReadToEnd (), out controls, out doc);
@@ -130,10 +129,13 @@ namespace AspNetEdit.Editor.ComponentModel
 				foreach (Control c in controls)
 					host.Container.Add (c);
 			}
-			catch (ParseException ex)
-			{
+			catch (ParseException ex) {
 				document = new StringBuilder ();
 				document.AppendFormat ("<html><body><h1>{0}</h1><p>{1}</p></body>", ex.Title, ex.Message);
+			}
+			catch (Exception ex) {
+				document = new StringBuilder ();
+				document.AppendFormat ("<html><body><h1>{0}</h1><p>{1}</p></body>", "Error loading document", ex.Message);
 			}
 		}
 

@@ -68,7 +68,6 @@ namespace AspNetEdit.Editor.ComponentModel
 	{
 		private Hashtable properties;
 		private string name;
-		private bool allowsMultiple;
 		private int key;
 
 		public DocumentDirective (string name, IDictionary properties, int key)

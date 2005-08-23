@@ -87,9 +87,7 @@ namespace AspNetEdit.Editor.Persistence
 				throw new ArgumentNullException ("control");
 			if (sw == null)
 				throw new ArgumentNullException ("sw");
-			if (!(control is System.Web.UI.Control))
-				throw new InvalidOperationException ("Only components that derive from System.Web.UI.Control can be serialised");
-
+			
 			//We use an HtmlTextWriter for output
 			HtmlTextWriter writer;
 			if (sw is HtmlTextWriter)

@@ -24,12 +24,10 @@
     <File name="./AssemblyInfo.cs.in" subtype="Code" buildaction="Exclude" />
     <File name="./AspNetEdit.Editor.ComponentModel/DesignContainer.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/DesignerHost.cs" subtype="Code" buildaction="Compile" />
-    <File name="./AspNetEdit.Editor.ComponentModel/Directive.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/EventBindingService.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/ExtenderListService.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/MenuCommandService.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/NameCreationService.cs" subtype="Code" buildaction="Compile" />
-    <File name="./AspNetEdit.Editor.ComponentModel/PageDirective.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/RootDesigner.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/SelectionService.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/ToolboxService.cs" subtype="Code" buildaction="Compile" />
@@ -41,9 +39,23 @@
     <File name="./AspNetEdit.Editor.UI/RootDesignerView.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.UI/Toolbox.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.UI/ToolboxItemBox.cs" subtype="Code" buildaction="Compile" />
-    <File name="./System.Web.UI.Design/ControlParser.cs" subtype="Code" buildaction="Compile" />
-    <File name="./System.Web.UI.Design/ControlPersister.cs" subtype="Code" buildaction="Compile" />
-    <File name="./System.Web.UI.Design/TODOAttribute.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.ComponentModel/Document.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.ComponentModel/DocumentDirective.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/AspParser.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/AspTokenizer.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/ControlPersister.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/DesignTimeParser.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/Directive.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/HtmlParsingObject.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/ILocation.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/Location.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/ParseException.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/ParsingObject.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/RootParsingObject.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/ServerControlParsingObject.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/StrUtils.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/TagAttributes.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.Persistence/TagType.cs" subtype="Code" buildaction="Compile" />
   </Contents>
   <References>
     <ProjectReference type="Project" localcopy="True" refto="jscall" />

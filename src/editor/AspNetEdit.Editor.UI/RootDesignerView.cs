@@ -46,7 +46,6 @@ namespace AspNetEdit.Editor.UI
 		private ISelectionService selectionService;
 		private IMenuCommandService menuService;
 		private string mozPath;
-		private StringBuilder document;
 
 		public RootDesignerView (IDesignerHost host)
 			: base()

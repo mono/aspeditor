@@ -36,12 +36,12 @@ using System.Web.UI;
 using System.Web.UI.Design;
 using System.ComponentModel.Design;
 using System.Globalization;
+using AspNetEdit.Editor.ComponentModel;
 
 namespace AspNetEdit.Editor.Persistence
 {
 	internal class ServerObjectParsingObject : ParsingObject
 	{
-		private const string controlSubstitute = "<aspcontrol name=\"{0}\" />";
 		private object obj;
 		ParseChildrenAttribute parseAtt;
 		PropertyDescriptorCollection pdc;
@@ -96,28 +96,55 @@ namespace AspNetEdit.Editor.Persistence
 			}
 
 			parseAtt = TypeDescriptor.GetAttributes (obj)[typeof(ParseChildrenAttribute )] as ParseChildrenAttribute;
-			if (parseAtt == null)
-				parseAtt = ParseChildrenAttribute.Default;
-			Console.WriteLine(tagid);
-			//FIXME: fix this in MCS
-			if (string.Empty.Equals (parseAtt.DefaultProperty))
-				parseAtt.DefaultProperty = null;
-
+			//FIXME: fix this in MCS classlib
+			if (parseAtt.DefaultProperty.Length == 0)
+				parseAtt = null;
+			
 			//work out how we're trying to parse the children
-			if (parseAtt.DefaultProperty != null) {
-				Console.WriteLine(parseAtt.DefaultProperty.ToString());
-				PropertyDescriptor pd = pdc[parseAtt.DefaultProperty];
-				if (pd == null)
-					throw new Exception ("Default property does not exist");
-				if (pd.PropertyType.GetInterface("System.Collections.IList") == (typeof(IList)))
-					mode = ParseChildrenMode.DefaultCollectionProperty;
+			if (parseAtt != null) {
+				if (parseAtt.DefaultProperty != null) {
+					PropertyDescriptor pd = pdc[parseAtt.DefaultProperty];
+					if (pd == null)
+						throw new Exception ("Default property does not exist");
+					if (pd.PropertyType.GetInterface("System.Collections.IList") == (typeof(IList)))
+						mode = ParseChildrenMode.DefaultCollectionProperty;
+					else
+						mode = ParseChildrenMode.DefaultProperty;
+				}
+				else if (parseAtt.ChildrenAsProperties)
+					mode = ParseChildrenMode.Properties;
 				else
-					mode = ParseChildrenMode.DefaultProperty;
+					mode = ParseChildrenMode.Controls;
 			}
-			else if (parseAtt.ChildrenAsProperties)
-				mode = ParseChildrenMode.Properties;
-			else
+			else {
+				//FIXME: these are actually persistence hints, but ParseChildrenAttribute doesn't always exist.
+				//FIXME: logic would be dodgy with bad input
+				parseAtt = ParseChildrenAttribute.Default;
 				mode = ParseChildrenMode.Controls;
+				foreach (PropertyDescriptor pd in pdc) {
+					PersistenceModeAttribute modeAttrib = pd.Attributes[typeof(PersistenceModeAttribute)] as PersistenceModeAttribute;
+					if (modeAttrib == null) return;
+					
+					switch (modeAttrib.Mode) {
+						case PersistenceMode.Attribute:
+							continue;
+						case PersistenceMode.EncodedInnerDefaultProperty:
+							parseAtt.DefaultProperty = pd.Name;
+							mode = ParseChildrenMode.DefaultEncodedProperty;
+							break;				
+						case PersistenceMode.InnerDefaultProperty:
+							parseAtt.DefaultProperty = pd.Name;
+							if (pd.PropertyType.GetInterface("System.Collections.IList") == (typeof(IList)))
+								mode = ParseChildrenMode.DefaultCollectionProperty;
+							else
+								mode = ParseChildrenMode.DefaultProperty;
+							break;
+						case PersistenceMode.InnerProperty:
+							mode = ParseChildrenMode.Properties;
+							break;
+					}
+				}
+			}			
 		}
 
 		public override void AddText (string text)
@@ -134,6 +161,9 @@ namespace AspNetEdit.Editor.Persistence
 						throw new Exception ("Unexpected text found in child properties");
 				case ParseChildrenMode.DefaultProperty:
 					innerText += text;
+					return;
+				case ParseChildrenMode.DefaultEncodedProperty:
+					innerText += System.Web.HttpUtility.HtmlDecode (text);
 					return;
 			}
 		}
@@ -158,7 +188,7 @@ namespace AspNetEdit.Editor.Persistence
 			}
 			//FIME: what if it isn't?
 			if (obj is Control)
-				base.AddText ( String.Format (controlSubstitute, ((Control)obj).ID));
+				base.AddText ( String.Format (Document.ControlSubstituteStructure, ((Control)obj).ID));
 			base.AddControl (obj);
 			return base.CloseObject (closingTagText);
 		}
@@ -168,10 +198,14 @@ namespace AspNetEdit.Editor.Persistence
 			
 			switch (mode) {
 				case ParseChildrenMode.DefaultProperty:
-					//oops, we didn't need to parse this.
+					//oops, we didn't need to tokenise this.
 					innerText += location.PlainText;
 					//how do we get end tag?
-					throw new NotImplementedException();
+					throw new NotImplementedException ("Inner default properties that look like tags have not been implemented yet.");
+				case ParseChildrenMode.DefaultEncodedProperty:
+					innerText += System.Web.HttpUtility.HtmlDecode (location.PlainText);
+					//how do we get end tag?
+					throw new NotImplementedException ("Inner default properties that look like tags have not been implemented yet.");
 				case ParseChildrenMode.Controls:
 					//html tags
 					if (tagid.IndexOf(':') == -1)
@@ -188,9 +222,9 @@ namespace AspNetEdit.Editor.Persistence
 
 					return new ServerObjectParsingObject (tagType, attributes.GetDictionary(null), tagid, this);
 				case ParseChildrenMode.Properties:
-					throw new NotImplementedException ();
+					throw new NotImplementedException ("Multiple child properties have not yet been implemented.");
 			}
-			throw new NotImplementedException();
+			throw new ParseException (location, "Unexpected state encountered: ");
 		}
 
 		protected override void AddControl(object control)
@@ -204,7 +238,7 @@ namespace AspNetEdit.Editor.Persistence
 					((IList)pd.GetValue(obj)).Add(control);
 					return;
 				case ParseChildrenMode.Controls:
-					throw new NotImplementedException();					
+					throw new NotImplementedException("Child controls have not yet been implemented.");					
 			}
 		}
 	}
@@ -212,6 +246,7 @@ namespace AspNetEdit.Editor.Persistence
 	public enum ParseChildrenMode
 	{
 		DefaultProperty,
+		DefaultEncodedProperty,
 		DefaultCollectionProperty,
 		Properties,
 		Controls

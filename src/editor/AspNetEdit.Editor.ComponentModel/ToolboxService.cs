@@ -287,8 +287,6 @@ namespace AspNetEdit.Editor.ComponentModel
 		{
 			Type[] types = assembly.GetTypes ();
 
-			AssemblyName assemblyName = assembly.GetName ();
-
 			foreach (Type t in types)
 			{
 				if (t.IsAbstract || t.IsNotPublic) continue;
@@ -303,8 +301,8 @@ namespace AspNetEdit.Editor.ComponentModel
 				
 				ToolboxItemAttribute tba = (ToolboxItemAttribute) atts[typeof(ToolboxItemAttribute)];
 				if (tba.Equals (ToolboxItemAttribute.None)) continue;
-	
-				Type toolboxItemType = (tba.ToolboxItemType == null) ? typeof (ToolboxItem) : tba.ToolboxItemType;
+				//FIXME: fix WebControlToolboxItem
+				Type toolboxItemType = typeof (ToolboxItem);//(tba.ToolboxItemType == null) ? typeof (ToolboxItem) : tba.ToolboxItemType;
 
 				string category = "General";
 				
@@ -317,7 +315,7 @@ namespace AspNetEdit.Editor.ComponentModel
 				else if (t.IsSubclassOf (typeof (System.Web.UI.WebControls.WebControl)))
 					category = "Web Controls";
 
-				AddToolboxItem(new ToolboxItem (t), category);
+				AddToolboxItem ((ToolboxItem) Activator.CreateInstance (toolboxItemType, new object[] {t}), category);
 			}
 		}
 		

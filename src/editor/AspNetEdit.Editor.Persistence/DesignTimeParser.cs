@@ -44,13 +44,9 @@ namespace AspNetEdit.Editor.Persistence
 	{
 		DesignerHost host;
 		IWebFormReferenceManager refMan;
-		StringBuilder document;
 
 		RootParsingObject rootParsingObject = null;
 		ParsingObject openObject = null;
-
-		ILocation currentLocation = null;
-		ArrayList controlList = null;
 
 		public DesignTimeParser (DesignerHost host)
 		{
@@ -69,8 +65,6 @@ namespace AspNetEdit.Editor.Persistence
 		{
 			
 			AspParser parser = InitialiseParser (document);
-			this.document = new StringBuilder ();
-			controlList = new ArrayList ();
 			parser.Parse ();
 			
 			if (openObject != null) {
@@ -107,35 +101,33 @@ namespace AspNetEdit.Editor.Persistence
 
 		void TagParsed (ILocation location, TagType tagtype, string tagid, TagAttributes attributes)
 		{
-			currentLocation = location;
-
 			switch (tagtype)
 			{
 				case TagType.Close:
 					if (openObject == null)
-						throw new ParseException(location, "There are more closing tags than opening tags");
+						throw new ParseException (location, "There are more closing tags than opening tags");
 
 					if (0 != string.Compare (openObject.TagID, tagid))
 						throw new ParseException (location, "Closing tag " + tagid + " does not match opening tag " + openObject.TagID);
 					openObject = openObject.CloseObject (location.PlainText);
 					break;
 				case TagType.CodeRender:
-					throw new NotImplementedException();
+					throw new NotImplementedException ("Code render expressions have not yet been implemented: " + location.PlainText);
 					break;
 				case TagType.CodeRenderExpression:
-					throw new NotImplementedException();
+					throw new NotImplementedException ("Code render expressions have not yet been implemented: " + location.PlainText);
 					break;
 				case TagType.DataBinding:
-					throw new NotImplementedException();
+					throw new NotImplementedException("Data binding expressions have not yet been implemented: " + location.PlainText);
 					break;
 				case TagType.Directive:
 					ProcessDirective (tagid, attributes);
 					break;
 				case TagType.Include:
-					throw new NotImplementedException();
+					throw new NotImplementedException ("Server-side includes have not yet been implemented: " + location.PlainText);
 					break;
 				case TagType.ServerComment:
-					throw new NotImplementedException();
+					throw new NotImplementedException ("Server comments have not yet been implemented: " + location.PlainText);
 					break;
 				case TagType.Tag:
 					//check root parsingObject, or set parent
@@ -157,7 +149,7 @@ namespace AspNetEdit.Editor.Persistence
 					openObject = openObject.CloseObject(string.Empty);
 					break;
 				case TagType.Text:
-					throw new NotImplementedException();
+					throw new NotImplementedException("Text tagtypes have not yet been implemented: " + location.PlainText);
 					break;
 			}
 		}
@@ -174,7 +166,8 @@ namespace AspNetEdit.Editor.Persistence
 		
 		void ProcessDirective (string tagid, TagAttributes attributes)
 		{
-			host.RootDocument.AddDirective (tagid, attributes.GetDictionary (null));
+			string placeholder = host.RootDocument.AddDirective (tagid, attributes.GetDictionary (null));
+			openObject.AddText (placeholder);
 		}
 
 		void TextParsed (ILocation location, string text)
