@@ -1,0 +1,9 @@
+table {
+  border			: 1px solid #aaaaaa;
+}
+
+::-moz-selection{
+  background-color		: #003366;
+  color				: #eee;
+}
+

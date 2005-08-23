@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<?xml-stylesheet href="chrome://aspdesigner/skin/" type="text/css"?>
+
+<!DOCTYPE window>
+<window style      = "height: 100%; width: 100%;"
+        xmlns      = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:html = "http://www.w3.org/1999/xhtml"
+        onload     = "aspEditor_initialize();">
+<script type="application/x-javascript" src="chrome://aspdesigner/content/aspdesigner.js"/>
+<script type="application/x-javascript" src="chrome://aspdesigner/content/JSCall.js"/>
+<script type="application/x-javascript" src="chrome://inspector/content/Flasher.js"/>
+<script type="application/x-javascript" src="chrome://inspector/content/jsutil/xpcom/XPCU.js"/>
+
+<hbox flex="4">
+  <vbox flex="15">
+    <editor editortype="html" type="content-primary" id="aspeditor"
+            context="editorContentContext" flex="1" tooltip="aHTMLTooltip"/>
+  </vbox>
+
+  <vbox flex="1">
+    <button label="Load Page" oncommand="editor.loadPage(injectHTML);"/>
+    <button label="Save Page" oncommand="editor.getPage();"/>
+    <button label="Update Control" oncommand="editor.updateControl(controlId, newHTML);"/>
+    <button label="Insert Label" oncommand="editor.addControl(newControl, 'label1');"/>
+    <button label="Remove Control" oncommand="editor.removeControl('button2');"/>
+    <button label="Cut" oncommand="editor.cut();"/>
+    <button label="Copy" oncommand="editor.copy();"/>
+    <button label="Paste" oncommand="editor.paste();"/>
+    <button label="Undo" oncommand="editor.undo();"/>
+    <button label="Redo" oncommand="editor.redo();"/>
+    <button label="Hide UI" oncommand="editor.hideTableUI();"/>
+  </vbox>  
+</hbox>
+<hbox flex="2">
+  <textbox id="debugWin" flex="1" multiline="true"/>
+</hbox>
+</window>
+
+
+
