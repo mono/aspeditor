@@ -1,0 +1,5 @@
+INSTALLATION
+============
+All the files in chrome/content should go in $MOZ_HOME/chrome/aspdesigner/content/aspdesigner
+All the files in chrome/locale should go in $MOZ_HOME/chrome/aspdesigner/locale/en-US/aspdesigner
+All the files in chrome/skin should go in $MOZ_HOME/chrome/aspdesigner/skin/aspdesigner
