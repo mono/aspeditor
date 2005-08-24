@@ -5,7 +5,7 @@
 <window style      = "height: 100%; width: 100%;"
         xmlns      = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:html = "http://www.w3.org/1999/xhtml"
-        onload     = "aspEditor_initialize();">
+        onload     = "aspNetEditor_initialize();">
 <script type="application/x-javascript" src="chrome://aspdesigner/content/aspdesigner.js"/>
 <script type="application/x-javascript" src="chrome://aspdesigner/content/JSCall.js"/>
 <script type="application/x-javascript" src="chrome://inspector/content/Flasher.js"/>

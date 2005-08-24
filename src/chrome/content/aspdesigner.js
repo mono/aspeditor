@@ -1,9 +1,22 @@
 var editor                 = null;
-var gDebug                 = true;
-var gControlTagName        = 'aspcontrol';
+var host                   = null;
 var gWillFlash             = false;
-var gBorderHighlightString = '#ee0000';
 var gDropOverControlId     = '';
+var gCancelClick           = false;
+
+const DEBUG                     = true;
+const BORDER_CAN_DROP_COLOR     = '#ee0000';
+const BORDER_CAN_DROP_THICK     = '2';
+const BORDER_CAN_DROP_INVERT    = false;
+const CONTROL_TAG_NAME          = 'aspcontrol';
+const SINGLE_CLICK              = 'single';
+const DOUBLE_CLICK              = 'double';
+const RIGHT_CLICK               = 'right';
+const OBJECT_RESIZER            = Components.interfaces.nsIHTMLObjectResizer;
+const INLINE_TABLE_EDITOR       = Components.interfaces.nsIHTMLInlineTableEditor;
+const TABLE_EDITOR              = Components.interfaces.nsITableEditor;
+const EDITOR                    = Components.interfaces.nsIEditor;
+const SELECTION_PRIVATE         = Components.interfaces.nsISelectionPrivate;
 
 var controlId = "asptag2";
 var injectHTML = "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML//EN//3.0\"><html><head></head><body><aspcontrol id=\"button1\" md-can-resize=\"true\" style=\"-moz-user-select: none; border: 1px solid #aaaaaa;  -moz-user-focus: ignore; -moz-user-input: disabled; vertical-align: text-bottom; display: -moz-inline-box; -moz-user-modify: read-only;\"><span style=\"display: block\"><div><img src=\"http://www.go-mono.com/images/mono-new.gif\"/><input type=\"button\" value=\"Button Control\" style=\"-moz-user-select: none; -moz-user-focus: ignore; -moz-user-input: disabled;\"/></div></span></aspcontrol>Some text<aspcontrol id=\"button2\" md-can-resize=\"true\" style=\"-moz-user-select: none; border: 1px solid #aaaaaa;  -moz-user-focus: ignore; -moz-user-input: disabled; vertical-align: text-bottom; display: -moz-inline-box; min-height: 70px; -moz-user-modify: read-only;\"><span style=\"display: block\"><div><div>Block text</div><input type=\"button\" value=\"Button Control\" style=\"-moz-user-select: none; -moz-user-focus: ignore; -moz-user-input: disabled; width: 100px; height: 70px;\"/>Inline text<div>Block text</div></div></span></aspcontrol><table id=\"table1\"><tr><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row One, Cell One</span></td><td width=\"200\" height=\"100\" style=\"background: #f5f5f5\" md-can-drop=\"true\"><span>Row One, Cell Two</span></td></tr><tr><td width=\"200\" height=\"100\" style=\"background: #f5f5f5\" md-can-drop=\"true\"><span>Row Two, Cell One</span></td><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row Two, Cell Two</span></td></tr></table><aspcontrol id=\"button3\" md-can-drop=\"true\" md-can-resize=\"true\" style=\"-moz-user-select: none; border: 1px solid #aaaaaa;  -moz-user-focus: ignore; -moz-user-input: disabled; vertical-align: text-bottom; display: -moz-inline-box; -moz-user-modify: read-only;\"><span style=\"display: block\"><div>Some<input type=\"button\" value=\"Button Control\" style=\"-moz-user-select: none; -moz-user-focus: ignore; -moz-user-input: disabled; width: 100px; height: 70px;\"/></div></span></aspcontrol></body></html>";
@@ -29,7 +42,9 @@ var gNsISelectionListenerImplementation = {
 		// should be able to recieve focus
 		if(sel.isCollapsed) {
 			var focusNode = sel.focusNode;
-			var parentControl = editor.getElementOrParentByTagName (gControlTagName, focusNode);
+			var parentControl =
+				editor.getElementOrParentByTagName (CONTROL_TAG_NAME,
+					focusNode);
 			if(parentControl) {
 				//editor.selectElement (parentControl);
 				editor.setCaretAfterElement (parentControl);
@@ -55,9 +70,13 @@ var gNsIEditActionListenerImplementation = {
 				deletionStr += ' id=' + control + ',';
 				editor.removeFromControlTable (control)
 				//TODO: call the respective C# metod on the host
-				if(gDebug) {
-					dump (deletionStr + ' Message source: DidDeleteNode()' + '\n');
-					dump ('There is/are ' + editor.getControlCount() + ' controls left in the page\n');
+				if(DEBUG) {
+					dump (deletionStr +
+						' Message source: DidDeleteNode()'
+						+ '\n');
+					dump ('There is/are '
+						+ editor.getControlCount()
+						+ ' controls left in the page\n');
 				}
 			}
 		}
@@ -78,9 +97,13 @@ var gNsIEditActionListenerImplementation = {
 					//TODO: call the respective C# metod in the host
 					control = editor.removeLastDeletedControl ();
 				}
-				if(gDebug) {
-					dump (deletionStr + ' Message source: DidDeleteSelection()' + '\n');
-					dump ('There is/are ' + editor.getControlCount() + ' controls left in the page\n');
+				if(DEBUG) {
+					dump (deletionStr +
+						' Message source: DidDeleteSelection()'
+						+ '\n');
+					dump ('There is/are ' +
+						editor.getControlCount() +
+						' controls left in the page\n');
 				}
 			}
 		}
@@ -98,9 +121,11 @@ var gNsIEditActionListenerImplementation = {
 	// a table (or any other element) with a control inside.
 	DidInsertNode: function(node, parent, position, result)
 	{
-		if(gDebug) {
+		if(DEBUG) {
 			var dumpStr = 'Did insert node ' + node.nodeName;
-			dumpStr += (node.nodeType == 1) ?  ', id=' + node.getAttribute('id') : '';
+			dumpStr += (node.nodeType == 1) ?
+				', id=' + node.getAttribute('id') :
+				'';
 			dumpStr += '\n';
 			dump (dumpStr);
 		}
@@ -108,12 +133,16 @@ var gNsIEditActionListenerImplementation = {
 		// Are we inserting an already existing control? If we are, then
 		// it probably comes from Drag&Drop operation. Anyway, we have
 		// to update its reference in the local control table
-		if(node.nodeType == 1 && editor.getControlTable ().getById(node.getAttribute ('id'))) {
+		if(node.nodeType == 1 &&
+		   editor.getControlTable ().getById(node.getAttribute ('id'))) {
 			editor.getControlTable ().update (node.getAttribute ('id'), node);
 		editor.collapseBeforeInsertion ("end");
 		editor.selectElement (node);
-			if(gDebug)
-				dump ('Did update control(id=' + node.getAttribute ('id') + ') reference in table' + '\n');
+			if(DEBUG)
+				dump ('Did update control(id=' +
+					node.getAttribute ('id') +
+					') reference in table' +
+					'\n');
 		}
 
 		// If we have just concluded a Drag&Drop operation, we should
@@ -135,17 +164,21 @@ var gNsIEditActionListenerImplementation = {
 		// Check to see if we have inserted a new control. We need to
 		// add it to the control table.
 		// TODO: Check to see if there is any nested controls
-		if(editor.nodeIsControl (node) && !editor.getControlFromTableById (node.getAttribute ('id'))) {
+		if(editor.nodeIsControl (node) &&
+		   !editor.getControlFromTableById (node.getAttribute ('id'))) {
 			editor.insertInControlTable (node.getAttribute ('id'), node);
-			if(gDebug)
-				dump ('New control (id=' + node.getAttribute ('id') + ') inserted\n');
+			if(DEBUG)
+				dump ('New control (id=' +
+					node.getAttribute ('id') +
+					') inserted\n');
 		}
 
-		if(gDebug && editor.getDragState ()) {
+		if(DEBUG && editor.getDragState ()) {
 			dump ('End drag\n');
 		}
 
-		if(editor.nodeIsControl (node) && (node.nodeType == 1 || node.nodeType == 3)) {
+		if(editor.nodeIsControl (node) &&
+		   (node.nodeType == 1 || node.nodeType == 3)) {
 			var element = editor.getElementById(node.getAttribute ('id'));
 			editor.selectElement (element);
 		}
@@ -189,9 +222,9 @@ var gNsIEditActionListenerImplementation = {
 		}
 	},
 
-	// Check if the selection to be deleted contains controls and prepare for
-	// deletion. Load all to-be-deleted controls in an array, so we can access
-	// them after actual deletion in order to notify the host.
+	// Check if the selection to be deleted contains controls and prepare
+	//for deletion. Load all to-be-deleted controls in an array, so we can
+	// access them after actual deletion in order to notify the host.
 	WillDeleteSelection: function(selection)
 	{
 		if(!editor.getInResize () && !editor.getDragState ()) {
@@ -201,14 +234,17 @@ var gNsIEditActionListenerImplementation = {
 			if(control) {
 				while(control) {
 					if(selection.containsNode (control, true)) {
-						deletionStr += ' id=' + control.getAttribute ('id') + ',';
+						deletionStr += ' id=' +
+							control.getAttribute ('id') + ',';
 						editor.addLastDeletedControl (control.getAttribute ('id'));
 					}
 					i++;
 					control = editor.getControlFromTableByIndex (i);
 				}
-				if(gDebug)
-					dump (deletionStr + ' Message source: WillDeleteSelection()' + '\n');
+				if(DEBUG)
+					dump (deletionStr +
+						' Message source: WillDeleteSelection()' +
+						'\n');
 			}
 		}
 	},
@@ -243,15 +279,17 @@ var gNsIEditActionListenerImplementation = {
 var gNsIHTMLObjectResizeListenerImplementation = {
 	onEndResizing: function(element, oldWidth, oldHeight, newWidth, newHeight)
 	{
-		if(editor.nodeIsControl (element))
-			host.resizeControl (element.getAttribute ('id'), newWidth, newHeight);
+		if(editor.nodeIsControl (element)) {
+			var id = element.getAttribute ('id');
+			host.resizeControl (id, newWidth, newHeight);
+		}
 	},
 
 	onStartResizing: function(element)
 	{
 		editor.beginBatch ();
 		editor.setInResize (true);
-			if(gDebug)
+			if(DEBUG)
 				dump ('Begin resize.\n');
 	}
 }
@@ -274,53 +312,124 @@ var gNsIContentFilterImplementation = {
 				    insertionPointOffset,
 				    continueWithInsertion)
 	{
-		//contentStartNode = editor.mNsIHtmlEditor.document.getElementById('body');
-		//insertionPointNode = editor.mNsIHtmlEditor.document.documentElement.nextSibling.nextSibling;
-		//insertionPointOffset = 0;
-		continueWithInsertion = true;
-		willDeleteSelection = false;
-		alert (mimeType + contentSourceURL + sourceDocument + willDeleteSelection + docFragment + contentStartNode + contentStartOffset + contentEndNode + contentEndOffset + insertionPointNode + insertionPointOffset + continueWithInsertion);
+		
 	}
 }
 
 //* ___________________________________________________________________________
-// This object is responsible for communication with the host system and
+// This class is responsible for communication with the host system and
 // implements part of the AspNetDesigner interface
 //_____________________________________________________________________________
 
-var host = {
+function aspNetHost()
+{
+
+}
+aspNetHost.prototype =
+{
+	initialize: function()
+	{
+		// Register our interface methods with the host
+		JSCallInit ();
+		//  Loading/Saving/ControlState
+		JSCallRegisterClrHandler ('loadPage', editor.loadPage);
+		JSCallRegisterClrHandler ('getPage', editor.getPage);
+		JSCallRegisterClrHandler ('addControl', editor.addControl);
+		JSCallRegisterClrHandler ('removeControl', editor.removeControl);
+		JSCallRegisterClrHandler ('updateControl', editor.updateControl);
+		// Control selection
+		JSCallRegisterClrHandler ('selectControl', editor.selectControl);
+		JSCallRegisterClrHandler ('clearSelection', editor.clearSelection);
+
+	},
+
+	click: function(aType, aControlId)
+	{
+ 		if(!aControlId) {
+			dump ('Deselecting all controls\n');
+		}
+		
+		else if(aType == SINGLE_CLICK) {
+			dump ("Single click over <aspcontrol id=\"" + aControlId + "\">\n");
+		}
+		
+		else if(aType == DOUBLE_CLICK) {
+			dump ("Double click over <aspcontrol id=\"" + aControlId + "\">\n");
+		}
+		
+		else if(aType == RIGHT_CLICK) {
+			dump ("Right click over <aspcontrol id=\"" + aControlId + "\">\n");
+		}
+	},
+
 	resizeControl: function(aControlId, aWidth, aHeight)
 	{
 		switch(aControlId) {
 		case "asptag2":
 			editor.updateControl (aControlId, newHTML);
-			if(gDebug)
-				dump ('resizeControl: id=' + aControlId + ', new size: ' + aWidth + 'x' + aHeight + '\n');
+			if(DEBUG)
+				dump ('resizeControl: id=' +
+					aControlId +
+					', new size: ' +
+					aWidth +
+					'x' +
+					aHeight +
+					'\n');
 			break;
 		case "asptag1":
 			editor.updateControl (aControlId, newHTML1);
-			if(gDebug)
-				dump ('resizeControl: id=' + aControlId + ', new size: ' + aWidth + 'x' + aHeight + '\n');
+			if(DEBUG)
+				dump ('resizeControl: id=' +
+					aControlId +
+					', new size: ' +
+					aWidth +
+					'x' +
+					aHeight +
+					'\n');
 			break;
 		case "nest1":
 			editor.updateControl (aControlId, newHTML2);
-			if(gDebug)
-				dump ('resizeControl: id=' + aControlId + ', new size: ' + aWidth + 'x' + aHeight + '\n');
+			if(DEBUG)
+				dump ('resizeControl: id=' +
+					aControlId +
+					', new size: ' +
+					aWidth +
+					'x' +
+					aHeight +
+					'\n');
 			break;
 		case "button1":
 			editor.updateControl (aControlId, newHTML3);
-			if(gDebug)
-				dump ('resizeControl: id=' + aControlId + ', new size: ' + aWidth + 'x' + aHeight + '\n');
+			if(DEBUG)
+				dump ('resizeControl: id=' +
+					aControlId +
+					', new size: ' +
+					aWidth +
+					'x' +
+					aHeight +
+					'\n');
 			break;
 		case "button2":
 			editor.updateControl (aControlId, newHTML4);
-			if(gDebug)
-				dump ('resizeControl: id=' + aControlId + ', new size: ' + aWidth + 'x' + aHeight + '\n');
+			if(DEBUG)
+				dump ('resizeControl: id=' +
+					aControlId +
+					', new size: ' +
+					aWidth +
+					'x' +
+					aHeight +
+					'\n');
 			break;
 		case "nest2":
 			editor.updateControl (aControlId, newHTML5);
-			if(gDebug)
-				dump ('resizeControl: id=' + aControlId + ', new size: ' + aWidth + 'x' + aHeight + '\n');
+			if(DEBUG)
+				dump ('resizeControl: id=' +
+					aControlId +
+					', new size: ' +
+					aWidth +
+					'x' +
+					aHeight +
+					'\n');
 			break;
 		}
 	}
@@ -345,8 +454,10 @@ var controlTable = {
 	add: function(aControlId, aControlRef)
 	{
 		if(this.hash [aControlId]) {
-			if(gDebug)
-				dump ('Panic: atempt to add an already existing control with id=' + aControlId + '. Remove first.\n');
+			if(DEBUG)
+				dump ('Panic: atempt to add an already existing control with id=' +
+					aControlId +
+					'. Remove first.\n');
 		}
 		else {
 			this.hash [aControlId] = aControlRef;
@@ -367,8 +478,10 @@ var controlTable = {
 			this.length--;
 		}
 		else {
-			if(gDebug)
-				dump ('Panic: atempt to remove control with unexisting id=' + aControlId + '\n');
+			if(DEBUG)
+				dump ('Panic: atempt to remove control with unexisting id=' +
+					aControlId +
+					'\n');
 		}
 	},
   
@@ -395,20 +508,22 @@ var controlTable = {
 }
 
 //* ___________________________________________________________________________
-// The editor object and initialization
+// The editor class and initialization
 //_____________________________________________________________________________
-function aspEditor_initialize()
+function aspNetEditor_initialize()
 {
-	editor = new aspEditor ();
+	editor = new aspNetEditor ();
 	editor.initialize ();
+	host = new aspNetHost ();
+	host.initialize ();
 }
 
-function aspEditor()
+function aspNetEditor()
 {
 
 }
 
-aspEditor.prototype = 
+aspNetEditor.prototype = 
 {
 	mNsIHtmlEditor            : null,
 	mNsIEditor                : null,
@@ -428,24 +543,30 @@ aspEditor.prototype =
 	initialize: function()
 	{
 		var editorElement = document.getElementById ('aspeditor');
-		var editorWindow = editorElement.contentWindow;
 		editorElement.makeEditable ('html',false);
 
-		this.mNsIHtmlEditor             = editorElement.getHTMLEditor(document.getElementById('aspeditor').contentWindow);
-		this.mNsIEditor                 = editorElement.getEditor(document.getElementById('aspeditor').contentWindow).QueryInterface(Components.interfaces.nsIEditor);
-		this.mNsITableEditor            = editorElement.getEditor(document.getElementById('aspeditor').contentWindow).QueryInterface(Components.interfaces.nsITableEditor);
-		this.mNsIHTMLInlineTableEditor  = editorElement.getEditor(document.getElementById('aspeditor').contentWindow).QueryInterface(Components.interfaces.nsIHTMLInlineTableEditor);
-		this.mNsIHtmlObjectResizer      = editorElement.getEditor(document.getElementById('aspeditor').contentWindow).QueryInterface(Components.interfaces.nsIHTMLObjectResizer);
+		this.mNsIHtmlEditor =
+			editorElement.getHTMLEditor(document.getElementById('aspeditor').contentWindow);
+		this.mNsIEditor =
+			this.mNsIHtmlEditor.QueryInterface(EDITOR);
+		this.mNsITableEditor =
+			this.mNsIHtmlEditor.QueryInterface(TABLE_EDITOR);
+		this.mNsIHTMLInlineTableEditor =
+			this.mNsIHtmlEditor.QueryInterface(INLINE_TABLE_EDITOR);
+		this.mNsIHtmlObjectResizer =
+			this.mNsIHtmlEditor.QueryInterface(OBJECT_RESIZER);
+		this.mShell =
+			XPCU.getService ("@mozilla.org/inspector/flasher;1",
+				"inIFlasher");
 
-		this.mShell                     = XPCU.getService ("@mozilla.org/inspector/flasher;1", "inIFlasher");
 		if(this.mShell) {
-			this.mShell.color               = gBorderHighlightString;
-			this.mShell.thickness           = '2';
-			this.mShell.invert              = false;
+			this.mShell.color               = BORDER_CAN_DROP_COLOR;
+			this.mShell.thickness           = BORDER_CAN_DROP_THICK;
+			this.mShell.invert              = BORDER_CAN_DROP_INVERT;
 			gWillFlash = true;
 		}
 
-		var selectionPrivate = this.getSelection().QueryInterface (Components.interfaces.nsISelectionPrivate);
+		var selectionPrivate = this.getSelection().QueryInterface (SELECTION_PRIVATE);
 		selectionPrivate.addSelectionListener (gNsISelectionListenerImplementation);
 		this.mNsIHtmlEditor.addObjectResizeEventListener (gNsIHTMLObjectResizeListenerImplementation);
 		this.mNsIHtmlEditor.addEditActionListener (gNsIEditActionListenerImplementation);
@@ -453,31 +574,40 @@ aspEditor.prototype =
 		// Bug in Mozilla's InsertHTMLWithContext?
 		//this.mNsIHtmlEditor.addInsertionListener (gNsIContentFilterImplementation);
 
-		this.mNsIHtmlEditor.document.addEventListener ('mousedown', selectFromClick, true);
-		this.mNsIHtmlEditor.document.addEventListener ('mouseup', suppressMouseUp, true);
-		this.mNsIHtmlEditor.document.addEventListener ('click', handleClick, true);
-		this.mNsIHtmlEditor.document.addEventListener ('draggesture', handleDragStart, true);
-		this.mNsIHtmlEditor.document.addEventListener ('dragdrop', handleDrop, true);
-		this.mNsIHtmlEditor.document.addEventListener ('dragover', dragOverControl, true);
-		this.mNsIHtmlEditor.document.addEventListener ('keypress', handleKeyPress, true);
+		// All of our event listeners are added to the document here
+		this.getDocument ().addEventListener ('mousedown',
+			selectFromClick,
+			true);
+		this.getDocument ().addEventListener ('mouseup',
+			suppressMouseUp,
+			true);
+		this.getDocument ().addEventListener ('click',
+			detectSingleClick,
+			true);
+		this.getDocument ().addEventListener ('dblclick',
+			detectDoubleClick,
+			true);
+		this.getDocument ().addEventListener ('contextmenu',
+			handleContextMenu,
+			true);
+		this.getDocument ().addEventListener ('draggesture',
+			handleDragStart,
+			true);
+		this.getDocument ().addEventListener ('dragdrop',
+			handleDrop,
+			true);
+		this.getDocument ().addEventListener ('dragover',
+			dragOverControl,
+			true);
+		this.getDocument ().addEventListener ('keypress',
+			handleKeyPress,
+			true);
 
 		this.mLastDeletedControls  = new Array();
 		this.mLastSelectedControls = new Array();
 		this.mControlTable         = controlTable;
 		this.mInResize             = false;
 		this.mInDrag               = false;
-
-		// Register our interface methods with JS Glue
-		JSCallInit ();
-		//  Loading/Saving/ControlState
-		JSCallRegisterClrHandler ('loadPage', this.loadPage);
-		JSCallRegisterClrHandler ('getPage', this.getPage);
-		JSCallRegisterClrHandler ('addControl', this.addControl);
-		JSCallRegisterClrHandler ('removeControl', this.removeControl);
-		JSCallRegisterClrHandler ('updateControl', this.updateControl);
-		// Control selection
-		JSCallRegisterClrHandler ('selectControl', this.selectControl);
-		JSCallRegisterClrHandler ('clearSelection', this.clearSelection);
 	},
 
 	getSelection: function()
@@ -486,10 +616,27 @@ aspEditor.prototype =
 			return this.mNsIHtmlEditor.selection;
 	},
 
+	getDocument: function()
+	{
+		if(this.mNsIHtmlEditor)
+			return this.mNsIHtmlEditor.document;
+	},
+
 	getSelectedElement: function(aTagName)
 	{
 		if(this.mNsIHtmlEditor)
 			return this.mNsIHtmlEditor.getSelectedElement (aTagName);
+	},
+
+	getSelectedControl: function()
+	{
+		if(this.mNsIHtmlEditor) {
+			var selectedElement = this.getSelectedElement ('');
+			if(selectedElement && this.nodeIsControl (selectedElement))
+				return selectedElement;
+			else
+				return null;
+		}
 	},
 
 	getControlCount: function()
@@ -597,7 +744,7 @@ aspEditor.prototype =
 	{
 		var name = aNode.nodeName;
 		name = name.toLowerCase ();
-		if(name == gControlTagName)
+		if(name == CONTROL_TAG_NAME)
 			return true;
 		return false;
 	},
@@ -620,9 +767,13 @@ aspEditor.prototype =
 		this.mNsIHtmlEditor.insertHTML (aHtml);
 	},
   
-	insertHTMLWithContext: function(aInputString, aContextStr, aInfoStr, aFlavor, aSourceDoc, aDestinationNode, aDestinationOffset, aDeleteSelection)
+	insertHTMLWithContext: function(aInputString, aContextStr, aInfoStr,
+					aFlavor, aSourceDoc, aDestinationNode,
+					aDestinationOffset, aDeleteSelection)
 	{
-		this.mNsIHtmlEditor.insertHTMLWithContext (aInputString, aContextStr, aInfoStr, aFlavor, aSourceDoc, aDestinationNode, aDestinationOffset, aDeleteSelection);
+		this.mNsIHtmlEditor.insertHTMLWithContext (aInputString,
+			aContextStr, aInfoStr, aFlavor, aSourceDoc,
+			aDestinationNode, aDestinationOffset, aDeleteSelection);
 	},
 
 	collapseBeforeInsertion: function(aPoint)
@@ -667,7 +818,8 @@ aspEditor.prototype =
 			
 			// If we have a single-element selection and the element
 			// happens to be a control
-			if (selectedElement && this.nodeIsControl (selectedElement)) {
+			if (selectedElement &&
+			    this.nodeIsControl (selectedElement)) {
 				insertIn = selectedElement.parentNode;
 				while(selectedElement != insertIn.childNodes [destinationOffset])
 					destinationOffset++;
@@ -676,7 +828,9 @@ aspEditor.prototype =
 			
 			// If selection is somewhere inside a control
 			if(focusNode) {
-				var parentControl = editor.getElementOrParentByTagName (gControlTagName, focusNode);
+				var parentControl =
+					this.getElementOrParentByTagName (CONTROL_TAG_NAME,
+						focusNode);
 				if(parentControl){
 					insertIn = parentControl.parentNode;
 					while(parentControl != insertIn.childNodes [destinationOffset])
@@ -687,7 +841,8 @@ aspEditor.prototype =
 
 			// If none of the above is true, we are just inserting
 			// with defaults insertIn=null, destinationOffset=0
-			this.insertHTMLWithContext (aControlHtml, '', '', '', null, insertIn, destinationOffset, false);
+			this.insertHTMLWithContext (aControlHtml, '', '', '',
+				null, insertIn, destinationOffset, false);
 			this.selectElement (this.getElementById (aControlId));
 			this.showResizers (this.getElementById (aControlId));
 		}
@@ -695,7 +850,7 @@ aspEditor.prototype =
 
 	removeControl: function(aControlId)
 	{
-		var control = this.mNsIHtmlEditor.document.getElementById (aControlId);
+		var control = this.getDocument ().getElementById (aControlId);
 		if(control) {
 			this.selectElement (control);
 			this.deleteSelection ();
@@ -704,17 +859,20 @@ aspEditor.prototype =
 
 	updateControl: function(aControlId, aNewDesignTimeHtml)
 	{
-		if(aControlId && aNewDesignTimeHtml && this.mNsIHtmlEditor.document.getElementById (aControlId)) {
+		if(aControlId && aNewDesignTimeHtml &&
+		   this.getDocument ().getElementById (aControlId)) {
 			this.hideResizers ();
 			try {
-				var oldControl = this.mNsIHtmlEditor.document.getElementById (aControlId);
+				var oldControl =
+					this.getDocument ().getElementById (aControlId);
 				this.collapseBeforeInsertion ("start");
 				this.selectElement (oldControl);
 				this.insertHTML (aNewDesignTimeHtml);
 			} catch (e) { }
 			this.endBatch ();
-			this.updateControlInTable(aControlId, this.mNsIHtmlEditor.document.getElementById (aControlId));
-			if(gDebug)
+			this.updateControlInTable(aControlId,
+				this.getDocument ().getElementById (aControlId));
+			if(DEBUG)
 				dump ('End resize.\n');
 			this.setInResize (false);
 		}
@@ -739,7 +897,8 @@ aspEditor.prototype =
 	getSelectAll: function(aElement)
 	{
 		var style = aElement.style;
-		if(style.getPropertyValue ('MozUserSelect') == 'all' || style.getPropertyValue ('-moz-user-select') == 'all')
+		if(style.getPropertyValue ('MozUserSelect') == 'all' ||
+		   style.getPropertyValue ('-moz-user-select') == 'all')
 			return true;
 		return false;
 	},
@@ -747,7 +906,8 @@ aspEditor.prototype =
 	getSelectNone: function(aElement)
 	{
 		var style = aElement.style;
-		if(style.getPropertyValue ('MozUserSelect') == 'none' || style.getPropertyValue ('-moz-user-select') == 'none')
+		if(style.getPropertyValue ('MozUserSelect') == 'none' ||
+		   style.getPropertyValue ('-moz-user-select') == 'none')
 			return true;
 		return false;
 	},
@@ -792,15 +952,18 @@ aspEditor.prototype =
 	// has been started, then they are probably coming from cut, so
 	// notify host of new controls and paste them.
 	//
-	// If a copy-control transaction has been started, but not controls are pasted, then
-	// the transaction is obsolite and we should terminate transaction.
+	// If a copy-control transaction has been started, but not controls are
+	// pasted, then the transaction is obsolite and we should terminate
+	// transaction.
 	//
 	// If no controls are pasted and no copy-control transaction started,
 	// proceed with pasting and do nothing else.
 	paste: function(aEvent)
 	{
 		var focusNode = this.getSelection ().focusNode;
-		var control = this.getElementOrParentByTagName (gControlTagName, focusNode);
+		var control =
+			this.getElementOrParentByTagName (CONTROL_TAG_NAME,
+				focusNode);
 		if(control) {
 			this.selectElement (control);
 		}
@@ -825,7 +988,8 @@ aspEditor.prototype =
 
 	serializePage: function()
 	{
-		var xml = this.mNsIHtmlEditor.outputToString (this.mNsIHtmlEditor.contentsMIMEType, 256);
+		var xml =
+			this.mNsIHtmlEditor.outputToString (this.mNsIHtmlEditor.contentsMIMEType, 256);
 		return xml;
 	},
 
@@ -836,7 +1000,8 @@ aspEditor.prototype =
 
 	showResizers: function(aElement)
 	{
-		if(this.nodeIsControl (aElement) && aElement.getAttribute ('md-can-resize')) {
+		if(this.nodeIsControl (aElement) &&
+		   aElement.getAttribute ('md-can-resize')) {
 			this.mNsIHtmlEditor.hideResizers ();
 			this.mNsIHtmlEditor.showResizers (aElement);
 		}
@@ -878,19 +1043,20 @@ aspEditor.prototype =
 		var oldElement = this.mDropInElement;
 		if(oldElement != aElement) {
 			if(oldElement) {
-				if(gDebug)
+				if(DEBUG)
 					dump ('ajasent can drop\n');
 				this.mShell.repaintElement (oldElement);
 				this.mShell.drawElementOutline (aElement);
 				this.mDropInElement = aElement;
 			}
 			else {
-				if(gDebug)
-					dump ('enter new can drop ' + oldElement + aElement + '\n');
+				if(DEBUG)
+					dump ('enter new can drop ' +
+						oldElement + aElement + '\n');
 				this.mDropInElement = aElement;
 				this.mShell.drawElementOutline (aElement);
 			}
-			//if(gDebug)
+			//if(DEBUG)
 				//dump ('can drop in this ' + aElement.nodeName + '\n');
 		}
 	},
@@ -926,7 +1092,7 @@ aspEditor.prototype =
 	},
 
 	getElementById: function(aElementId) {
-		return this.mNsIHtmlEditor.document.getElementById (aElementId);
+		return this.getDocument ().getElementById (aElementId);
 	}
 };
 
@@ -935,8 +1101,8 @@ aspEditor.prototype =
 //_____________________________________________________________________________
 function selectFromClick(aEvent)
 {
-	var control = null;
-	control = editor.getElementOrParentByTagName(gControlTagName, aEvent.target);
+	control = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
+			aEvent.target);
 
 	if(control) {
 		if(editor.getSelectAll (control)) {
@@ -955,9 +1121,10 @@ function selectFromClick(aEvent)
 
 function suppressMouseUp(aEvent) {
 	if(editor.getResizedObject ()) {
-		if(gDebug) {
+		if(DEBUG) {
 			var object = editor.getResizedObject ();
-			dump ('handles around <' + object.tagName + ' id=' + object.getAttribute('id') + '>\n');
+			dump ('handles around <' + object.tagName + ' id=' +
+				object.getAttribute('id') + '>\n');
 		}
 		else {
 			aEvent.stopPropagation ();
@@ -968,7 +1135,8 @@ function suppressMouseUp(aEvent) {
 
 function dragOverControl(aEvent) {
 	if(gWillFlash && aEvent.target.nodeType == 1) {
-		var element = editor.getElementOrParentByAttribute (aEvent.target, 'md-can-drop');
+		var element = editor.getElementOrParentByAttribute (aEvent.target,
+					'md-can-drop');
     
 		if(element)
 			editor.highlightOnCanDrop (element);
@@ -983,9 +1151,8 @@ function handleDragStart(aEvent) {
 		return;
 	// else
 	editor.setDragState (true);
-		if(gDebug) {
+		if(DEBUG)
 			dump ('Begin drag.\n');
-		}
 }
 
 function handleDrop(aEvent) {
@@ -993,7 +1160,8 @@ function handleDrop(aEvent) {
 	// "-moz-user-select: all" in preparation for insertFromDrop(). We
 	// revert back to -moz-user-select: none later in DidInsertNode(),
 	// which is the real end of a Drag&Drop operation
-	var parentControlRef = editor.getElementOrParentByTagName(gControlTagName, aEvent.target);
+	var parentControlRef = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
+					aEvent.target);
 	if(parentControlRef) {
 		editor.hideResizers ();
 		gDropOverControlId = parentControlRef.getAttribute('id');
@@ -1012,24 +1180,52 @@ function handleDrop(aEvent) {
 	}
 }
 
-function handleClick(aEvent) {
-	switch (aEvent.button) {
-	case 0:
-		//alert ('left click');
-		// TODO: Notify host
-		break;
-	case 2:
-		//alert ('right click');
-		// TODO: Notify host
-		//aEvent.stopPropagation ();
-		//aEvent.preventDefault ();
-		break;
+function handleSingleClick(aButton, aTarget) {
+	if(!gCancelClick) {
+		control = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
+				aTarget);
+		var controlId =
+			(control) ? control.getAttribute ('id') : '';
+
+		switch (aButton) {
+		case 0:
+			host.click (SINGLE_CLICK, controlId);
+			break;
+		case 2:
+			host.click (RIGHT_CLICK, controlId);
+			break;
+		}
 	}
 }
 
+function detectSingleClick(aEvent)
+{
+	gCancelClick = false;
+	var button = aEvent.button;
+	var target = aEvent.target;
+	setTimeout (function() { handleSingleClick(button, target); }, 300);
+}
+
+function detectDoubleClick(aEvent)
+{
+	gCancelClick = true;
+	control = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
+			aEvent.target);
+	var controlId =
+		(control) ? control.getAttribute ('id') : '';
+
+	host.click (DOUBLE_CLICK, controlId);
+}
+
+function handleContextMenu(aEvent)
+{
+	aEvent.stopPropagation ();
+	aEvent.preventDefault ();
+} 
+
 // We have to detect cut, copy and paste, for they may involve controls
 // If we copy a control and then past it, the host must be notified so
-// it can create a new comopnent and assign the pasted control a new id
+// it can create a new instance and assign the pasted control a new id
 function handleKeyPress(aEvent) {
 	// Handle cut
 	if(aEvent.ctrlKey && aEvent.charCode == 120) {
@@ -1053,7 +1249,9 @@ function handleKeyPress(aEvent) {
 	else if(aEvent.keyCode == aEvent.DOM_VK_DELETE) {
 		var selectedElement = editor.getSelectedElement ('');
 		if(selectedElement)
-			var control = editor.getElementOrParentByTagName (gControlTagName, selectedElement);
+			var control =
+				editor.getElementOrParentByTagName (CONTROL_TAG_NAME,
+					selectedElement);
 
 		if(control) {
 			//editor.selectElement (control);
@@ -1079,9 +1277,9 @@ function handleKeyPress(aEvent) {
 	}
 }
 
-function dump(aTxtAppent) {
-	if(gDebug) {
+function dump(aTxtAppend) {
+	if(DEBUG) {
 		var oldValue = document.getElementById('debugWin').value;
-		document.getElementById('debugWin').value = aTxtAppent + oldValue;
+		document.getElementById('debugWin').value = aTxtAppend + oldValue;
 	}
 }
