@@ -1,1 +1,1 @@
-SUBDIRS = propertygrid jscall editor aspnetedit
+SUBDIRS = propertygrid jscall editor aspnetedit chrome

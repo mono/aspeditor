@@ -61,6 +61,7 @@ src/editor/Makefile
 src/editor/AssemblyInfo.cs
 src/aspnetedit/Makefile
 src/aspnetedit/AssemblyInfo.cs
+src/chrome/Makefile
 ])
 
 echo ""
