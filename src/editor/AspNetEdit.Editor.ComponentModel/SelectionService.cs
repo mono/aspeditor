@@ -77,7 +77,7 @@ namespace AspNetEdit.Editor.ComponentModel
 				modified = ((mt & Gdk.ModifierType.ShiftMask) == Gdk.ModifierType.ShiftMask) || ((mt & Gdk.ModifierType.ControlMask) == Gdk.ModifierType.ControlMask);
 			}
 			
-			if (components == null)
+			if (components == null || components.Count == 0)
 			{
 				selections.Clear ();
 				primary = null;

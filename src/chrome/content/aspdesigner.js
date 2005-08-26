@@ -73,11 +73,10 @@ var gNsIEditActionListenerImplementation = {
 				//TODO: call the respective C# metod on the host
 				if(DEBUG) {
 					dump (deletionStr +
-						' Message source: DidDeleteNode()'
-						+ '\n');
+						' Message source: DidDeleteNode()');
 					dump ('There is/are '
 						+ editor.getControlCount()
-						+ ' controls left in the page\n');
+						+ ' controls left in the page');
 				}
 			}
 		}
@@ -100,11 +99,10 @@ var gNsIEditActionListenerImplementation = {
 				}
 				if(DEBUG) {
 					dump (deletionStr +
-						' Message source: DidDeleteSelection()'
-						+ '\n');
+						' Message source: DidDeleteSelection()');
 					dump ('There is/are ' +
 						editor.getControlCount() +
-						' controls left in the page\n');
+						' controls left in the page');
 				}
 			}
 		}
@@ -124,7 +122,6 @@ var gNsIEditActionListenerImplementation = {
 			dumpStr += (node.nodeType == 1) ?
 				', id=' + node.getAttribute('id') :
 				'';
-			dumpStr += '\n';
 			dump (dumpStr);
 		}
 
@@ -143,8 +140,7 @@ var gNsIEditActionListenerImplementation = {
 						if(DEBUG)
 							dump ('Did update control(id=' +
 								controls [i].getAttribute ('id') +
-								') reference in table' +
-								'\n');
+								') reference in table');
 				}
 				else {
 					editor.insertInControlTable (controls [i].getAttribute ('id'),
@@ -152,10 +148,10 @@ var gNsIEditActionListenerImplementation = {
 					if(DEBUG) {
 						dump ('New control (id=' +
 							controls [i].getAttribute ('id') +
-							') inserted\n');
+							') inserted');
 						dump ('There is/are ' +
 							editor.getControlCount() +
-							' controls in the page\n');
+							' controls in the page');
 					}
  				}
 				editor.setSelectNone (controls [i]);
@@ -176,7 +172,7 @@ var gNsIEditActionListenerImplementation = {
 		}
 
 		if(DEBUG && editor.getDragState ()) {
-			dump ('End drag\n');
+			dump ('End drag');
 		}
 
 		if(editor.nodeIsControl (node) &&
@@ -245,8 +241,7 @@ var gNsIEditActionListenerImplementation = {
 				}
 				if(DEBUG)
 					dump (deletionStr +
-						' Message source: WillDeleteSelection()' +
-						'\n');
+						' Message source: WillDeleteSelection()');
 			}
 		}
 	},
@@ -292,7 +287,7 @@ var gNsIHTMLObjectResizeListenerImplementation = {
 		editor.beginBatch ();
 		editor.setInResize (true);
 			if(DEBUG)
-				dump ('Begin resize.\n');
+				dump ('Begin resize.');
 	}
 }
 
@@ -332,58 +327,102 @@ aspNetHost.prototype =
 	initialize: function()
 	{
 		// Register our interface methods with the host
-		try {
-			JSCallInit ();
-		} catch(e) { ;}
+		JSCallInit ();
 
 		//  Loading/Saving/ControlState
-		JSCallRegisterClrHandler ('loadPage', editor.loadPage);
-		JSCallRegisterClrHandler ('getPage', editor.getPage);
-		JSCallRegisterClrHandler ('addControl', editor.addControl);
-		JSCallRegisterClrHandler ('removeControl', editor.removeControl);
-		JSCallRegisterClrHandler ('updateControl', editor.updateControl);
+		JSCallRegisterClrHandler ('LoadPage', JSCall_LoadPage);
+		JSCallRegisterClrHandler ('GetPage', JSCall_GetPage);
+		JSCallRegisterClrHandler ('AddControl', JSCall_AddControl);
+		JSCallRegisterClrHandler ('RemoveControl', JSCall_RemoveControl);
+		JSCallRegisterClrHandler ('UpdateControl', JSCall_UpdateControl);
 		// Control selection
-		JSCallRegisterClrHandler ('selectControl', editor.selectControl);
-		JSCallRegisterClrHandler ('clearSelection', editor.clearSelection);
-
+		JSCallRegisterClrHandler ('SelectControl', JSCall_SelectControl);
+		
+		//tell the host we're ready for business
+		JSCallPlaceClrCall ('Activate', '', '');
 	},
 
 	click: function(aType, aControlId)
 	{
- 		if(!aControlId) {
-			dump ('Deselecting all controls\n');
+		var clickType;
+
+		if(aType == SINGLE_CLICK) {
+			clickType = 'Single';
 		}
-		
-		else if(aType == SINGLE_CLICK) {
-			dump ("Single click over <aspcontrol id=\"" + aControlId + "\">\n");
-		}
-		
 		else if(aType == DOUBLE_CLICK) {
-			dump ("Double click over <aspcontrol id=\"" + aControlId + "\">\n");
+			clickType = 'Double';
+		}
+		else if(aType == RIGHT_CLICK) {
+			clickType = 'Right';
 		}
 		
-		else if(aType == RIGHT_CLICK) {
-			dump ("Right click over <aspcontrol id=\"" + aControlId + "\">\n");
+ 		if(!aControlId) {
+			dump (clickType + ' click over no control; deselecting all controls');
 		}
+		else {
+			dump (clickType + " click over aspcontrol \"" + aControlId + "\"");
+		}
+		
+		JSCallPlaceClrCall ('Click', '', new Array(clickType, aControlId));
 	},
 
 	resizeControl: function(aControlId, aWidth, aHeight)
 	{
-		switch(aControlId) {
-		case "button2":
-			editor.updateControl (aControlId, newHTML4);
-			if(DEBUG)
-				dump ('resizeControl: id=' +
-					aControlId +
-					', new size: ' +
-					aWidth +
-					'x' +
-					aHeight +
-					'\n');
-			break;
-		}
-	}
+		JSCallPlaceClrCall ('ResizeControl', '', new Array(aControlId, aWidth, aHeight));
+		dump ('Resizing ' + aControlId +', new size ' +	aWidth + 'x' + aHeight);
+	},
+	
+	throwException: function (location, msg)
+	{
+		JSCallPlaceClrCall ('ThrowException', '', new Array(location, msg));
+	},
 }
+
+
+/* Directly hooking up the editor's methods as JSCall handler functions
+ * means that their access to 'this' is broken so we use these
+ * surrogate functions instead
+ */
+
+function JSCall_SelectControl (arg)
+{
+	aControlId = arg[0];
+	aAdd = true;
+	aPrimary = true;
+	return editor.selectControl (aControlId, aAdd, aPrimary);
+}
+
+function JSCall_UpdateControl (arg)
+{
+	aControlId = arg[0];
+	aNewDesignTimeHtml = arg[1];
+	return editor.updateControl (aControlId, aNewDesignTimeHtml);
+}
+
+function JSCall_RemoveControl (arg)
+{
+	return editor.removeControl (arg[0]);
+}
+
+function JSCall_AddControl (arg)
+{
+	aControlId = arg[0];
+	aControlHtml = arg[1];
+	dump ('Adding control ' + aControlId + '; aControlHtml is ' + aControlHtml); 
+	return editor.addControl (aControlHtml, aControlId);
+}
+
+function JSCall_GetPage ()
+{
+	return editor.getPage ();
+}
+
+function JSCall_LoadPage (arg)
+{
+	return editor.loadPage (arg[0]);
+}
+
+
 
 //* ___________________________________________________________________________
 // A rather strange data structure to store current controls in the page.
@@ -407,7 +446,7 @@ var controlTable = {
 			if(DEBUG)
 				dump ('Panic: atempt to add an already existing control with id=' +
 					aControlId +
-					'. Remove first.\n');
+					'. Remove first.');
 		}
 		else {
 			this.hash [aControlId] = aControlRef;
@@ -430,8 +469,7 @@ var controlTable = {
 		else {
 			if(DEBUG)
 				dump ('Panic: atempt to remove control with unexisting id=' +
-					aControlId +
-					'\n');
+					aControlId);
 		}
 	},
   
@@ -742,7 +780,7 @@ aspNetEditor.prototype =
 	getPage: function()
 	{
 		var html = this.serializePage ();
-		alert (html);
+		return html;
 	},
 
 	addControl: function(aControlHtml, aControlId)
@@ -817,7 +855,7 @@ aspNetEditor.prototype =
 			this.updateControlInTable(aControlId,
 				this.getDocument ().getElementById (aControlId));
 			if(DEBUG)
-				dump ('End resize.\n');
+				dump ('End resize.');
 			this.setInResize (false);
 		}
 	},
@@ -827,8 +865,16 @@ aspNetEditor.prototype =
 	{
 		// TODO: talk to Michael about selecting controls. Why do we
 		// need to have multiple controls selected and what is primary?
-		var controlRef = this.getControlTable ().getById(aControlId);
+		
 		this.clearSelection ();
+		
+		if (aControlId == '') {
+			dump ("Deselecting all controls");
+			return;
+		}
+		
+		dump ("Selecting control "+aControlId);
+		var controlRef = this.getControlTable ().getById(aControlId);
 		this.selectElement (controlRef);
 		this.showResizers (controlRef);
 	},
@@ -1012,7 +1058,7 @@ aspNetEditor.prototype =
 		if(oldElement != aElement) {
 			if(oldElement) {
 				if(DEBUG)
-					dump ('ajasent can drop\n');
+					dump ('ajacent can drop');
 				this.mShell.repaintElement (oldElement);
 				this.mShell.drawElementOutline (aElement);
 				this.mDropInElement = aElement;
@@ -1020,12 +1066,12 @@ aspNetEditor.prototype =
 			else {
 				if(DEBUG)
 					dump ('enter new can drop ' +
-						oldElement + aElement + '\n');
+						oldElement + aElement);
 				this.mDropInElement = aElement;
 				this.mShell.drawElementOutline (aElement);
 			}
 			//if(DEBUG)
-				//dump ('can drop in this ' + aElement.nodeName + '\n');
+				//dump ('can drop in this ' + aElement.nodeName);
 		}
 	},
 
@@ -1099,7 +1145,7 @@ function suppressMouseUp(aEvent) {
 		if(DEBUG) {
 			var object = editor.getResizedObject ();
 			dump ('handles around <' + object.tagName + ' id=' +
-				object.getAttribute('id') + '>\n');
+				object.getAttribute('id') + '>');
 		}
 		else {
 			aEvent.stopPropagation ();
@@ -1149,7 +1195,7 @@ function handleDragStart(aEvent) {
 
 	editor.setDragState (true);
 		if(DEBUG)
-			dump ('Begin drag.\n');
+			dump ('Begin drag.');
 }
 
 function handleDrop(aEvent) {
@@ -1255,7 +1301,6 @@ function handleKeyPress(aEvent) {
 
 function dump(aTxtAppend) {
 	if(DEBUG) {
-		var oldValue = document.getElementById('debugWin').value;
-		document.getElementById('debugWin').value = aTxtAppend + oldValue;
+		JSCallPlaceClrCall ('DebugStatement', '', new Array(aTxtAppend));
 	}
 }

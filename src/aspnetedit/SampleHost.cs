@@ -1,5 +1,5 @@
  /* 
- * SampleHost.cs - A host for the AspNetEdit AASP.NET Graphical Designer
+ * SampleHost.cs - A host for the AspNetEdit ASP.NET Graphical Designer
  * 
  * Authors: 
  *  Michael Hutchinson <m.j.hutchinson@gmail.com>
@@ -120,8 +120,7 @@ namespace AspNetEdit.SampleHost
 			services.AddService (typeof (ITypeDescriptorFilterService), new TypeDescriptorFilterService ());
 			AspNetEdit.Editor.ComponentModel.ToolboxService toolboxService = new AspNetEdit.Editor.ComponentModel.ToolboxService ();
 			services.AddService (typeof (IToolboxService), toolboxService);
-
-
+			
 			//create our host
 			host = new DesignerHost(services);
 			host.NewFile();
@@ -143,10 +142,10 @@ namespace AspNetEdit.SampleHost
 			leftBox.Pack1 (toolbox, false, false);
 			toolboxService.PopulateFromAssembly (System.Reflection.Assembly.GetAssembly (typeof (System.Web.UI.Control)));
 			toolbox.UpdateCategories ();
-
+			
 			#endregion
-
 			window.ShowAll ();
+			
 			Application.Run ();
 		}
 

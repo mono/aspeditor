@@ -1,5 +1,5 @@
 jscallgluedir=$(pkglibdir)
-dllfile = $(top_builddir)/build/lib/jscallglue.dll
+dllfile = $(top_builddir)/build/lib/libjscallglue.dll.so
 jscallglue_SCRIPTS = $(dllfile)
 
 CXXFLAGS = -shared -g -fPIC -fno-rtti $(JSGLUEDEPS_CFLAGS)

@@ -106,7 +106,7 @@ namespace AspNetEdit.JSCall
 		
 		
 
-		public void JSCall (string function, string returnTo, string[] args)
+		public void JSCall (string function, string returnTo, params string[] args)
 		{
 			if (!geckoShown)
 			{
@@ -118,7 +118,7 @@ namespace AspNetEdit.JSCall
 			if (args != null)
 			{
 				argsOut +=  args[0];
-				for (int i = 1; i < args.Length - 1; i++)
+				for (int i = 1; i <= args.Length - 1; i++)
 				{
 					argsOut += "|" + args[i];
 				}
@@ -140,40 +140,45 @@ namespace AspNetEdit.JSCall
 			{
 				case 0:
 					return;
-					
+				
 				case 1:
-					err = "Error finding 'jscall' nodes.";
+					err = "Could not obtain IDOMDocument from GtkMozEmbed. Have you shown the window yet?";
 					break;
 					
 				case 2:
-					err = "Error getting number of 'jscall' nodes.";
+					err = "Error finding 'jscall' nodes.";
 					break;
 					
 				case 3:
-					err = "More or fewer than one 'jscall' node.";
+					err = "Error getting number of 'jscall' nodes.";
 					break;
 					
 				case 4:
-					err = "Error getting 'jscall' node.";
+					err = "More or fewer than one 'jscall' node.";
 					break;
 					
 				case 5:
-					err = "Error adding 'infunction' node.";
+					err = "Error getting 'jscall' node.";
 					break;
 					
 				case 6:
-					err = "Error setting attributes on 'infunction' node.";
+					err = "Error adding 'infunction' node.";
 					break;
 					
 				case 7:
-					err = "Error getting nsIDOMNode interface on 'infunction' node.";
+					err = "Error setting attributes on 'infunction' node.";
 					break;
 					
 				case 8:
+					err = "Error getting nsIDOMNode interface on 'infunction' node.";
+					break;
+					
+				case 9:
 					err = "Error appending 'infunction' node to 'jscall' node.";
 					break;
+					
 				default:
-					err = "Unknown error.";
+					err = "The glue wrapper returned an unknown error.";
 					break;
 			}
 			

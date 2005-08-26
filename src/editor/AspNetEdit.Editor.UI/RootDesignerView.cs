@@ -1,6 +1,6 @@
  /* 
  * RootDesignerView.cs - The Gecko# design surface returned by the WebForms Root Designer.
- * 
+ * 			
  * Authors: 
  *  Michael Hutchinson <m.j.hutchinson@gmail.com>
  *  
@@ -34,17 +34,21 @@ using System.ComponentModel.Design;
 using System.ComponentModel;
 using System.Text;
 using AspNetEdit.Editor.ComponentModel;
+using System.Web.UI;
+using System.Collections;
 using Gtk;
 
 namespace AspNetEdit.Editor.UI
 {
 	public class RootDesignerView : Gecko.WebControl
 	{
+		private const string geckoChrome = "chrome://aspdesigner/content/aspdesigner.xul"; 
 		private CommandManager comm;
-		private IDesignerHost host;
+		private DesignerHost host;
 		private IComponentChangeService changeService;
 		private ISelectionService selectionService;
 		private IMenuCommandService menuService;
+		private bool active = false;
 		private string mozPath;
 
 		public RootDesignerView (IDesignerHost host)
@@ -54,8 +58,8 @@ namespace AspNetEdit.Editor.UI
 			comm = new CommandManager (this);
 
 			//we use the host to get services and designers
-			this.host = host;
-			if (host == null)
+			this.host =  host as DesignerHost;
+			if (this.host == null)
 				throw new ArgumentNullException ("host");
 
 			//We use this to monitor component changes and update as necessary
@@ -75,13 +79,16 @@ namespace AspNetEdit.Editor.UI
 			//	return;
 
 			//Now we've got all services, register our events
-			changeService.ComponentAdded += new ComponentEventHandler (changeService_ComponentAdded);
 			changeService.ComponentChanged += new ComponentChangedEventHandler (changeService_ComponentChanged);
-			changeService.ComponentRemoved += new ComponentEventHandler (changeService_ComponentRemoved);
 			selectionService.SelectionChanged += new EventHandler (selectionService_SelectionChanged);
 	
 			//Register incoming calls from JavaScript
 			comm.RegisterJSHandler ("Click", new ClrCall (JSClick));
+			comm.RegisterJSHandler ("SavePage", new ClrCall (JSSave));
+			comm.RegisterJSHandler ("Activate", new ClrCall (JSActivate));
+			comm.RegisterJSHandler ("ThrowException", new ClrCall (JSException));
+			comm.RegisterJSHandler ("DebugStatement", new ClrCall (JSDebugStatement));
+			comm.RegisterJSHandler ("ResizeControl", new ClrCall (JSResize));
 
 			//Find our Mozilla JS and XUL files and load them
 			//TODO: use resources for Mozilla JS and XUL files
@@ -94,91 +101,264 @@ namespace AspNetEdit.Editor.UI
 			//TargetEntry te = new TargetEntry(Toolbox.DragDropIdentifier, TargetFlags.App, 0);
 			//Drag.DestSet (this, DestDefaults.All, new TargetEntry[] { te }, Gdk.DragAction.Copy);
 			//this.DragDataReceived += new DragDataReceivedHandler(view_DragDataReceived);
-
+			base.LoadUrl (geckoChrome);
 		}
 
 		#region Change service handlers
 
 		void selectionService_SelectionChanged (object sender, EventArgs e)
 		{
-			//TODO: selection
-			//throw new NotImplementedException ();
-		}
-
-		void changeService_ComponentRemoved (object sender, ComponentEventArgs e)
-		{
-			//TODO: component removal
-			//throw new NotImplementedException ();
+			if (!active) return;
+			
+			//deselect all
+			comm.JSCall (GeckoFunctions.SelectControl, null, string.Empty);
+			if (selectionService.SelectionCount == 0) return;
+			
+			ICollection selections = selectionService.GetSelectedComponents ();		
+			
+			foreach (IComponent comp in selections) {
+				if (comp is WebFormPage) continue;
+				Control control = comp as Control;
+				if (control == null)
+					throw new InvalidOperationException ("One of the selected components is not a System.Web.UI.Control.");
+				//select the control
+				comm.JSCall (GeckoFunctions.SelectControl, null, control.UniqueID);
+			}
 		}
 
 		void changeService_ComponentChanged (object sender, ComponentChangedEventArgs e)
 		{
-			//TODO: FIX!!!!
-			System.IO.FileStream stream = new System.IO.FileStream(mozPath + "temp.html", System.IO.FileMode.Create);
-			System.IO.StreamWriter w = new System.IO.StreamWriter(stream);
+			if (!active) return;
 			
-
-			string doc = ((DesignerHost)host).RootDocument.ViewDocument();
-			w.Write(doc);
-			w.Flush();
-			stream.Close();
+			Control control = e.Component as Control;
+			if (control == null)
+				throw new InvalidOperationException ("The changed component is not a System.UI.WebControl");
 			
-			base.LoadUrl(mozPath + "temp.html");
+			string ctext = Document.RenderDesignerControl (control);
+			comm.JSCall (GeckoFunctions.UpdateControl, null, control.UniqueID, ctext);
 		}
-
-		void changeService_ComponentAdded (object sender, ComponentEventArgs e)
+		
+		#endregion
+		
+		#region document modification accessors for AspNetEdit.Editor.ComponentModel.Document
+		
+		internal void AddControl(Control control)
 		{
-			//TODO: FIX!!!!
-			System.IO.FileStream stream = new System.IO.FileStream (mozPath + "temp.html", System.IO.FileMode.Create);
-			System.IO.StreamWriter w = new System.IO.StreamWriter (stream);
-
-			string doc = ((DesignerHost)host).RootDocument.ViewDocument ();
-			w.Write (doc);
-			w.Flush ();
-			stream.Close ();
+			if (!active) return;
 			
-			base.LoadUrl (mozPath + "temp.html");
+			string ctext = Document.RenderDesignerControl (control);
+			comm.JSCall (GeckoFunctions.AddControl, null, control.UniqueID, ctext);
 		}
 
+		internal void RemoveControl(Control control)
+		{
+			if (!active) return;
+			
+			comm.JSCall (GeckoFunctions.RemoveControl, null, control.UniqueID);
+		}
+		
+		internal void RenameControl(string oldName, string newName)
+		{
+			throw new NotImplementedException ();
+		}
+		
 		#endregion
 
-		#region JS handlers
+		#region Inbound Gecko functions
+		
+		//this is because of the Gecko# not wanting to give up its DomDocument until it's been shown.
+		///<summary>
+		/// Name:	Activate
+		///			Called when the XUL document is all loaded and ready to recieve ASP.NET document
+		/// Arguments:	none
+		/// Returns:	none
+		///</summary>
+		private string JSActivate (string[] args)
+		{
+			//load document with filled-in design-time HTML
+			comm.JSCall (GeckoFunctions.LoadPage, null, host.RootDocument.ViewDocument ());
+			active = true;
+			return string.Empty;
+		}
 
-		//JS call handler
-		// Name:	Call
-		// Arguments:	ClickType (single, double, right)
-		//		Component (Asp Component ID, or empty if other)
-		// Returns:	n/a
+		///<summary>
+		/// Name:	Click
+		///			Called when the docucument is clicked
+		/// Arguments:
+		///		enum ClickType: The button used to click (Single|Double|Right)
+		///		string Component:	The unique ID if a Control, else empty
+		/// Returns:	none
+		///</summary>
 		private string JSClick (string[] args)
 		{
 			if (args.Length != 2)
-				return string.Empty;
-
-			//lookup our component
-			IComponent component = null;
-			if (args[1] != string.Empty)
-				component = ((DesignContainer) host.Container).GetComponent (args[1]);
+				throw new InvalidJSArgumentException ("Click", -1);
+			
+			//look up our component
+			IComponent[] components = null;
+			if (args[1].Length != 0)
+				components = new IComponent[] {((DesignContainer) host.Container).GetComponent (args[1])};
 
 			//decide which action to perfom and use services to perfom it
 			switch (args[0]) {
-				case "single":
-					selectionService.SetSelectedComponents (new IComponent[] {component});
+				case "Single":
+					selectionService.SetSelectedComponents (components);
 					break;
-				case "double":
-					IDesigner designer = host.GetDesigner (component);
+				case "Double":
+					//TODO: what happen when we double-click on the page?
+					if (args[1].Length == 0) break;
+					
+					IDesigner designer = host.GetDesigner (components[0]);
 
 					if (designer != null)
 						designer.DoDefaultAction ();
 					break;
-				case "right":
+				case "Right":
 					//TODO: show context menu menuService.ShowContextMenu
 					break;
+				default:
+					throw new InvalidJSArgumentException("Click", 0);
 			}
+
+			return string.Empty;
+		}
+		
+		///<summary>
+		/// Name:	SavePage
+		///			Callback function for when host initiates document save
+		/// Arguments:
+		///		string document:	the document text, with placeholder'd controls
+		/// Returns:	none
+		///</summary>
+		private string JSSave (string[] args)
+		{
+			if (args.Length != 1)
+				throw new InvalidJSArgumentException ("SavePage", -1);
+			
+			throw new NotImplementedException (args[0]);
+
+			return string.Empty;
+		}
+		
+		///<summary>
+		/// Name:	ThrowException
+		///			Throws managed exceptions on behalf of Javascript
+		/// Arguments:
+		///		string location:	some description of where the error occurred
+		///		string message:		the exception's message
+		/// Returns:	none
+		///</summary>
+		private string JSException (string[] args)
+		{
+			if (args.Length != 2)
+				throw new InvalidJSArgumentException ("ThrowException", -1);
+			
+			throw new Exception (string.Format ("Error in javascript at {0}:\n{1}", args[0], args[1]));
+		}
+
+		///<summary>
+		/// Name:	DebugStatement
+		///			Writes to the console on behalf of Javascript
+		/// Arguments:
+		///		string message:	the debug message
+		/// Returns:	none
+		///</summary>
+		private string JSDebugStatement (string[] args)
+		{
+			if (args.Length != 1)
+				throw new InvalidJSArgumentException ("ThrowException", -1);
+			
+			Console.WriteLine ("Javascript: " + args[0]);
+			return string.Empty;
+		}
+		
+		///<summary>
+		/// Name:	ResizeControl
+		///			Writes to the console on behalf of Javascript
+		/// Arguments:
+		///		string id:	the control's ID
+		///		string width:	the control's width
+		///		string height:	the control's height
+		/// Returns:	none
+		///</summary>
+		private string JSResize (string[] args)
+		{
+			if (args.Length != 3)
+				throw new InvalidJSArgumentException ("ResizeControl", -1);
+				
+			//look up our component
+			IComponent component = ((DesignContainer) host.Container).GetComponent (args[0]);
+			System.Web.UI.WebControls.WebControl wc = component as System.Web.UI.WebControls.WebControl;
+			if (wc == null)
+				throw new InvalidJSArgumentException ("ResizeControl", 0);
+			
+			PropertyDescriptorCollection pdc = TypeDescriptor.GetProperties (wc);
+			PropertyDescriptor pdc_h = pdc.Find("Height", false);
+			PropertyDescriptor pdc_w = pdc.Find("Width", false);
+			
+			//set the values
+			pdc_w.SetValue (wc, pdc_w.Converter.ConvertFromInvariantString(args[1]));
+			pdc_h.SetValue (wc, pdc_h.Converter.ConvertFromInvariantString(args[2]));
 
 			return string.Empty;
 		}
 
 		#endregion
+		
+		#region Outbound Gecko functions
+		
+		public class GeckoFunctions
+		{
+			///<summary>
+			/// Add a control to the document
+			/// Args:
+			/// 	string id:		the unique ID of the control.
+			/// 	string content:	The HTML content of the control
+			/// Returns: none
+			///</summary>
+			public static readonly string AddControl = "AddControl";
+			
+			///<summary>
+			/// Updates the design-time HTML of a control to the document
+			/// Args:
+			/// 	string id:		the unique ID of the control.
+			/// 	string content:	The HTML content of the control
+			/// Returns: none
+			///</summary>
+			public static readonly string UpdateControl = "UpdateControl";
 
+			///<summary>
+			/// Removes a control from the document
+			/// Args:
+			/// 	string id:		the unique ID of the control.
+			/// Returns: none
+			///</summary>
+			public static readonly string RemoveControl = "RemoveControl";
+			
+			///<summary>
+			/// Selects a control
+			/// Args:
+			/// 	string id:		the unique ID of the control, or empty to clear selection.
+			/// Returns: none
+			///</summary>
+			public static readonly string SelectControl = "SelectControl";
+			
+			///<summary>
+			/// Replaces the currently loaded document
+			/// Args:
+			/// 	string document:	the document text, with placeholder'd controls.
+			/// Returns: none
+			///</summary>
+			public static readonly string LoadPage = "LoadPage";
+			
+			///<summary>
+			/// Replaces the currently loaded document
+			/// Args: none
+			/// Returns: none
+			///</summary>
+			public static readonly string GetPage = "GetPage";
+		}
+		
+		#endregion
 	}
 }

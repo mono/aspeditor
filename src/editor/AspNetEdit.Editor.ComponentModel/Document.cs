@@ -31,6 +31,7 @@
 using System;
 using System.Text;
 using System.Web.UI;
+using System.Web.UI.WebControls;
 using System.IO;
 using System.ComponentModel.Design;
 using System.Collections;
@@ -38,14 +39,14 @@ using AspNetEdit.Editor.Persistence;
 using System.ComponentModel;
 using AspNetEdit.Editor.ComponentModel;
 using System.Globalization;
+using AspNetEdit.Editor.UI;
 
 namespace AspNetEdit.Editor.ComponentModel
 {
 	public class Document
 	{
-		public static readonly string newDocument = "<html>\n<head>\n\t<title>{0}</title>\n</head>\n<body>\n<form runat=\"server\">\n<cursor/>\n</form></body>\n</html>";
-		public static readonly string cursor = "<cursor/>";
-		public static readonly string ControlSubstituteStructure = "<aspcontrol name=\"{0}\" />";
+		public static readonly string newDocument = "<html>\n<head>\n\t<title>{0}</title>\n</head>\n<body>\n<form runat=\"server\">\n\n</form></body>\n</html>";
+		public static readonly string ControlSubstituteStructure = "<aspcontrol id=\"{0}\" width=\"{1}\" height=\"{2}\" -md-can-drop=\"{3}\" -md-can-resize=\"{4}\">{5}</aspcontrol>";
 		public static readonly string DirectivePlaceholderStructure = "<directiveplaceholder id =\"{0}\" />";
 
 		StringBuilder document;
@@ -54,6 +55,7 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		private Control parent;
 		private DesignerHost host;
+		private RootDesignerView view;
 
 		public Document (Control parent, DesignerHost host)
 		{
@@ -77,6 +79,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			StringBuilder builder = new StringBuilder (document.ToString());
 
 			//substitute all components
+			/*
 			foreach (IComponent comp in host.Container.Components)
 			{
 				if (!(comp is Control) || comp.Site == null)
@@ -91,9 +94,7 @@ namespace AspNetEdit.Editor.ComponentModel
 				strWriter.Flush();
 				builder.Replace(substituteText, strWriter.ToString());
 			}
-
-			//remove cursor
-			builder.Replace(cursor, string.Empty);
+			*/
 
 			return builder.ToString();
 		}
@@ -112,6 +113,7 @@ namespace AspNetEdit.Editor.ComponentModel
 		{
 			CheckHostIsLoading ();
 			document = new StringBuilder (String.Format (newDocument, documentName));
+			GetView ();
 		}
 
 		public void LoadFile (Stream fileStream, string fileName)
@@ -137,6 +139,14 @@ namespace AspNetEdit.Editor.ComponentModel
 				document = new StringBuilder ();
 				document.AppendFormat ("<html><body><h1>{0}</h1><p>{1}</p></body>", "Error loading document", ex.Message);
 			}
+			
+			GetView ();
+		}
+		
+		private void GetView ()
+		{
+			IRootDesigner rd = (IRootDesigner) host.GetDesigner (host.RootComponent);
+			this.view = (RootDesignerView) rd.GetView (ViewTechnology.Passthrough);
 		}
 
 		public string PersistDocument ()
@@ -175,35 +185,54 @@ namespace AspNetEdit.Editor.ComponentModel
 					builder.Insert (0, persistedText);
 			}
 
-			//remove cursor
-			builder.Replace(cursor, string.Empty);
-
 			return builder.ToString();
 		}
 
 		#endregion
 
-		#region add/remove controls
-
+		#region add/remove/update controls
+		
+		public static string RenderDesignerControl (Control control)
+		{
+			string height = "auto";
+			string width = "auto";
+			string canResize = "true";
+			string canDrop = "true";
+			string id = control.UniqueID;
+			
+			WebControl wc = control as WebControl;
+			if (wc != null) {
+				height = wc.Height.ToString ();
+				width = wc.Height.ToString ();
+			}
+			
+			//render the control
+			System.IO.StringWriter strWriter = new System.IO.StringWriter ();
+			System.Web.UI.HtmlTextWriter writer = new System.Web.UI.HtmlTextWriter (strWriter);
+			control.RenderControl (writer);
+			writer.Close ();
+			strWriter.Flush ();
+			string content = strWriter.ToString ();
+			strWriter.Close ();
+			
+			return string.Format (ControlSubstituteStructure, id, width, height, canDrop, canResize, content);
+		}
+		
 		public void AddControl(Control control)
 		{
-			string subst = String.Format(ControlSubstituteStructure, control.Site.Name);
-			document.Replace(cursor, subst + cursor);
+			view.AddControl (control);
 		}
 
 		public void RemoveControl(Control control)
 		{
-			string subst = String.Format(ControlSubstituteStructure, control.Site.Name);
-			document.Replace(subst, string.Empty);
+			view.RemoveControl (control);
 		}
-
-		internal void RenameControl(string oldName, string newName)
+		
+		public void RenameControl(string oldName, string newName)
 		{
-			string oldSubstituteText = String.Format(ControlSubstituteStructure, oldName);
-			string newSubstituteText = String.Format(ControlSubstituteStructure, newName);
-
-			document.Replace(oldSubstituteText, newSubstituteText);
+			view.RenameControl (oldName, newName);
 		}
+		
 
 		#endregion
 

@@ -47,6 +47,8 @@ namespace AspNetEdit.Editor.UI
 		private AspNetEdit.UI.PropertyGrid grid;
 		private ListStore components;
 		private ComboBox combo;
+		
+		private bool suppressChange = false;
 
 		public PropertyGrid (ServiceContainer parentServices)
 		{
@@ -64,6 +66,9 @@ namespace AspNetEdit.Editor.UI
 			combo.AddAttribute (rdr, "text", 0);
 
 			this.PackStart (combo, false, false, 3);
+			
+			//for selecting nothing
+			components.AppendValues (new object[] { "", null} );
 
 			combo.Changed += new EventHandler (combo_Changed);
 
@@ -72,6 +77,7 @@ namespace AspNetEdit.Editor.UI
 
 		void combo_Changed (object sender, EventArgs e)
 		{
+			if (suppressChange) return;
 			TreeIter t;
 			combo.GetActiveIter(out t);
 			IComponent comp = (IComponent) components.GetValue(t, 1);
@@ -151,7 +157,23 @@ namespace AspNetEdit.Editor.UI
 
 		private void selectionService_SelectionChanged (object sender, EventArgs e)
 		{
+			//stop combo change event from changing selection again!
+			suppressChange = true;
 			grid.CurrentObject = selectionService.PrimarySelection;
+			
+			TreeIter iter;
+			components.GetIterFirst (out iter);
+			
+			do
+			{
+				if ((IComponent) components.GetValue (iter, 1) == selectionService.PrimarySelection)
+				{
+					combo.SetActiveIter (iter);
+					break;
+				}
+			}
+			while (components.IterNext (ref iter));		
+			suppressChange = false;	
 		}
 	}
 }

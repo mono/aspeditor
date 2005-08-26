@@ -15,4 +15,4 @@ $(bin_SCRIPTS): $(srcdir)/script.in Makefile
 run: runasp
 
 runasp: $(PROGRAM)
-	cd $(top_builddir)/build/lib/ && LD_LIBRARY_PATH=`echo "$(LD_LIBRARY_PATH):$(MOZILLA_HOME)" | sed 's/^://g'` $(MONO) --debug aspnetedit.exe
+	cd $(top_builddir)/build/lib/ && LD_LIBRARY_PATH=`echo "$(LD_LIBRARY_PATH):$(MOZILLA_HOME)" | sed 's/^://g'` $(MONO) aspnetedit.exe

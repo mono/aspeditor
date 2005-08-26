@@ -211,7 +211,6 @@ public class PropertyGrid : Gtk.VBox
 		else
 			rtb.IconWidget = new Gtk.Image (Stock.MissingImage, IconSize.SmallToolbar);
 		
-		//Console.WriteLine (rtb.IconWidget.GetType().ToString());
 		rtb.SetTooltip (tips, tab.TabName, null);
 		rtb.Toggled += new EventHandler (toolbarClick);	
 		

@@ -95,6 +95,11 @@ namespace AspNetEdit.Editor.ComponentModel
 			//add to document
 			((Control)RootComponent).Controls.Add ((Control) component);
 			RootDocument.AddControl ((Control)component);
+			
+			//select it
+			ISelectionService sel = this.GetService (typeof (ISelectionService)) as ISelectionService;
+			if (sel != null)
+				sel.SetSelectedComponents (new IComponent[] {component});
 
 			
 			return component;
@@ -107,6 +112,13 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		public void DestroyComponent (IComponent component)
 		{
+			//deselect it if selected
+			ISelectionService sel = this.GetService (typeof (ISelectionService)) as ISelectionService;
+			if (sel != null)
+				foreach (IComponent c in sel.GetSelectedComponents ())
+					if (c == component)
+						sel.SetSelectedComponents (null);
+			
 			if (component != RootComponent) {
 				//remove from component and dcument
 				((Control) RootComponent).Controls.Remove ((Control) component);
@@ -115,7 +127,9 @@ namespace AspNetEdit.Editor.ComponentModel
 
 			//remove from container
 			container.Remove (component);
-			component.Dispose ();			
+			component.Dispose ();
+			
+			
 		}
 
 		public IDesigner GetDesigner (IComponent component)

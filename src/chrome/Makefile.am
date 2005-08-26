@@ -9,6 +9,7 @@ contentdir = $(chromedir)/content/$(packagename)
 content_DATA = $(content_files)
 content_files =	\
 		$(srcdir)/content/aspdesigner.js	\
+		$(srcdir)/../jscall/Resources/JSCall.js	\
 		$(srcdir)/content/aspdesigner.xul	\
 		$(srcdir)/content/contents.rdf
 

@@ -38,5 +38,10 @@ namespace AspNetEdit.JSCall
 			:base ("Invalid argument " + argument.ToString () + " in JavaScript call to \"" + function + "\".", e)
 		{
 		}
+		
+		public InvalidJSArgumentException (string function, int argument)
+			:base ("Invalid argument " + argument.ToString () + " in JavaScript call to \"" + function + "\".")
+		{
+		}
 	}
 }

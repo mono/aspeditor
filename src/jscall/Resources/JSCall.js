@@ -34,12 +34,16 @@ function JSCallInit()
 {
 	JSCallFunctions = Array();
 	
-	if (document.getElementsByTagName("jscall").length != 0) {
+	if (document.getElementsByTagName("jscall").length == 0) {
+		el = document.createElement("jscall");
+		document.documentElement.appendChild(el);
+	}
+	
+	if (document.getElementsByTagName("jscall").length != 1) {
 		throw "Error: the document already contains a <jscall> element";
 	}
-	el = document.createElement("jscall");
-	document.documentElement.appendChild(el);
 	
+	el = document.getElementsByTagName("jscall")[0];
 	el.addEventListener( "DOMNodeInserted", JSCallHandler, false );
 	
 	//JSCallRegisterClrHandler("Redo", Redo);
@@ -83,7 +87,7 @@ function JSCallHandler(e)
 
 
 function JSCallPlaceClrCall(fn, returnTo, args) {
-	str = "JSCall|" + fn + "|" + returnTo + "|1";
+	str = "JSCall|" + fn + "|" + returnTo + "|";
 	
 	if (args && args.length > 0)
 	{

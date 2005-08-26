@@ -16,7 +16,7 @@
     <editor editortype="html" type="content-primary" id="aspeditor"
             context="editorContentContext" flex="1" tooltip="aHTMLTooltip"/>
   </vbox>
-
+  <!--
   <vbox flex="1">
     <button label="Load Page" oncommand="editor.loadPage(injectHTML);"/>
     <button label="Save Page" oncommand="editor.getPage();"/>
@@ -30,9 +30,11 @@
     <button label="Redo" oncommand="editor.redo();"/>
     <button label="Hide UI" oncommand="editor.hideTableUI();"/>
   </vbox>  
+  
 </hbox>
 <hbox flex="2">
   <textbox id="debugWin" flex="1" multiline="true"/>
+  -->
 </hbox>
 </window>
 
