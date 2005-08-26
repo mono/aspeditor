@@ -987,7 +987,7 @@ aspNetEditor.prototype =
 	showResizers: function(aElement)
 	{
 		if(this.nodeIsControl (aElement) &&
-		   aElement.getAttribute ('md-can-resize') == 'true') {
+		   aElement.getAttribute ('-md-can-resize') == 'true') {
 			this.mNsIHtmlEditor.hideResizers ();
 			this.mNsIHtmlEditor.showResizers (aElement);
 		}
