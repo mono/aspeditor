@@ -1,7 +1,5 @@
 var editor                 = null;
 var host                   = null;
-var gWillFlash             = false;
-var gDropOverControlId     = '';
 var gCancelClick           = false;
 
 const DEBUG                     = true;
@@ -9,6 +7,10 @@ const BORDER_CAN_DROP_COLOR     = '#ee0000';
 const BORDER_CAN_DROP_THICK     = '2';
 const BORDER_CAN_DROP_INVERT    = false;
 const CONTROL_TAG_NAME          = 'aspcontrol';
+const END_CONTROL_TAG_EXP       = /<\/aspcontrol>/g;
+const BEGIN_CONTROL_TAG_EXP     = /(<aspcontrol.[^(><.)]+>)/g;
+const APPEND_TO_CONTROL_END     = '</div></span>';
+const APPEND_TO_CONTROL_BEGIN   = "<span style=\"display: block\"><div>";
 const SINGLE_CLICK              = 'single';
 const DOUBLE_CLICK              = 'double';
 const RIGHT_CLICK               = 'right';
@@ -18,14 +20,13 @@ const TABLE_EDITOR              = Components.interfaces.nsITableEditor;
 const EDITOR                    = Components.interfaces.nsIEditor;
 const SELECTION_PRIVATE         = Components.interfaces.nsISelectionPrivate;
 
-var controlId = "asptag2";
-var injectHTML = "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML//EN//3.0\"><html><head></head><body><aspcontrol id=\"button1\" md-can-resize=\"true\" style=\"-moz-user-select: none; border: 1px solid #aaaaaa;  -moz-user-focus: ignore; -moz-user-input: disabled; vertical-align: text-bottom; display: -moz-inline-box; -moz-user-modify: read-only;\"><span style=\"display: block\"><div><img src=\"http://www.go-mono.com/images/mono-new.gif\"/><input type=\"button\" value=\"Button Control\" style=\"-moz-user-select: none; -moz-user-focus: ignore; -moz-user-input: disabled;\"/></div></span></aspcontrol>Some text<aspcontrol id=\"button2\" md-can-resize=\"true\" style=\"-moz-user-select: none; border: 1px solid #aaaaaa;  -moz-user-focus: ignore; -moz-user-input: disabled; vertical-align: text-bottom; display: -moz-inline-box; min-height: 70px; -moz-user-modify: read-only;\"><span style=\"display: block\"><div><div>Block text</div><input type=\"button\" value=\"Button Control\" style=\"-moz-user-select: none; -moz-user-focus: ignore; -moz-user-input: disabled; width: 100px; height: 70px;\"/>Inline text<div>Block text</div></div></span></aspcontrol><table id=\"table1\"><tr><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row One, Cell One</span></td><td width=\"200\" height=\"100\" style=\"background: #f5f5f5\" md-can-drop=\"true\"><span>Row One, Cell Two</span></td></tr><tr><td width=\"200\" height=\"100\" style=\"background: #f5f5f5\" md-can-drop=\"true\"><span>Row Two, Cell One</span></td><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row Two, Cell Two</span></td></tr></table><aspcontrol id=\"button3\" md-can-drop=\"true\" md-can-resize=\"true\" style=\"-moz-user-select: none; border: 1px solid #aaaaaa;  -moz-user-focus: ignore; -moz-user-input: disabled; vertical-align: text-bottom; display: -moz-inline-box; -moz-user-modify: read-only;\"><span style=\"display: block\"><div>Some<input type=\"button\" value=\"Button Control\" style=\"-moz-user-select: none; -moz-user-focus: ignore; -moz-user-input: disabled; width: 100px; height: 70px;\"/></div></span></aspcontrol></body></html>";
+var gRepaintElement = 'button1';
+var controlId       = 'asptag2';
+var injectHTML      = "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML//EN//3.0\"><html><head></head><body><aspcontrol id=\"button1\" md-can-drop=\"false\" md-can-resize=\"true\" height=\"85\" width=\"380\"><img src=\"http://www.go-mono.com/images/mono-new.gif\"/><input type=\"button\" value=\"Button Control\"></aspcontrol>Some text<aspcontrol id=\"button2\"  md-can-drop=\"false\" md-can-resize=\"true\" height=\"75\" width=\"180\"><div>Block text</div><input type=\"button\" value=\"Button Control\" style=\"width: 100px; height: 70px;\"/>Inline text<div>Block text</div></aspcontrol><table id=\"table1\" style=\"border: 5px solid #000000;\"><tr><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row One, Cell One</span></td><td width=\"200\" height=\"100\" style=\"background: #f5f5f5\" md-can-drop=\"true\"><span>Row One, Cell Two</span></td></tr><tr><td width=\"200\" height=\"100\" style=\"background: #f5f5f5\" md-can-drop=\"true\"><span>Row Two, Cell One</span></td><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row Two, Cell Two</span></td></tr></table><aspcontrol id=\"button3\"  md-can-drop=\"false\" md-can-resize=\"true\" height=\"85\" width=\"150\">Some<input type=\"button\" value=\"Button Control\" style=\"width: 100px; height: 70px;\"/></aspcontrol></body></html>";
 
-var newHTML = "<aspcontrol id=\"asptag2\" md-can-resize=\"true\" style=\"-moz-user-select: none; border: 1px solid #aaaaaa; display: block; width: 340;\">Updated Block ASP Control 1</aspcontrol>";
+var newHTML4 = "<aspcontrol id=\"button2\" md-can-resize=\"true\"><div>!!!   New desigh-time HTML   !!!</div><input type=\"button\" value=\"Button Control\" style=\"width: 200px; height: 140px;\"/>Inline text<div>Block text</div></aspcontrol>";
 
-var newHTML4 = "<aspcontrol id=\"button2\" md-can-resize=\"true\" style=\"border: 1px solid #aaaaaa; vertical-align: text-bottom; -moz-user-focus: ignore; -moz-user-input: disabled; -moz-user-select: none; display: -moz-inline-box; min-height: 140px\"><span style=\"display: block\"><div><div>!!!   New desigh-time HTML   !!!</div><input type=\"button\" value=\"Button Control\" style=\"-moz-user-select: none; width: 200px; height: 140px;\"/>Inline text<div>Block text</div></div></span></aspcontrol>";
-
-var newControl = "<aspcontrol id=\"label1\" md-can-drop=\"true\" md-can-resize=\"true\" style=\"-moz-user-select: none; border: 1px solid #aaaaaa;  -moz-user-focus: ignore; -moz-user-input: disabled; vertical-align: text-bottom; display: -moz-inline-box; -moz-user-modify: read-only;\"><span style=\"display: block\"><div>Some Control</div></span></aspcontrol>";
+var newControl = "<aspcontrol id=\"label1\" md-can-drop=\"false\" md-can-resize=\"true\" height=\"110\" width=\"220\">Some Control with table<table id=\"table2\" style=\"border: 5px solid #000000;\"><tr><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row One, Cell One</span></td></tr></table></aspcontrol>";
 
 //* ___________________________________________________________________________
 // Implementations of some XPCOM interfaces, to observe various editor events
@@ -57,7 +58,7 @@ var gNsISelectionListenerImplementation = {
 var gNsIEditActionListenerImplementation = {
 	DidCreateNode: function(tag, node, parent, position, result)
 	{
-	
+		//alert('did create node');
 	},
 
 	// TODO: Check if deleted node contains a control, not only if it is one
@@ -114,9 +115,6 @@ var gNsIEditActionListenerImplementation = {
 	
 	},
 
-	// TODO: If we are inserting a control, check if it's already
-	// registered in the control table. If it is, update reference.
-	// If not, register it.
 	// Make sure to check node contents for controls too. The node could be
 	// a table (or any other element) with a control inside.
 	DidInsertNode: function(node, parent, position, result)
@@ -130,47 +128,51 @@ var gNsIEditActionListenerImplementation = {
 			dump (dumpStr);
 		}
 
-		// Are we inserting an already existing control? If we are, then
-		// it probably comes from Drag&Drop operation. Anyway, we have
-		// to update its reference in the local control table
-		if(node.nodeType == 1 &&
-		   editor.getControlTable ().getById(node.getAttribute ('id'))) {
-			editor.getControlTable ().update (node.getAttribute ('id'), node);
-		editor.collapseBeforeInsertion ("end");
-		editor.selectElement (node);
-			if(DEBUG)
-				dump ('Did update control(id=' +
-					node.getAttribute ('id') +
-					') reference in table' +
-					'\n');
-		}
-
-		// If we have just concluded a Drag&Drop operation, we should
-		// set back moz-user-select to "none" on any controls we have
-		// posibly droped over or near
-		if(gDropOverControlId) {
-			var i       = 0;
-			var control = editor.getControlFromTableByIndex (i);
-			if(control) {
-				while(control) {
-					editor.setSelectNone (control);
-					i++;
-					control = editor.getControlFromTableByIndex (i);
+		// Check to see if we have inserted a new controls. We need to
+		// add'em to the control table. Also update reference to all
+		// existing controls
+		var controls = editor.getDocument ().getElementsByTagName (CONTROL_TAG_NAME);
+		if(controls.length > 0) {
+			var i = 0;
+			var width, height;
+			while(controls [i]) {
+				if(editor.getControlTable ().getById (controls [i].getAttribute ('id'))) {
+					//alert(controls [i].getAttribute ('id'));
+					editor.getControlTable ().update (controls [i].getAttribute ('id'),
+									controls [i]);
+						if(DEBUG)
+							dump ('Did update control(id=' +
+								controls [i].getAttribute ('id') +
+								') reference in table' +
+								'\n');
 				}
+				else {
+					editor.insertInControlTable (controls [i].getAttribute ('id'),
+							controls [i]);
+					if(DEBUG) {
+						dump ('New control (id=' +
+							controls [i].getAttribute ('id') +
+							') inserted\n');
+						dump ('There is/are ' +
+							editor.getControlCount() +
+							' controls in the page\n');
+					}
+ 				}
+				editor.setSelectNone (controls [i]);
+				width = controls [i].getAttribute('width');
+				height = controls [i].getAttribute('height');
+				controls [i].style.setProperty ('min-width',
+							width, '');
+				controls [i].style.setProperty ('min-height',
+							height, '');
+				controls [i].style.setProperty ('display',
+							'-moz-inline-box', '');
+				controls [i].style.setProperty ('border',
+							'1px solid #aaaaaa', '');
+				controls [i].style.setProperty ('vertical-align',
+							'text-bottom', '');
+				i++;
 			}
-			gDropOverControlId = '';
-		}
-
-		// Check to see if we have inserted a new control. We need to
-		// add it to the control table.
-		// TODO: Check to see if there is any nested controls
-		if(editor.nodeIsControl (node) &&
-		   !editor.getControlFromTableById (node.getAttribute ('id'))) {
-			editor.insertInControlTable (node.getAttribute ('id'), node);
-			if(DEBUG)
-				dump ('New control (id=' +
-					node.getAttribute ('id') +
-					') inserted\n');
 		}
 
 		if(DEBUG && editor.getDragState ()) {
@@ -193,12 +195,12 @@ var gNsIEditActionListenerImplementation = {
 
 	DidJoinNodes: function(leftNode, rightNode, parent, result)
 	{
-	
+		//alert('did join nodes');
 	},
 
 	DidSplitNode: function(existingRightNode, offset, newLeftNode, result)
 	{
-	
+		//alert('did split node');
 	},
 
 	WillCreateNode: function(tag, parent, position)
@@ -330,7 +332,10 @@ aspNetHost.prototype =
 	initialize: function()
 	{
 		// Register our interface methods with the host
-		JSCallInit ();
+		try {
+			JSCallInit ();
+		} catch(e) { ;}
+
 		//  Loading/Saving/ControlState
 		JSCallRegisterClrHandler ('loadPage', editor.loadPage);
 		JSCallRegisterClrHandler ('getPage', editor.getPage);
@@ -365,63 +370,8 @@ aspNetHost.prototype =
 	resizeControl: function(aControlId, aWidth, aHeight)
 	{
 		switch(aControlId) {
-		case "asptag2":
-			editor.updateControl (aControlId, newHTML);
-			if(DEBUG)
-				dump ('resizeControl: id=' +
-					aControlId +
-					', new size: ' +
-					aWidth +
-					'x' +
-					aHeight +
-					'\n');
-			break;
-		case "asptag1":
-			editor.updateControl (aControlId, newHTML1);
-			if(DEBUG)
-				dump ('resizeControl: id=' +
-					aControlId +
-					', new size: ' +
-					aWidth +
-					'x' +
-					aHeight +
-					'\n');
-			break;
-		case "nest1":
-			editor.updateControl (aControlId, newHTML2);
-			if(DEBUG)
-				dump ('resizeControl: id=' +
-					aControlId +
-					', new size: ' +
-					aWidth +
-					'x' +
-					aHeight +
-					'\n');
-			break;
-		case "button1":
-			editor.updateControl (aControlId, newHTML3);
-			if(DEBUG)
-				dump ('resizeControl: id=' +
-					aControlId +
-					', new size: ' +
-					aWidth +
-					'x' +
-					aHeight +
-					'\n');
-			break;
 		case "button2":
 			editor.updateControl (aControlId, newHTML4);
-			if(DEBUG)
-				dump ('resizeControl: id=' +
-					aControlId +
-					', new size: ' +
-					aWidth +
-					'x' +
-					aHeight +
-					'\n');
-			break;
-		case "nest2":
-			editor.updateControl (aControlId, newHTML5);
 			if(DEBUG)
 				dump ('resizeControl: id=' +
 					aControlId +
@@ -514,6 +464,13 @@ function aspNetEditor_initialize()
 {
 	editor = new aspNetEditor ();
 	editor.initialize ();
+	var buttonBox = document.getElementById ('buttonBox');
+	var debugBox  = document.getElementById ('debugBox');
+	if(!DEBUG) {
+		buttonBox.style.display = 'none';
+		debugBox.style.display  = 'none';
+	}
+
 	host = new aspNetHost ();
 	host.initialize ();
 }
@@ -531,6 +488,7 @@ aspNetEditor.prototype =
 	mNsIHtmlObjectResizer     : null,
 	mNsIHTMLInlineTableEditor : null,
 	mNsISelectionPrivate      : null,
+	mNsIEditorStyleSheets     : null,
 	mShell                    : null,
 
 	mDropInElement            : null,
@@ -539,6 +497,7 @@ aspNetEditor.prototype =
 	mLastSelectedControls     : null,
 	mInResize                 : null,
 	mInDrag                   : null,
+	mWillFlash                : false,
 
 	initialize: function()
 	{
@@ -555,15 +514,16 @@ aspNetEditor.prototype =
 			this.mNsIHtmlEditor.QueryInterface(INLINE_TABLE_EDITOR);
 		this.mNsIHtmlObjectResizer =
 			this.mNsIHtmlEditor.QueryInterface(OBJECT_RESIZER);
-		this.mShell =
-			XPCU.getService ("@mozilla.org/inspector/flasher;1",
-				"inIFlasher");
+		if ((typeof XPCU) == 'object');
+			this.mShell =
+				XPCU.getService ("@mozilla.org/inspector/flasher;1",
+					"inIFlasher");
 
 		if(this.mShell) {
 			this.mShell.color               = BORDER_CAN_DROP_COLOR;
 			this.mShell.thickness           = BORDER_CAN_DROP_THICK;
 			this.mShell.invert              = BORDER_CAN_DROP_INVERT;
-			gWillFlash = true;
+			this.mWillFlash                 = true;
 		}
 
 		var selectionPrivate = this.getSelection().QueryInterface (SELECTION_PRIVATE);
@@ -576,32 +536,32 @@ aspNetEditor.prototype =
 
 		// All of our event listeners are added to the document here
 		this.getDocument ().addEventListener ('mousedown',
-			selectFromClick,
-			true);
+					selectFromClick,
+					true);
 		this.getDocument ().addEventListener ('mouseup',
-			suppressMouseUp,
-			true);
+					suppressMouseUp,
+					true);
 		this.getDocument ().addEventListener ('click',
-			detectSingleClick,
-			true);
+					detectSingleClick,
+					true);
 		this.getDocument ().addEventListener ('dblclick',
-			detectDoubleClick,
-			true);
+					detectDoubleClick,
+					true);
 		this.getDocument ().addEventListener ('contextmenu',
-			handleContextMenu,
-			true);
+					handleContextMenu,
+					true);
 		this.getDocument ().addEventListener ('draggesture',
-			handleDragStart,
-			true);
+					handleDragStart,
+					true);
 		this.getDocument ().addEventListener ('dragdrop',
-			handleDrop,
-			true);
+					handleDrop,
+					true);
 		this.getDocument ().addEventListener ('dragover',
-			dragOverControl,
-			true);
+					dragOverControl,
+					true);
 		this.getDocument ().addEventListener ('keypress',
-			handleKeyPress,
-			true);
+					handleKeyPress,
+					true);
 
 		this.mLastDeletedControls  = new Array();
 		this.mLastSelectedControls = new Array();
@@ -610,33 +570,10 @@ aspNetEditor.prototype =
 		this.mInDrag               = false;
 	},
 
-	getSelection: function()
-	{
-		if(this.mNsIHtmlEditor)
-			return this.mNsIHtmlEditor.selection;
-	},
-
 	getDocument: function()
 	{
 		if(this.mNsIHtmlEditor)
 			return this.mNsIHtmlEditor.document;
-	},
-
-	getSelectedElement: function(aTagName)
-	{
-		if(this.mNsIHtmlEditor)
-			return this.mNsIHtmlEditor.getSelectedElement (aTagName);
-	},
-
-	getSelectedControl: function()
-	{
-		if(this.mNsIHtmlEditor) {
-			var selectedElement = this.getSelectedElement ('');
-			if(selectedElement && this.nodeIsControl (selectedElement))
-				return selectedElement;
-			else
-				return null;
-		}
 	},
 
 	getControlCount: function()
@@ -648,7 +585,12 @@ aspNetEditor.prototype =
 	{
 		return this.mNsIHtmlEditor.resizedObject;
 	},
-  
+
+	getWillFlash: function()
+	{
+		return this.mWillFlash;
+	},
+
 	getInResize: function()
 	{
 		return this.mInResize;
@@ -717,7 +659,7 @@ aspNetEditor.prototype =
   
 	updateControlInTable: function(aControlId, aControlref)
 	{
-	this.mControlTable.update (aControlId, aControlref);
+		this.mControlTable.update (aControlId, aControlref);
 	},
 
 	getControlTable: function()
@@ -748,19 +690,6 @@ aspNetEditor.prototype =
 			return true;
 		return false;
 	},
-
-	loadPage: function(aHtml)
-	{
-		if(aHtml) {
-			try {
-				this.selectAll ();
-				this.deleteSelection ();
-				this.insertHTML (aHtml);
-				// TODO: we might have a legasy control table
-				// so empty it
-			} catch (e) { ;}
-		}
-	},
   
 	insertHTML: function(aHtml)
 	{
@@ -788,6 +717,13 @@ aspNetEditor.prototype =
 		}
 	},
 
+	transformControlsInHtml: function(aHTML)
+	{
+		var aHTML = aHTML.replace (BEGIN_CONTROL_TAG_EXP, "$&" + APPEND_TO_CONTROL_BEGIN);
+		var aHTML = aHTML.replace (END_CONTROL_TAG_EXP, APPEND_TO_CONTROL_END + "$&");
+		return (aHTML);
+	},
+
 	//  Loading/Saving/ControlState
 	loadPage: function(aHtml)
 	{
@@ -795,7 +731,8 @@ aspNetEditor.prototype =
 			try {
 				this.selectAll ();
 				this.deleteSelection ();
-				this.insertHTML (aHtml);
+				var html = this.transformControlsInHtml(aHtml);
+				this.insertHTML (html);
 				// TODO: we might have a legasy control table
 				// so empty it
 			} catch (e) { ;}
@@ -815,7 +752,9 @@ aspNetEditor.prototype =
 			var destinationOffset = 0;
 			var selectedElement = this.getSelectedElement ('');
 			var focusNode = this.getSelection ().focusNode;
-			
+
+			var controlHTML = this.transformControlsInHtml (aControlHtml);
+
 			// If we have a single-element selection and the element
 			// happens to be a control
 			if (selectedElement &&
@@ -841,10 +780,13 @@ aspNetEditor.prototype =
 
 			// If none of the above is true, we are just inserting
 			// with defaults insertIn=null, destinationOffset=0
-			this.insertHTMLWithContext (aControlHtml, '', '', '',
+			this.insertHTMLWithContext (controlHTML, '', '', '',
 				null, insertIn, destinationOffset, false);
+			var newControl = this.getElementById (aControlId);
+
 			this.selectElement (this.getElementById (aControlId));
-			this.showResizers (this.getElementById (aControlId));
+			//this.repaintElement (newControl);
+			//this.showResizers (this.getElementById (aControlId));
 		}
 	},
 
@@ -862,12 +804,14 @@ aspNetEditor.prototype =
 		if(aControlId && aNewDesignTimeHtml &&
 		   this.getDocument ().getElementById (aControlId)) {
 			this.hideResizers ();
+			var newDesignTimeHtml =
+				this.transformControlsInHtml (aNewDesignTimeHtml);
 			try {
 				var oldControl =
 					this.getDocument ().getElementById (aControlId);
 				this.collapseBeforeInsertion ("start");
 				this.selectElement (oldControl);
-				this.insertHTML (aNewDesignTimeHtml);
+				this.insertHTML (newDesignTimeHtml);
 			} catch (e) { }
 			this.endBatch ();
 			this.updateControlInTable(aControlId,
@@ -970,10 +914,6 @@ aspNetEditor.prototype =
 		this.collapseBeforeInsertion ("end");
 		if(this.mNsIEditor.canPaste (1))
 			this.mNsIEditor.paste (1);
-
-		//this.collapseBeforeInsertion ("end");
-		//if(this.mNsIEditor.canPaste (1))
-			//this.mNsIEditor.paste (1);
 	},
 
 	undo: function()
@@ -1001,10 +941,38 @@ aspNetEditor.prototype =
 	showResizers: function(aElement)
 	{
 		if(this.nodeIsControl (aElement) &&
-		   aElement.getAttribute ('md-can-resize')) {
+		   aElement.getAttribute ('md-can-resize') == 'true') {
 			this.mNsIHtmlEditor.hideResizers ();
 			this.mNsIHtmlEditor.showResizers (aElement);
 		}
+	},
+
+	getSelection: function()
+	{
+		if(this.mNsIHtmlEditor)
+			return this.mNsIHtmlEditor.selection;
+	},
+
+	getSelectedElement: function(aTagName)
+	{
+		if(this.mNsIHtmlEditor)
+			return this.mNsIHtmlEditor.getSelectedElement (aTagName);
+	},
+
+	getSelectedControl: function()
+	{
+		if(this.mNsIHtmlEditor) {
+			var selectedElement = this.getSelectedElement ('');
+			if(selectedElement && this.nodeIsControl (selectedElement))
+				return selectedElement;
+			else
+				return null;
+		}
+	},
+
+	repaintSelection: function(aElementId)
+	{
+  this.getSelection ();
 	},
 
 	hideResizers: function()
@@ -1061,6 +1029,13 @@ aspNetEditor.prototype =
 		}
 	},
 
+	repaintElement: function(aElementId)
+	{
+		var element = this.getElementById (aElementId);
+		if(element && this.mWillFlash)
+			this.mShell.repaintElement (element);
+	},
+
 	highlightOffCanDrop: function()
 	{
 		var restore = this.mDropInElement;
@@ -1070,21 +1045,21 @@ aspNetEditor.prototype =
 		}
 	},
 
-	getElementOrParentByAttribute: function(aNode, aAttribute) {
-		// Change the entire function to the more efficient
+	getElementOrParentByAttribute: function(aNode, aAttribute, aValue) {
+		// Change the entire function to the (probably) more efficient
 		// XULElement.getElementsByAttribute ( attrib , value )
 		// It will return all the children with the specified
 		// attribute
 		if(aNode.nodeType == 1)
-			var canDrop = aNode.getAttribute (aAttribute);
-		if(canDrop)
+			var attrbiute = aNode.getAttribute (aAttribute);
+		if(attrbiute == aValue)
 			return aNode;
 
 		aNode = aNode.parentNode;
 		while(aNode) {
 			if(aNode.nodeType == 1)
-				canDrop = aNode.getAttribute (aAttribute);
-			if(canDrop)
+				attrbiute = aNode.getAttribute (aAttribute);
+			if(attrbiute == aValue)
 				return aNode;
 			aNode = aNode.parent;
 		}
@@ -1134,9 +1109,9 @@ function suppressMouseUp(aEvent) {
 }
 
 function dragOverControl(aEvent) {
-	if(gWillFlash && aEvent.target.nodeType == 1) {
+	if(editor.getWillFlash () && aEvent.target.nodeType == 1) {
 		var element = editor.getElementOrParentByAttribute (aEvent.target,
-					'md-can-drop');
+					'md-can-drop', 'true');
     
 		if(element)
 			editor.highlightOnCanDrop (element);
@@ -1149,35 +1124,36 @@ function handleDragStart(aEvent) {
 	// If we are resizing, do nothing - false call
 	if(editor.getInResize ())
 		return;
-	// else
+
+	// Controls are "-moz-user-select: none" by default. Here we switch to
+	// "-moz-user-select: all" in preparation for insertFromDrop(). We
+	// revert back to -moz-user-select: none later in DidInsertNode(),
+	// which is the real end of a Drag&Drop operation
+	//alert(aEvent.target.nodeName);
+	editor.hideResizers ();
+	var selectedControl = editor.getSelectedControl ();
+	var controls = editor.getDocument ().getElementsByTagName (CONTROL_TAG_NAME);
+	if(controls.length > 0) {
+		var i = 0;
+		while(controls [i]) {
+			if(selectedControl != controls [i])
+				editor.setSelectAll (controls [i]);
+			i++;
+		}
+	}
+
+	//TODO: Handle drags involving controls and cancell default
+	//aEvent.stopPropagation ();
+	//aEvent.preventDefault ();
+	//editor.mNsIHtmlEditor.doDrag (aEvent);
+
 	editor.setDragState (true);
 		if(DEBUG)
 			dump ('Begin drag.\n');
 }
 
 function handleDrop(aEvent) {
-	// Controls are "-moz-user-select: none" by default. Here we switch to
-	// "-moz-user-select: all" in preparation for insertFromDrop(). We
-	// revert back to -moz-user-select: none later in DidInsertNode(),
-	// which is the real end of a Drag&Drop operation
-	var parentControlRef = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
-					aEvent.target);
-	if(parentControlRef) {
-		editor.hideResizers ();
-		gDropOverControlId = parentControlRef.getAttribute('id');
-		editor.setSelectAll (parentControlRef);
-	}
-	else {
-		var i       = 0;
-		var control = editor.getControlFromTableByIndex (i);
-		if(control) {
-			while(control) {
-				editor.setSelectAll (control);
-				i++;
-				control = editor.getControlFromTableByIndex (i);
-			}
-		}
-	}
+	//Nothing special here for now
 }
 
 function handleSingleClick(aButton, aTarget) {
