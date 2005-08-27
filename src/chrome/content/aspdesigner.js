@@ -9,8 +9,8 @@ const BORDER_CAN_DROP_INVERT    = false;
 const CONTROL_TAG_NAME          = 'aspcontrol';
 const END_CONTROL_TAG_EXP       = /<\/aspcontrol>/g;
 const BEGIN_CONTROL_TAG_EXP     = /(<aspcontrol.[^(><.)]+>)/g;
-const APPEND_TO_CONTROL_END     = '</div></span>';
-const APPEND_TO_CONTROL_BEGIN   = "<span style=\"display: block\"><div>";
+const APPEND_TO_CONTROL_END     = '</div></span></span>';
+const APPEND_TO_CONTROL_BEGIN   = "<span style=\"display: block; position: relative\"><span style=\"position: absolute; display: block; z-index: -1;\"><div>";
 const SINGLE_CLICK              = 'single';
 const DOUBLE_CLICK              = 'double';
 const RIGHT_CLICK               = 'right';
@@ -212,7 +212,7 @@ var gNsIEditActionListenerImplementation = {
 			while(control) {
 				if(child == control) {
 					editor.addLastDeletedControl (control.getAttribute ('id'));
-					alert (control.getAttribute('id'));
+					//alert (control.getAttribute('id'));
 				}
 				i++;
 				control = editor.getControlFromTableByIndex (i);
@@ -337,6 +337,11 @@ aspNetHost.prototype =
 		JSCallRegisterClrHandler ('UpdateControl', JSCall_UpdateControl);
 		// Control selection
 		JSCallRegisterClrHandler ('SelectControl', JSCall_SelectControl);
+		// Cut/Copy/Paste/Undp/Redo
+		//JSCallRegisterClrHandler ('GetPage', JSCall_undo);
+		//JSCallRegisterClrHandler ('GetPage', JSCall_redo);
+		//JSCallRegisterClrHandler ('GetPage', JSCall_cut);
+		//JSCallRegisterClrHandler ('GetPage', JSCall_copy);
 		
 		//tell the host we're ready for business
 		JSCallPlaceClrCall ('Activate', '', '');
@@ -408,7 +413,6 @@ function JSCall_AddControl (arg)
 {
 	aControlId = arg[0];
 	aControlHtml = arg[1];
-	dump ('Adding control ' + aControlId + '; aControlHtml is ' + aControlHtml); 
 	return editor.addControl (aControlHtml, aControlId);
 }
 
@@ -420,6 +424,26 @@ function JSCall_GetPage ()
 function JSCall_LoadPage (arg)
 {
 	return editor.loadPage (arg[0]);
+}
+
+function JSCall_Undo ()
+{
+	return editor.undo ();
+}
+
+function JSCall_Redo ()
+{
+	return editor.redo ();
+}
+
+function JSCall_Cut ()
+{
+	return editor.cut ();
+}
+
+function JSCall_Copy ()
+{
+	return editor.copy ();
 }
 
 
@@ -434,6 +458,7 @@ function JSCall_LoadPage (arg)
 // This will help reinstating controls on the host side.
 // TODO: keep a counter of the undo redo operation that involve control
 // deletion and insertion and peg it to the editor's counter
+// !!! Do we really need it?
 //_____________________________________________________________________________
 var controlTable = {
 	hash                      : new Array (),
@@ -502,13 +527,6 @@ function aspNetEditor_initialize()
 {
 	editor = new aspNetEditor ();
 	editor.initialize ();
-	var buttonBox = document.getElementById ('buttonBox');
-	var debugBox  = document.getElementById ('debugBox');
-	if(!DEBUG) {
-		buttonBox.style.display = 'none';
-		debugBox.style.display  = 'none';
-	}
-
 	host = new aspNetHost ();
 	host.initialize ();
 }
@@ -661,12 +679,12 @@ aspNetEditor.prototype =
   
 	beginBatch: function()
 	{
-		this.mNsIHtmlEditor.transactionManager.beginBatch ();
+		//this.mNsIHtmlEditor.transactionManager.beginBatch ();
 	},
   
 	endBatch: function()
 	{
-		this.mNsIHtmlEditor.transactionManager.endBatch ();
+		//this.mNsIHtmlEditor.transactionManager.endBatch ();
 	},
 
 	getElementOrParentByTagName: function(aTagName, aTarget)
@@ -823,8 +841,8 @@ aspNetEditor.prototype =
 			var newControl = this.getElementById (aControlId);
 
 			this.selectElement (this.getElementById (aControlId));
-			//this.repaintElement (newControl);
-			//this.showResizers (this.getElementById (aControlId));
+			if(DEBUG)
+				dump (controlHTML);
 		}
 	},
 
@@ -850,12 +868,16 @@ aspNetEditor.prototype =
 				this.collapseBeforeInsertion ("start");
 				this.selectElement (oldControl);
 				this.insertHTML (newDesignTimeHtml);
-			} catch (e) { }
+				if(DEBUG)
+					dump ('Updated control ' + aControlId +
+						'; newDesignTimeHtml is ' +
+						newDesignTimeHtml);
+				} catch (e) { }
 			this.endBatch ();
 			this.updateControlInTable(aControlId,
 				this.getDocument ().getElementById (aControlId));
 			if(DEBUG)
-				dump ('End resize.');
+				dump ('End control update.');
 			this.setInResize (false);
 		}
 	},
