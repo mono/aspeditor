@@ -722,22 +722,70 @@ aspNetEditor.prototype =
 	{
 		return this.mControlTable;
 	},
-  
+
 	addLastDeletedControl: function(aControl)
 	{
 		this.mLastDeletedControls.push (aControl);
 	},
-  
+
 	removeLastDeletedControl: function()
 	{
 		return this.mLastDeletedControls.pop ();
 	},
-  
+
 	emptyLastDeletedControl: function()
 	{
-		
+	
 	},
-  
+
+	nextSiblingIsControl: function()
+	{
+		var focusNode = this.getSelection ().focusNode;
+		var next = focusNode.nextSibling;
+		if(next && this.nodeIsControl (next))
+			return true;
+		return false;
+	},
+
+	previousSiblingIsControl: function()
+	{
+		var focusNode = this.getSelection ().focusNode;
+		var prev = focusNode.previousSibling;
+		if(prev && this.nodeIsControl (prev))
+			return true;
+		return false;
+	},
+
+	atBeginningOfTextNode: function()
+	{
+		// If selection is collapsed, and caret is shown
+		if(this.getSelection ().focusNode) {
+			var focusNode       = this.getSelection ().focusNode;
+			var focusOffset     = this.getSelection ().focusOffset;
+			// If we are at offset zero of a text node
+			if(focusNode.nodeType == 3 && focusOffset == 0) {
+				return true;
+			}
+		}
+		return false;
+	},
+
+	atEndOfTextNode: function()
+	{
+		// If selection is collapsed, and caret is shown
+		if(this.getSelection ().focusNode) {
+			var focusNode       = this.getSelection ().focusNode;
+			var focusOffset     = this.getSelection ().focusOffset;
+			var focusNodeLength = focusNode.nodeValue.length;
+			// If we are at the end offset of a text node
+			if(focusNode.nodeType == 3 &&
+			   focusNodeLength == focusOffset) {
+				return true;
+			}
+		}
+		return false;
+	},
+
 	nodeIsControl: function(aNode)
 	{
 		var name = aNode.nodeName;
@@ -746,12 +794,12 @@ aspNetEditor.prototype =
 			return true;
 		return false;
 	},
-  
+
 	insertHTML: function(aHtml)
 	{
 		this.mNsIHtmlEditor.insertHTML (aHtml);
 	},
-  
+
 	insertHTMLWithContext: function(aInputString, aContextStr, aInfoStr,
 					aFlavor, aSourceDoc, aDestinationNode,
 					aDestinationOffset, aDeleteSelection)
@@ -894,7 +942,7 @@ aspNetEditor.prototype =
 			dump ("Deselecting all controls");
 			return;
 		}
-		
+
 		dump ("Selecting control "+aControlId);
 		var controlRef = this.getControlTable ().getById(aControlId);
 		this.selectElement (controlRef);
@@ -1291,6 +1339,9 @@ function handleKeyPress(aEvent) {
 	}
 	// Handle delete
 	else if(aEvent.keyCode == aEvent.DOM_VK_DELETE) {
+		// If we have a single element selected and it happens to be a
+		// control
+		// TODO: change the following to use editor.getSelectedControl ()
 		var selectedElement = editor.getSelectedElement ('');
 		if(selectedElement)
 			var control =
@@ -1298,9 +1349,38 @@ function handleKeyPress(aEvent) {
 					selectedElement);
 
 		if(control) {
-			//editor.selectElement (control);
 			editor.hideResizers ();
 			editor.setSelectAll (control);
+		}
+
+		// If selection is collapsed, caret is shown, and it's at the
+		// of a text node
+		else if (editor.atEndOfTextNode ()) {
+			// If next sibling is a control, we should select it so
+			// it gets entirely deleted
+			if(editor.nextSiblingIsControl ()) {
+				var focusNode = editor.getSelection ().focusNode;
+				var control = focusNode.nextSibling;
+				var controlId = control.getAttribute ('id');
+				editor.selectControl (controlId);
+				editor.hideResizers ();
+			}
+		}
+	}
+	// Backspace
+	else if (aEvent.keyCode == aEvent.DOM_VK_BACK_SPACE) {
+		// If selection is collapsed, caret is shown, and it's at the
+		// beginning of a text node
+		if (editor.atBeginningOfTextNode ()) {
+			// If previous sibling is a control, we should select
+			// it so it gets entirely deleted
+			if(editor.previousSiblingIsControl ()) {
+				var focusNode = editor.getSelection ().focusNode;
+				var control = focusNode.previousSibling;
+				var controlId = control.getAttribute ('id');
+				editor.selectControl (controlId);
+				editor.hideResizers ();
+			}
 		}
 	}
 	// Arrow up
@@ -1313,11 +1393,31 @@ function handleKeyPress(aEvent) {
 	}
 	// Arrow left
 	else if(aEvent.keyCode == aEvent.DOM_VK_LEFT) {
-		
+		// If selection is collapsed, caret is shown, and it's at the
+		// beginning of a text node
+		if (editor.atBeginningOfTextNode ()) {
+			// If previous sibling is a control, we should select it
+			if(editor.previousSiblingIsControl ()) {
+				var focusNode = editor.getSelection ().focusNode;
+				var control = focusNode.previousSibling;
+				var controlId = control.getAttribute ('id');
+				editor.selectControl (controlId);
+			}
+		}
 	}
 	// Arrow right
 	else if(aEvent.keyCode == aEvent.DOM_VK_RIGHT) {
-		
+		// If selection is collapsed, caret is shown, and it's at the
+		// of a text node
+		if (editor.atEndOfTextNode ()) {
+			// If next sibling is a control, we should select it
+			if(editor.nextSiblingIsControl ()) {
+				var focusNode = editor.getSelection ().focusNode;
+				var control = focusNode.nextSibling;
+				var controlId = control.getAttribute ('id');
+				editor.selectControl (controlId);
+			}
+		}
 	}
 }
 
