@@ -28,14 +28,15 @@ skin_files =	\
 
 
 install-data-hook:
-	cp $(chrome_install_file) /tmp/chrome.old; \
-	sudo bash -c "sed -e'/aspdesigner/d' /tmp/chrome.old > $(chrome_install_file)"; \
+	if test -f $(chrome_install_file); then f=$(chrome_install_file); else f=/opt/mozilla/lib/chrome/installed-chrome.txt; fi; \
+	cp $$f /tmp/chrome.old; \
+	sudo bash -c "sed -e'/aspdesigner/d' /tmp/chrome.old > $$f"; \
 	for CHRM in $(chrome_install_text); do \
-		cp $(chrome_install_file) /tmp/chrome.old; \
-		sudo bash -c "sed -e'\$$a$$CHRM' /tmp/chrome.old > $(chrome_install_file)"; \
+		cp $$f /tmp/chrome.old; \
+		sudo bash -c "sed -e'\$$a$$CHRM' /tmp/chrome.old > $$f"; \
 		rm /tmp/chrome.old; \
 	done;
-	
+
 uninstall-hook:
 	cp $(chrome_install_file) /tmp/chrome.old; \
 	sudo bash -c "sed -e'/aspdesigner/d' /tmp/chrome.old > $(chrome_install_file)"; \
