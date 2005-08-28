@@ -43,8 +43,8 @@ namespace AspNetEdit.Editor.Persistence
 		private IWebFormReferenceManager refMan;
 		private IDesignerHost host;
 
-		public RootParsingObject (string tagText, string tagid, IDesignerHost host)
-			: base (tagText, tagid, null)
+		public RootParsingObject (IDesignerHost host)
+			: base ("", "", null)
 		{
 			this.host = host;
 			refMan = host.GetService(typeof(IWebFormReferenceManager)) as IWebFormReferenceManager;

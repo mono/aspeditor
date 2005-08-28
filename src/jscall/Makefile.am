@@ -19,7 +19,7 @@ JSCALL_REFERENCES = 		\
 
 
 $(ASSEMBLY): $(JSCALL_CSFILES)
-	$(MCS) $(JSCALL_REFERENCES) -debug -target:library -out:$@ $(JSCALL_CSFILES)
+	$(MCS) $(MCS_OPTIONS) $(JSCALL_REFERENCES) -debug -target:library -out:$@ $(JSCALL_CSFILES)
 
 $(ASSEMBLY).mdb: $(ASSEMBLY)
 

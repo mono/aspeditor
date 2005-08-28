@@ -525,6 +525,7 @@ var controlTable = {
 //_____________________________________________________________________________
 function aspNetEditor_initialize()
 {
+	dump ("Initialising...");
 	editor = new aspNetEditor ();
 	editor.initialize ();
 	host = new aspNetHost ();
@@ -831,15 +832,16 @@ aspNetEditor.prototype =
 	//  Loading/Saving/ControlState
 	loadPage: function(aHtml)
 	{
+		dump ("Loading page: "+aHtml);
 		if(aHtml) {
 			try {
 				this.selectAll ();
 				this.deleteSelection ();
 				var html = this.transformControlsInHtml(aHtml);
 				this.insertHTML (html);
-				// TODO: we might have a legasy control table
+				// TODO: we might have a legacy control table
 				// so empty it
-			} catch (e) { ;}
+			} catch (e) {throwException (e);}
 		}
 	},
 

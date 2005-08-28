@@ -41,40 +41,20 @@ namespace AspNetEdit.JSCall
 		[DllImport ("jscallglue.dll")]
 		static extern int PlaceFunctionCall (IntPtr embed, IntPtr call, IntPtr returnto, IntPtr args);
 		
-		/*NB: Replaced this with webControl.Title. Simplifies interop, 
-		 *    and doesn't seem to limit size of output - tested to output 88MB!
-		 *    This may be useful again at some point to improve performance.
-		 */
-		//[DllImport ("jscallglue.dll", CharSet=CharSet.Auto)]
-		//static extern IntPtr[] CollectFunctionCall (IntPtr embed);
-		
-			
 		private Hashtable functions;
 		private WebControl webControl;
-		private bool geckoShown;
 
 		public CommandManager (WebControl w)
 		{
 			functions = new Hashtable();		
 
 			webControl = w;
-			webControl.Shown += new EventHandler (onShown);		
-		}
-
-		
-		//Gecko#'s nsIWebBrowser cannot be accessed until the control has been shown
-		private void onShown (object o, EventArgs e)
-		{
-			if (!geckoShown)
-			{
-				webControl.TitleChange += new EventHandler (webControl_ECMAStatus);
-				this.geckoShown = true;
-			}
+			webControl.TitleChange += new EventHandler (webControl_ECMAStatus);	
 		}
 		
 		private void webControl_ECMAStatus (object sender, EventArgs e)
 		{
-			if (!geckoShown || !webControl.Title.StartsWith ("JSCall"))
+			if (!webControl.Title.StartsWith ("JSCall"))
 				return;
 			
 			string[] call = webControl.Title.Split ('|');
@@ -108,11 +88,6 @@ namespace AspNetEdit.JSCall
 
 		public void JSCall (string function, string returnTo, params string[] args)
 		{
-			if (!geckoShown)
-			{
-				throw new Exception ("You cannot access the document until the WebControl has been Shown");
-			}
-			
 			string argsOut = String.Empty;
 
 			if (args != null)

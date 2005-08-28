@@ -33,6 +33,10 @@ fi
 
 AC_SUBST(MCS)
 
+
+MCS_OPTIONS="-d:TRACE"
+AC_SUBST(MCS_OPTIONS)
+
 dnl c# dependencies
 GTKSHARP_REQUIRED_VERSION=2.3.5.99
 GECKOSHARP_REQUIRED_VERSION=0.10
@@ -69,5 +73,6 @@ echo "Configuration summary"
 echo ""
 echo "   * Installation prefix = $prefix"
 echo "   * C# compiler = $MCS"
+echo "   * C# compiler options = $MCS_OPTIONS"
 echo "   * Mozilla home: $MOZILLA_HOME"
 echo ""

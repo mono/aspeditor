@@ -188,7 +188,7 @@ namespace AspNetEdit.Editor.Persistence
 			}
 			//FIME: what if it isn't?
 			if (obj is Control)
-				base.AddText ( String.Format (Document.ControlSubstituteStructure, ((Control)obj).ID));
+				base.AddText ( Document.RenderDesignerControl ((Control)obj));
 			base.AddControl (obj);
 			return base.CloseObject (closingTagText);
 		}

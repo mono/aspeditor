@@ -56,7 +56,7 @@ EDITOR_CSFILES =									\
 	$(srcdir)/AspNetEdit.Editor.ComponentModel/DocumentDirective.cs
 
 $(ASSEMBLY): $(EDITOR_CSFILES)
-	$(MCS) $(EDITOR_REFERENCES) -debug -target:library -out:$@ $(EDITOR_CSFILES)
+	$(MCS) $(MCS_OPTIONS) $(EDITOR_REFERENCES) -debug -target:library -out:$@ $(EDITOR_CSFILES)
 	
 $(ASSEMBLY).mdb: $(ASSEMBLY)
 

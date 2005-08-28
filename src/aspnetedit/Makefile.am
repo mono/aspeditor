@@ -21,7 +21,7 @@ ASPNETEDIT_CSFILES =						\
 	$(srcdir)/AssemblyInfo.cs
 
 $(ASSEMBLY): $(ASPNETEDIT_CSFILES)
-	$(MCS) $(ASPNETEDIT_REFERENCES) -debug -target:exe -out:$@ $(ASPNETEDIT_CSFILES)
+	$(MCS) $(MCS_OPTIONS) $(ASPNETEDIT_REFERENCES) -debug -target:exe -out:$@ $(ASPNETEDIT_CSFILES)
 
 $(ASSEMBLY).mdb: $(ASSEMBLY)
 	

@@ -47,10 +47,12 @@ namespace AspNetEdit.Editor.Persistence
 
 		RootParsingObject rootParsingObject = null;
 		ParsingObject openObject = null;
+		Document document = null;
 
-		public DesignTimeParser (DesignerHost host)
+		public DesignTimeParser (DesignerHost host, Document document)
 		{
 			this.host = host;
+			this.document = document;
 			refMan = host.GetService(typeof(IWebFormReferenceManager)) as IWebFormReferenceManager;
 			if (refMan == null)
 				throw new Exception ("Could not get IWebFormReferenceManager from host");
@@ -60,19 +62,20 @@ namespace AspNetEdit.Editor.Persistence
 		/// Parses a document fragment. Processes all controls and directives and adds them to host. 
 		/// </summary>
 		/// <param name="fragment">The document fragment to parse</param>
-		/// <returns>The doucment with all controls, directives and script blocks replaced by placeholders</returns>
-		public void ParseDocument (string document, out Control[] controls, out string designDocument)
+		/// <returns>The document with all controls, directives and script blocks replaced by placeholders</returns>
+		public void ParseDocument (string fragment, out Control[] controls, out string designDocument)
 		{
 			
-			AspParser parser = InitialiseParser (document);
+			AspParser parser = InitialiseParser (fragment);
+			
+			rootParsingObject = new RootParsingObject(host);
+			openObject = rootParsingObject;
+			
 			parser.Parse ();
 			
-			if (openObject != null) {
+			if (openObject != rootParsingObject) {
 				throw new Exception ("The tag " +  openObject.TagID + " was left unclosed");
 			}
-
-			if (rootParsingObject == null || 0 != string.Compare (rootParsingObject.TagID, "html"))
-				throw new Exception ("No root html tag found");
 
 			object[] objects;
 			rootParsingObject.BuildObject(out objects, out designDocument);
@@ -130,16 +133,7 @@ namespace AspNetEdit.Editor.Persistence
 					throw new NotImplementedException ("Server comments have not yet been implemented: " + location.PlainText);
 					break;
 				case TagType.Tag:
-					//check root parsingObject, or set parent
-					if (openObject == null) {
-						if (0 != string.Compare (tagid, "html"))
-							throw new Exception( "Root element must be an HTML element");
-						rootParsingObject = new RootParsingObject(location.PlainText, tagid, host);
-						openObject = rootParsingObject;
-					}
-					else {
-						openObject = openObject.CreateChildParsingObject(location, tagid, attributes);
-					}
+					openObject = openObject.CreateChildParsingObject(location, tagid, attributes);
 					break;
 				case TagType.SelfClosing:
 					if (openObject == null)
@@ -166,7 +160,7 @@ namespace AspNetEdit.Editor.Persistence
 		
 		void ProcessDirective (string tagid, TagAttributes attributes)
 		{
-			string placeholder = host.RootDocument.AddDirective (tagid, attributes.GetDictionary (null));
+			string placeholder = document.AddDirective (tagid, attributes.GetDictionary (null));
 			openObject.AddText (placeholder);
 		}
 

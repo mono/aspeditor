@@ -114,11 +114,16 @@ namespace AspNetEdit.Editor.ComponentModel
 		{
 			//deselect it if selected
 			ISelectionService sel = this.GetService (typeof (ISelectionService)) as ISelectionService;
+			bool found = false;
 			if (sel != null)
 				foreach (IComponent c in sel.GetSelectedComponents ())
-					if (c == component)
-						sel.SetSelectedComponents (null);
-			
+					if (c == component) {
+						found = true;
+						break;
+					}
+			//can't modify selection in loop
+			if (found) sel.SetSelectedComponents (null);
+						
 			if (component != RootComponent) {
 				//remove from component and dcument
 				((Control) RootComponent).Controls.Remove ((Control) component);
@@ -169,7 +174,6 @@ namespace AspNetEdit.Editor.ComponentModel
 
 			if (!(rootComponent is Control))
 				throw new InvalidOperationException ("The root component must be a Control");
-			this.rootDocument = new Document ((Control)rootComponent, this);
 		}
 
 		public string RootComponentClassName {
@@ -368,7 +372,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			loading = true;
 
 			this.Container.Add (new WebFormPage ());
-			RootDocument.New ("New Document");
+			this.rootDocument = new Document ((Control)rootComponent, this, "New Document");
 
 			loading = false;
 			OnLoadComplete ();
@@ -380,8 +384,8 @@ namespace AspNetEdit.Editor.ComponentModel
 				throw new InvalidOperationException ("You must reset the host before loading another file.");
 			loading = true;
 
-			this.Container.Add (new WebFormPage());			
-			RootDocument.LoadFile (file, fileName);
+			this.Container.Add (new WebFormPage());
+			this.rootDocument = new Document ((Control)rootComponent, this, file, fileName);
 
 			loading = false;
 			OnLoadComplete ();

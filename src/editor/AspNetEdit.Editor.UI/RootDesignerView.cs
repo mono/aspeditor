@@ -48,10 +48,24 @@ namespace AspNetEdit.Editor.UI
 		private IComponentChangeService changeService;
 		private ISelectionService selectionService;
 		private IMenuCommandService menuService;
-		private bool active = false;
-		private string mozPath;
+		protected bool active = false;
+		private string outDocument = null;
+		
+		
+		//there's weird bug where a second Gecko instance *can't* be created
+		//so until it's fixed we reuse share one instance
+		//TODO: make it so we can have more than one shown at the same time
+		public static RootDesignerView instance = null;
+		
+		public static RootDesignerView GetInstance (IDesignerHost host)
+		{
+			if (instance == null)
+				instance = new RootDesignerView (host);
+			instance.active = false;
+			return instance;
+		}
 
-		public RootDesignerView (IDesignerHost host)
+		private RootDesignerView (IDesignerHost host)
 			: base()
 		{
 			//it's through this that we communicate with JavaScript
@@ -89,19 +103,26 @@ namespace AspNetEdit.Editor.UI
 			comm.RegisterJSHandler ("ThrowException", new ClrCall (JSException));
 			comm.RegisterJSHandler ("DebugStatement", new ClrCall (JSDebugStatement));
 			comm.RegisterJSHandler ("ResizeControl", new ClrCall (JSResize));
-
-			//Find our Mozilla JS and XUL files and load them
-			//TODO: use resources for Mozilla JS and XUL files
-			mozPath = System.Reflection.Assembly.GetAssembly (typeof(RootDesignerView)).Location;
-			mozPath = mozPath.Substring(0, mozPath.LastIndexOf (System.IO.Path.DirectorySeparatorChar))
-				+ System.IO.Path.DirectorySeparatorChar + "Mozilla" + System.IO.Path.DirectorySeparatorChar;
-			
+			comm.RegisterJSHandler ("DocumentReturn", new ClrCall (JSDocumentReturn));
+			System.Diagnostics.Trace.WriteLine ("RootDesignerView created");
 			//TODO: Gecko seems to be taking over DND
 			//register for drag+drop
 			//TargetEntry te = new TargetEntry(Toolbox.DragDropIdentifier, TargetFlags.App, 0);
 			//Drag.DestSet (this, DestDefaults.All, new TargetEntry[] { te }, Gdk.DragAction.Copy);
 			//this.DragDataReceived += new DragDataReceivedHandler(view_DragDataReceived);
+		}
+		
+		internal void BeginLoad ()
+		{
+			System.Diagnostics.Trace.WriteLine ("Loading XUL...");
 			base.LoadUrl (geckoChrome);
+		}
+		
+		public override void Destroy ()
+		{
+			System.Diagnostics.Trace.WriteLine ("RootDesignerView internally destroyed.");
+			active = false;
+			base.Destroy ();
 		}
 
 		#region Change service handlers
@@ -162,6 +183,35 @@ namespace AspNetEdit.Editor.UI
 			throw new NotImplementedException ();
 		}
 		
+		internal string GetDocument ()
+		{
+			comm.JSCall (GeckoFunctions.GetPage, "DocumentReturn", null);
+			
+			int counter = 0;
+			do {
+				//only allow JS 5 seconds to return value
+				if (counter > 50) throw new Exception ("Mozilla did not return value during 5 seconds");
+				
+				System.Threading.Thread.Sleep (100);
+				counter++;
+			}
+			while (outDocument == null);
+			System.Diagnostics.Trace.WriteLine ("Retrieved document from Gecko in ~" + (100*counter).ToString () + "ms.");		
+			System.Diagnostics.Trace.WriteLine ("Document: " + outDocument);	
+			
+			string d = outDocument;
+			outDocument = null;
+			return d;
+		}
+		
+		private string JSDocumentReturn (string[] args)
+		{
+			if (args.Length != 1)
+				throw new InvalidJSArgumentException ("DocumentReturn", -1);
+			outDocument = args [0];
+			return string.Empty;
+		}
+		
 		#endregion
 
 		#region Inbound Gecko functions
@@ -175,15 +225,22 @@ namespace AspNetEdit.Editor.UI
 		///</summary>
 		private string JSActivate (string[] args)
 		{
+			if (active) {
+				System.Diagnostics.Trace.WriteLine ("HELP! XUL reports having been initialised again! Suppressing, but need to be fixed.");
+				return string.Empty;
+			}
+			
+			System.Diagnostics.Trace.WriteLine ("XUL loaded.");
 			//load document with filled-in design-time HTML
-			comm.JSCall (GeckoFunctions.LoadPage, null, host.RootDocument.ViewDocument ());
+			string doc = host.RootDocument.GetLoadedDocument ();
+			comm.JSCall (GeckoFunctions.LoadPage, null, doc);
 			active = true;
 			return string.Empty;
 		}
 
 		///<summary>
 		/// Name:	Click
-		///			Called when the docucument is clicked
+		///			Called when the document is clicked
 		/// Arguments:
 		///		enum ClickType: The button used to click (Single|Double|Right)
 		///		string Component:	The unique ID if a Control, else empty
@@ -268,7 +325,7 @@ namespace AspNetEdit.Editor.UI
 			if (args.Length != 1)
 				throw new InvalidJSArgumentException ("ThrowException", -1);
 			
-			Console.WriteLine ("Javascript: " + args[0]);
+			System.Diagnostics.Trace.WriteLine ("Javascript: " + args[0]);
 			return string.Empty;
 		}
 		

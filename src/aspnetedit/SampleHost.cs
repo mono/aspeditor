@@ -46,9 +46,16 @@ namespace AspNetEdit.SampleHost
 	class SampleHost
 	{
 		static DesignerHost host;
+		static Frame geckoFrame;
 
 		static void Main ()
 		{
+			#if TRACE
+				System.Diagnostics.TextWriterTraceListener listener
+					= new System.Diagnostics.TextWriterTraceListener (System.Console.Out);
+				System.Diagnostics.Trace.Listeners.Add (listener);
+			#endif
+			
 			Application.Init ();
 
 			#region Packing and layout
@@ -65,7 +72,7 @@ namespace AspNetEdit.SampleHost
 			HPaned rightBox = new HPaned ();
 			leftBox.Add2 (rightBox);
 
-			Frame geckoFrame = new Frame ();
+			geckoFrame = new Frame ();
 			geckoFrame.Shadow = ShadowType.In;
 			rightBox.Pack1 (geckoFrame, true, false);
 
@@ -144,8 +151,8 @@ namespace AspNetEdit.SampleHost
 			toolbox.UpdateCategories ();
 			
 			#endregion
-			window.ShowAll ();
 			
+			window.ShowAll ();
 			Application.Run ();
 		}
 
@@ -196,7 +203,9 @@ namespace AspNetEdit.SampleHost
 				{
 					if (fileStream == null)
 						return;
+					
 					host.Reset ();
+					
 					host.Load (fileStream, fcd.Filename);
 					host.Activate ();
 				}
