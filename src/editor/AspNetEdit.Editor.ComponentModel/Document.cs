@@ -183,6 +183,14 @@ namespace AspNetEdit.Editor.ComponentModel
 				height = wc.Height.ToString ();
 				width = wc.Height.ToString ();
 			}
+			else
+			{
+				canResize = "false";
+			}
+			
+			//TODO: is there a better way to make tiny controls appear a decent size?
+			if (height == "" || height == "auto") height = "20px";
+			if (width == "" || width == "auto") width = "20px";
 			
 			//render the control
 			System.IO.StringWriter strWriter = new System.IO.StringWriter ();
