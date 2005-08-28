@@ -3,6 +3,14 @@ var host                   = null;
 var gCancelClick           = false;
 
 const DEBUG                     = true;
+const ID                        = 'id';
+const WIDTH                     = 'width';
+const HEIGHT                    = 'height';
+const MIN_WIDTH                 = 'min-width';
+const MIN_HEIGHT                = 'min-height';
+const DISPLAY                   = 'display';
+const BORDER                    = 'border';
+const VERTICAL_ALIGN            = 'vertical-align';
 const BORDER_CAN_DROP_COLOR     = '#ee0000';
 const BORDER_CAN_DROP_THICK     = '2';
 const BORDER_CAN_DROP_INVERT    = false;
@@ -19,6 +27,10 @@ const INLINE_TABLE_EDITOR       = Components.interfaces.nsIHTMLInlineTableEditor
 const TABLE_EDITOR              = Components.interfaces.nsITableEditor;
 const EDITOR                    = Components.interfaces.nsIEditor;
 const SELECTION_PRIVATE         = Components.interfaces.nsISelectionPrivate;
+const OBJECT                    = 'object';
+const CUT                       = 'cut';
+const COPY                      = 'copy';
+const PASTE                     = 'paste';
 
 var gRepaintElement = 'button1';
 var controlId       = 'asptag2';
@@ -120,7 +132,7 @@ var gNsIEditActionListenerImplementation = {
 		if(DEBUG) {
 			var dumpStr = 'Did insert node ' + node.nodeName;
 			dumpStr += (node.nodeType == 1) ?
-				', id=' + node.getAttribute('id') :
+				', id=' + node.getAttribute(ID) :
 				'';
 			dump (dumpStr);
 		}
@@ -133,21 +145,21 @@ var gNsIEditActionListenerImplementation = {
 			var i = 0;
 			var width, height;
 			while(controls [i]) {
-				if(editor.getControlTable ().getById (controls [i].getAttribute ('id'))) {
-					//alert(controls [i].getAttribute ('id'));
-					editor.getControlTable ().update (controls [i].getAttribute ('id'),
+				if(editor.getControlTable ().getById (controls [i].getAttribute (ID))) {
+					//alert(controls [i].getAttribute (ID));
+					editor.getControlTable ().update (controls [i].getAttribute (ID),
 									controls [i]);
 						if(DEBUG)
 							dump ('Did update control(id=' +
-								controls [i].getAttribute ('id') +
+								controls [i].getAttribute (ID) +
 								') reference in table');
 				}
 				else {
-					editor.insertInControlTable (controls [i].getAttribute ('id'),
+					editor.insertInControlTable (controls [i].getAttribute (ID),
 							controls [i]);
 					if(DEBUG) {
 						dump ('New control (id=' +
-							controls [i].getAttribute ('id') +
+							controls [i].getAttribute (ID) +
 							') inserted');
 						dump ('There is/are ' +
 							editor.getControlCount() +
@@ -155,17 +167,17 @@ var gNsIEditActionListenerImplementation = {
 					}
  				}
 				editor.setSelectNone (controls [i]);
-				width = controls [i].getAttribute('width');
-				height = controls [i].getAttribute('height');
-				controls [i].style.setProperty ('min-width',
+				width = controls [i].getAttribute(WIDTH);
+				height = controls [i].getAttribute(HEIGHT);
+				controls [i].style.setProperty (MIN_WIDTH,
 							width, '');
-				controls [i].style.setProperty ('min-height',
+				controls [i].style.setProperty (MIN_HEIGHT,
 							height, '');
-				controls [i].style.setProperty ('display',
+				controls [i].style.setProperty (DISPLAY,
 							'-moz-inline-box', '');
-				controls [i].style.setProperty ('border',
+				controls [i].style.setProperty (BORDER,
 							'1px solid #aaaaaa', '');
-				controls [i].style.setProperty ('vertical-align',
+				controls [i].style.setProperty (VERTICAL_ALIGN,
 							'text-bottom', '');
 				i++;
 			}
@@ -177,7 +189,7 @@ var gNsIEditActionListenerImplementation = {
 
 		if(editor.nodeIsControl (node) &&
 		   (node.nodeType == 1 || node.nodeType == 3)) {
-			var element = editor.getElementById(node.getAttribute ('id'));
+			var element = editor.getElementById(node.getAttribute (ID));
 			editor.selectElement (element);
 		}
 		if(editor.getDragState ())
@@ -211,8 +223,8 @@ var gNsIEditActionListenerImplementation = {
 			var control = editor.getControlFromTableByIndex (i);
 			while(control) {
 				if(child == control) {
-					editor.addLastDeletedControl (control.getAttribute ('id'));
-					//alert (control.getAttribute('id'));
+					editor.addLastDeletedControl (control.getAttribute (ID));
+					//alert (control.getAttribute(ID));
 				}
 				i++;
 				control = editor.getControlFromTableByIndex (i);
@@ -233,8 +245,8 @@ var gNsIEditActionListenerImplementation = {
 				while(control) {
 					if(selection.containsNode (control, true)) {
 						deletionStr += ' id=' +
-							control.getAttribute ('id') + ',';
-						editor.addLastDeletedControl (control.getAttribute ('id'));
+							control.getAttribute (ID) + ',';
+						editor.addLastDeletedControl (control.getAttribute (ID));
 					}
 					i++;
 					control = editor.getControlFromTableByIndex (i);
@@ -277,7 +289,7 @@ var gNsIHTMLObjectResizeListenerImplementation = {
 	onEndResizing: function(element, oldWidth, oldHeight, newWidth, newHeight)
 	{
 		if(editor.nodeIsControl (element)) {
-			var id = element.getAttribute ('id');
+			var id = element.getAttribute (ID);
 			host.resizeControl (id, newWidth, newHeight);
 		}
 	},
@@ -389,61 +401,60 @@ aspNetHost.prototype =
  * surrogate functions instead
  */
 
-function JSCall_SelectControl (arg)
-{
-	aControlId = arg[0];
+function JSCall_SelectControl (arg) {
+	aControlId = arg [0];
 	aAdd = true;
 	aPrimary = true;
 	return editor.selectControl (aControlId, aAdd, aPrimary);
 }
 
-function JSCall_UpdateControl (arg)
-{
-	aControlId = arg[0];
-	aNewDesignTimeHtml = arg[1];
+function JSCall_UpdateControl (arg) {
+	aControlId = arg [0];
+	aNewDesignTimeHtml = arg [1];
 	return editor.updateControl (aControlId, aNewDesignTimeHtml);
 }
 
-function JSCall_RemoveControl (arg)
-{
-	return editor.removeControl (arg[0]);
+function JSCall_RemoveControl (arg) {
+	return editor.removeControl (arg [0]);
 }
 
-function JSCall_AddControl (arg)
-{
-	aControlId = arg[0];
-	aControlHtml = arg[1];
+function JSCall_AddControl (arg) {
+	aControlId = arg [0];
+	aControlHtml = arg [1];
 	return editor.addControl (aControlHtml, aControlId);
 }
 
-function JSCall_GetPage ()
-{
+function JSCall_GetPage () {
 	return editor.getPage ();
 }
 
-function JSCall_LoadPage (arg)
-{
-	return editor.loadPage (arg[0]);
+function JSCall_LoadPage (arg) {
+	return editor.loadPage (arg [0]);
 }
 
-function JSCall_Undo ()
-{
-	return editor.undo ();
-}
+function JSCall_DoCommand (arg) {
+	var command = arg [0];
 
-function JSCall_Redo ()
-{
-	return editor.redo ();
-}
-
-function JSCall_Cut ()
-{
-	return editor.cut ();
-}
-
-function JSCall_Copy ()
-{
-	return editor.copy ();
+	switch(command) {
+	case   CUT:
+		editor.cut ();
+		break;
+	case   COPY:
+		editor.copy ();
+		break;
+	case   PASTE:
+		editor.paste ();
+		break;
+	case   UNDO:
+		editor.undo ();
+		break;
+	case   REDO:
+		editor.redo ();
+		break;
+	default    :
+		host.throwException ('DoComand', 'Invalid or no command');
+		break;
+	}
 }
 
 
@@ -464,7 +475,7 @@ var controlTable = {
 	hash                      : new Array (),
 	array                     : new Array (),
 	length                    : 0,
-      
+
 	add: function(aControlId, aControlRef)
 	{
 		if(this.hash [aControlId]) {
@@ -479,7 +490,7 @@ var controlTable = {
 			this.length++;
 		}
 	},
-      
+
 	remove: function(aControlId)
 	{
 		if(this.hash [aControlId]) {
@@ -497,7 +508,7 @@ var controlTable = {
 					aControlId);
 		}
 	},
-  
+
 	update: function(aControlId, aControlRef)
 	{
 		this.remove (aControlId);
@@ -508,12 +519,12 @@ var controlTable = {
 	{
 		return this.hash [aControlId];
 	},
-  
+
 	getByIndex: function(aIndex)
 	{
 		return this.array [aIndex];
 	},
-  
+
 	getCount: function()
 	{
 		return this.length;
@@ -525,7 +536,6 @@ var controlTable = {
 //_____________________________________________________________________________
 function aspNetEditor_initialize()
 {
-	dump ("Initialising...");
 	editor = new aspNetEditor ();
 	editor.initialize ();
 	host = new aspNetHost ();
@@ -559,7 +569,7 @@ aspNetEditor.prototype =
 	initialize: function()
 	{
 		var editorElement = document.getElementById ('aspeditor');
-		editorElement.makeEditable ('html',false);
+		editorElement.makeEditable ('html', false);
 
 		this.mNsIHtmlEditor =
 			editorElement.getHTMLEditor(document.getElementById('aspeditor').contentWindow);
@@ -571,7 +581,7 @@ aspNetEditor.prototype =
 			this.mNsIHtmlEditor.QueryInterface(INLINE_TABLE_EDITOR);
 		this.mNsIHtmlObjectResizer =
 			this.mNsIHtmlEditor.QueryInterface(OBJECT_RESIZER);
-		if ((typeof XPCU) == 'object');
+		if ((typeof XPCU) == OBJECT);
 			this.mShell =
 				XPCU.getService ("@mozilla.org/inspector/flasher;1",
 					"inIFlasher");
@@ -741,25 +751,49 @@ aspNetEditor.prototype =
 
 	nextSiblingIsControl: function()
 	{
-		var focusNode = this.getSelection ().focusNode;
-		var next = focusNode.nextSibling;
-		if(next && this.nodeIsControl (next))
-			return true;
+		var next        = null;
+		var focusNode   = this.getSelection ().focusNode;
+		var focusOffset = this.getSelection ().focusOffset;
+		// Are we at the end offset of a text node?
+		if(this.atEndOfTextNode ()) {
+			next = focusNode.nextSibling;
+			if(next && this.nodeIsControl (next))
+				return next;
+		}
+		// If not at the end offset of a text node, focus offset is our
+		// current element; use it to get next
+		else {
+			next = focusNode.childNodes [focusOffset];
+			if(next && this.nodeIsControl (next))
+				return next;
+		}
 		return false;
 	},
 
 	previousSiblingIsControl: function()
 	{
-		var focusNode = this.getSelection ().focusNode;
-		var prev = focusNode.previousSibling;
-		if(prev && this.nodeIsControl (prev))
-			return true;
+		var prev        = null;
+		var focusNode   = this.getSelection ().focusNode;
+		var focusOffset = this.getSelection ().focusOffset;
+		// Are we at the beginning offset of a text node?
+		if(this.atBeginningOfTextNode ()) {
+			prev = focusNode.previousSibling;
+			if(prev && this.nodeIsControl (prev))
+				return prev;
+		}
+		// If not at the beginning offset of a text node, focus offset
+		// minus 1 is our current element; use it to get next
+		else {
+			//alert (focusOffset);
+			prev = focusNode.childNodes [focusOffset - 1];
+			if(prev && this.nodeIsControl (prev))
+				return prev;
+		}
 		return false;
 	},
 
 	atBeginningOfTextNode: function()
 	{
-		// If selection is collapsed, and caret is shown
 		if(this.getSelection ().focusNode) {
 			var focusNode       = this.getSelection ().focusNode;
 			var focusOffset     = this.getSelection ().focusOffset;
@@ -767,22 +801,26 @@ aspNetEditor.prototype =
 			if(focusNode.nodeType == 3 && focusOffset == 0) {
 				return true;
 			}
+			return false;
 		}
 		return false;
 	},
 
 	atEndOfTextNode: function()
 	{
-		// If selection is collapsed, and caret is shown
 		if(this.getSelection ().focusNode) {
 			var focusNode       = this.getSelection ().focusNode;
 			var focusOffset     = this.getSelection ().focusOffset;
-			var focusNodeLength = focusNode.nodeValue.length;
-			// If we are at the end offset of a text node
-			if(focusNode.nodeType == 3 &&
-			   focusNodeLength == focusOffset) {
-				return true;
+			// Are we in a text node?
+			if (focusNode.nodeType == 3) {
+				var focusNodeLength = focusNode.nodeValue.length;
+				// If we are at the end offset of a text node
+				if(focusNodeLength == focusOffset)
+					return true;
+				else
+					return false;
 			}
+			return false;
 		}
 		return false;
 	},
@@ -832,16 +870,15 @@ aspNetEditor.prototype =
 	//  Loading/Saving/ControlState
 	loadPage: function(aHtml)
 	{
-		dump ("Loading page: "+aHtml);
 		if(aHtml) {
 			try {
 				this.selectAll ();
 				this.deleteSelection ();
 				var html = this.transformControlsInHtml(aHtml);
 				this.insertHTML (html);
-				// TODO: we might have a legacy control table
+				// TODO: we might have a legasy control table
 				// so empty it
-			} catch (e) {throwException (e);}
+			} catch (e) { ;}
 		}
 	},
 
@@ -946,7 +983,7 @@ aspNetEditor.prototype =
 		}
 
 		dump ("Selecting control "+aControlId);
-		var controlRef = this.getControlTable ().getById(aControlId);
+		var controlRef = this.getElementById(aControlId);
 		this.selectElement (controlRef);
 		this.showResizers (controlRef);
 	},
@@ -1217,7 +1254,7 @@ function suppressMouseUp(aEvent) {
 		if(DEBUG) {
 			var object = editor.getResizedObject ();
 			dump ('handles around <' + object.tagName + ' id=' +
-				object.getAttribute('id') + '>');
+				object.getAttribute(ID) + '>');
 		}
 		else {
 			aEvent.stopPropagation ();
@@ -1279,7 +1316,7 @@ function handleSingleClick(aButton, aTarget) {
 		control = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
 				aTarget);
 		var controlId =
-			(control) ? control.getAttribute ('id') : '';
+			(control) ? control.getAttribute (ID) : '';
 
 		switch (aButton) {
 		case 0:
@@ -1306,7 +1343,7 @@ function detectDoubleClick(aEvent)
 	control = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
 			aEvent.target);
 	var controlId =
-		(control) ? control.getAttribute ('id') : '';
+		(control) ? control.getAttribute (ID) : '';
 
 	host.click (DOUBLE_CLICK, controlId);
 }
@@ -1341,16 +1378,22 @@ function handleKeyPress(aEvent) {
 	}
 	// Handle delete
 	else if(aEvent.keyCode == aEvent.DOM_VK_DELETE) {
+		var control = editor.getSelectedControl ();
+		var resizedObject = editor.getResizedObject ();
+
+		// Special case: if we have resizers shown, but no single control
+		// is selected we should reselect the control with resizers so it
+		// gets deleted entirely. We get here when selecting ajasent
+		// controls with the arrow keys
+		if(resizedObject && !control) {
+			editor.selectControl(resizedObject.getAttribute(ID));
+			editor.hideResizers ();
+			editor.setSelectAll (editor.getResizedObject ());
+		}
+
 		// If we have a single element selected and it happens to be a
 		// control
-		// TODO: change the following to use editor.getSelectedControl ()
-		var selectedElement = editor.getSelectedElement ('');
-		if(selectedElement)
-			var control =
-				editor.getElementOrParentByTagName (CONTROL_TAG_NAME,
-					selectedElement);
-
-		if(control) {
+		else if(control) {
 			editor.hideResizers ();
 			editor.setSelectAll (control);
 		}
@@ -1362,8 +1405,8 @@ function handleKeyPress(aEvent) {
 			// it gets entirely deleted
 			if(editor.nextSiblingIsControl ()) {
 				var focusNode = editor.getSelection ().focusNode;
-				var control = focusNode.nextSibling;
-				var controlId = control.getAttribute ('id');
+				control = focusNode.nextSibling;
+				var controlId = control.getAttribute (ID);
 				editor.selectControl (controlId);
 				editor.hideResizers ();
 			}
@@ -1371,15 +1414,35 @@ function handleKeyPress(aEvent) {
 	}
 	// Backspace
 	else if (aEvent.keyCode == aEvent.DOM_VK_BACK_SPACE) {
+		var control = editor.getSelectedControl ();
+		var resizedObject = editor.getResizedObject ();
+
+		// Special case: if we have resizers shown, but no single control
+		// is selected we should reselect the control with resizers so it
+		// gets deleted entirely. We get here when selecting ajasent
+		// controls with the arrow keys
+		if(resizedObject && !control) {
+			editor.selectControl(resizedObject.getAttribute(ID));
+			editor.hideResizers ();
+			editor.setSelectAll (editor.getResizedObject ());
+		}
+
+		// If we have a single element selected and it happens to be a
+		// control
+		else if(control) {
+			editor.hideResizers ();
+			editor.setSelectAll (control);
+		}
+
 		// If selection is collapsed, caret is shown, and it's at the
 		// beginning of a text node
-		if (editor.atBeginningOfTextNode ()) {
+		else if (editor.atBeginningOfTextNode ()) {
 			// If previous sibling is a control, we should select
 			// it so it gets entirely deleted
 			if(editor.previousSiblingIsControl ()) {
 				var focusNode = editor.getSelection ().focusNode;
 				var control = focusNode.previousSibling;
-				var controlId = control.getAttribute ('id');
+				var controlId = control.getAttribute (ID);
 				editor.selectControl (controlId);
 				editor.hideResizers ();
 			}
@@ -1395,30 +1458,30 @@ function handleKeyPress(aEvent) {
 	}
 	// Arrow left
 	else if(aEvent.keyCode == aEvent.DOM_VK_LEFT) {
-		// If selection is collapsed, caret is shown, and it's at the
-		// beginning of a text node
-		if (editor.atBeginningOfTextNode ()) {
-			// If previous sibling is a control, we should select it
-			if(editor.previousSiblingIsControl ()) {
-				var focusNode = editor.getSelection ().focusNode;
-				var control = focusNode.previousSibling;
-				var controlId = control.getAttribute ('id');
-				editor.selectControl (controlId);
-			}
+		var control = editor.previousSiblingIsControl ();
+		var controlId = '';
+		// If previous sibling is control and we don't have a single
+		// control selected (in which case we only need to collapse and
+		// show caret)
+		if(control && !editor.getSelectedControl ()) {
+			controlId = control.getAttribute (ID);
+			editor.selectControl (controlId);
+			aEvent.stopPropagation ();
+			aEvent.preventDefault ();
 		}
 	}
 	// Arrow right
 	else if(aEvent.keyCode == aEvent.DOM_VK_RIGHT) {
-		// If selection is collapsed, caret is shown, and it's at the
-		// of a text node
-		if (editor.atEndOfTextNode ()) {
-			// If next sibling is a control, we should select it
-			if(editor.nextSiblingIsControl ()) {
-				var focusNode = editor.getSelection ().focusNode;
-				var control = focusNode.nextSibling;
-				var controlId = control.getAttribute ('id');
-				editor.selectControl (controlId);
-			}
+		var control = editor.nextSiblingIsControl ();
+		var controlId = '';
+		// If next sibling is control and we don't have a single control
+		// selected (in which case we only need to collapse and show
+		// caret)
+		if(control && !editor.getSelectedControl ()) {
+			controlId = control.getAttribute (ID);
+			editor.selectControl (controlId);
+			aEvent.stopPropagation ();
+			aEvent.preventDefault ();
 		}
 	}
 }
