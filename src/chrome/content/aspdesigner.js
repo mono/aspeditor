@@ -45,9 +45,9 @@ const BORDER_CAN_DROP_COLOR            = '#ee0000';
 const BORDER_CAN_DROP_THICK            = '2';
 const BORDER_CAN_DROP_INVERT           = false;
 const DIRECTIVE_PLACE_HOLDER_EXP       = /(<directiveplaceholder.[^(><.)]+\/>)/g;
-const STRIP_DIRECTIVE_PLACE_HOLDER_EXP = /<!(?:--<directiveplaceholder[\s\S]*?--\s*)?>\s*/g;
+const STRIP_DIRECTIVE_PLACE_HOLDER_EXP = /<!(?:--(<directiveplaceholder[\s\S]*?)--\s*)?>\s*/g;
 const SCRIPT_PLACE_HOLDER_EXP          = /(<scriptblockplaceholder.[^(><.)]+\/>)/g;
-const STRIP_SCRIPT_PLACE_HOLDER_EXP    = /<!(?:--<scriptblockplaceholder[\s\S]*?--\s*)?>\s*/g;
+const STRIP_SCRIPT_PLACE_HOLDER_EXP    = /<!(?:--(<scriptblockplaceholder[\s\S]*?)--\s*)?>\s*/g;
 const CONTROL_TAG_NAME                 = 'aspcontrol';
 const BEGIN_CONTROL_TAG_EXP            = /(<aspcontrol.[^(><.)]+>)/g;
 const END_CONTROL_TAG_EXP              = /<\/aspcontrol>/g;
@@ -914,8 +914,8 @@ aspNetEditor.prototype =
 	detransformControlsInHtml: function(aHTML)
 	{
 		var htmlOut = aHTML.replace(STRIP_CONTROL_EXP, '');
-		htmlOut = htmlOut.replace (STRIP_DIRECTIVE_PLACE_HOLDER_EXP, '');
- 		htmlOut = htmlOut.replace (STRIP_SCRIPT_PLACE_HOLDER_EXP, '');
+		htmlOut = htmlOut.replace (STRIP_DIRECTIVE_PLACE_HOLDER_EXP, "$1");
+ 		htmlOut = htmlOut.replace (STRIP_SCRIPT_PLACE_HOLDER_EXP, "$1");
 		return (htmlOut);
 	},
 
@@ -930,7 +930,7 @@ aspNetEditor.prototype =
 				if(DEBUG)
 					dump ("Loading page: " + html);
 				this.insertHTML (html);
-			} catch (e) {throwException (e);}
+			} catch (e) {throwException ('Javascript', e);}
 		}
 	},
 
