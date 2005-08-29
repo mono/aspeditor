@@ -1,44 +1,73 @@
+ /*
+ * aspdesigner.js- The asp editor object
+ * 
+ * Authors: 
+ *  Blagovest Dachev <blago@dachev.com>
+ *  
+ * Copyright (C) 2005 Blagovest Dachev
+ *
+ * This sourcecode is licenced under The MIT License:
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to permit
+ * persons to whom the Software is furnished to do so, subject to the
+ * following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+ * NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 var editor                 = null;
 var host                   = null;
 var gCancelClick           = false;
 
-const DEBUG                     = true;
-const ID                        = 'id';
-const WIDTH                     = 'width';
-const HEIGHT                    = 'height';
-const MIN_WIDTH                 = 'min-width';
-const MIN_HEIGHT                = 'min-height';
-const DISPLAY                   = 'display';
-const BORDER                    = 'border';
-const VERTICAL_ALIGN            = 'vertical-align';
-const BORDER_CAN_DROP_COLOR     = '#ee0000';
-const BORDER_CAN_DROP_THICK     = '2';
-const BORDER_CAN_DROP_INVERT    = false;
-const CONTROL_TAG_NAME          = 'aspcontrol';
-const END_CONTROL_TAG_EXP       = /<\/aspcontrol>/g;
-const BEGIN_CONTROL_TAG_EXP     = /(<aspcontrol.[^(><.)]+>)/g;
-const APPEND_TO_CONTROL_END     = '</div></span></span>';
-const APPEND_TO_CONTROL_BEGIN   = "<span style=\"display: block; position: relative\"><span style=\"position: absolute; display: block; z-index: -1;\"><div>";
-const SINGLE_CLICK              = 'single';
-const DOUBLE_CLICK              = 'double';
-const RIGHT_CLICK               = 'right';
-const OBJECT_RESIZER            = Components.interfaces.nsIHTMLObjectResizer;
-const INLINE_TABLE_EDITOR       = Components.interfaces.nsIHTMLInlineTableEditor;
-const TABLE_EDITOR              = Components.interfaces.nsITableEditor;
-const EDITOR                    = Components.interfaces.nsIEditor;
-const SELECTION_PRIVATE         = Components.interfaces.nsISelectionPrivate;
-const OBJECT                    = 'object';
-const CUT                       = 'cut';
-const COPY                      = 'copy';
-const PASTE                     = 'paste';
+const DEBUG                            = true;
+const ID                               = 'id';
+const WIDTH                            = 'width';
+const HEIGHT                           = 'height';
+const MIN_WIDTH                        = 'min-width';
+const MIN_HEIGHT                       = 'min-height';
+const DISPLAY                          = 'display';
+const BORDER                           = 'border';
+const VERTICAL_ALIGN                   = 'vertical-align';
+const BORDER_CAN_DROP_COLOR            = '#ee0000';
+const BORDER_CAN_DROP_THICK            = '2';
+const BORDER_CAN_DROP_INVERT           = false;
+const DIRECTIVE_PLACE_HOLDER_EXP       = /(<directiveplaceholder.[^(><.)]+\/>)/g;
+const STRIP_DIRECTIVE_PLACE_HOLDER_EXP = /<!(?:--<directiveplaceholder[\s\S]*?--\s*)?>\s*/g;
+const SCRIPT_PLACE_HOLDER_EXP          = /(<scriptblockplaceholder.[^(><.)]+\/>)/g;
+const STRIP_SCRIPT_PLACE_HOLDER_EXP    = /<!(?:--<scriptblockplaceholder[\s\S]*?--\s*)?>\s*/g;
+const CONTROL_TAG_NAME                 = 'aspcontrol';
+const BEGIN_CONTROL_TAG_EXP            = /(<aspcontrol.[^(><.)]+>)/g;
+const END_CONTROL_TAG_EXP              = /<\/aspcontrol>/g;
+const STRIP_CONTROL_EXP                = /<!(?:--<balast>[\s\S]*?<\/balast>--\s*)?>\s*/g;
+const APPEND_TO_CONTROL_END            = '</div></span></span><!--</balast>-->';
+const APPEND_TO_CONTROL_BEGIN          = "<!--<balast>--><span style=\"display: block; position: relative\"><span style=\"position: absolute; display: block; z-index: -1;\"><div>";
+const EMPTY_CONTROL_MSG                = '<span style=\"color: #bb0000;\">This control has no HTML<br>representation associated.</span>';
+const SINGLE_CLICK                     = 'single';
+const DOUBLE_CLICK                     = 'double';
+const RIGHT_CLICK                      = 'right';
+const OBJECT_RESIZER                   = Components.interfaces.nsIHTMLObjectResizer;
+const INLINE_TABLE_EDITOR              = Components.interfaces.nsIHTMLInlineTableEditor;
+const TABLE_EDITOR                     = Components.interfaces.nsITableEditor;
+const EDITOR                           = Components.interfaces.nsIEditor;
+const SELECTION_PRIVATE                = Components.interfaces.nsISelectionPrivate;
+const OBJECT                           = 'object';
+const CUT                              = 'cut';
+const COPY                             = 'copy';
+const PASTE                            = 'paste';
 
-var gRepaintElement = 'button1';
-var controlId       = 'asptag2';
-var injectHTML      = "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML//EN//3.0\"><html><head></head><body><aspcontrol id=\"button1\" md-can-drop=\"false\" md-can-resize=\"true\" height=\"85\" width=\"380\"><img src=\"http://www.go-mono.com/images/mono-new.gif\"/><input type=\"button\" value=\"Button Control\"></aspcontrol>Some text<aspcontrol id=\"button2\"  md-can-drop=\"false\" md-can-resize=\"true\" height=\"75\" width=\"180\"><div>Block text</div><input type=\"button\" value=\"Button Control\" style=\"width: 100px; height: 70px;\"/>Inline text<div>Block text</div></aspcontrol><table id=\"table1\" style=\"border: 5px solid #000000;\"><tr><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row One, Cell One</span></td><td width=\"200\" height=\"100\" style=\"background: #f5f5f5\" md-can-drop=\"true\"><span>Row One, Cell Two</span></td></tr><tr><td width=\"200\" height=\"100\" style=\"background: #f5f5f5\" md-can-drop=\"true\"><span>Row Two, Cell One</span></td><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row Two, Cell Two</span></td></tr></table><aspcontrol id=\"button3\"  md-can-drop=\"false\" md-can-resize=\"true\" height=\"85\" width=\"150\">Some<input type=\"button\" value=\"Button Control\" style=\"width: 100px; height: 70px;\"/></aspcontrol></body></html>";
-
-var newHTML4 = "<aspcontrol id=\"button2\" md-can-resize=\"true\"><div>!!!   New desigh-time HTML   !!!</div><input type=\"button\" value=\"Button Control\" style=\"width: 200px; height: 140px;\"/>Inline text<div>Block text</div></aspcontrol>";
-
-var newControl = "<aspcontrol id=\"label1\" md-can-drop=\"false\" md-can-resize=\"true\" height=\"110\" width=\"220\">Some Control with table<table id=\"table2\" style=\"border: 5px solid #000000;\"><tr><td width=\"200\" height=\"100\" style=\"background: #eeeeee\" md-can-drop=\"true\"><span>Row One, Cell One</span></td></tr></table></aspcontrol>";
 
 //* ___________________________________________________________________________
 // Implementations of some XPCOM interfaces, to observe various editor events
@@ -59,7 +88,6 @@ var gNsISelectionListenerImplementation = {
 				editor.getElementOrParentByTagName (CONTROL_TAG_NAME,
 					focusNode);
 			if(parentControl) {
-				//editor.selectElement (parentControl);
 				editor.setCaretAfterElement (parentControl);
 			}
 		}
@@ -146,7 +174,6 @@ var gNsIEditActionListenerImplementation = {
 			var width, height;
 			while(controls [i]) {
 				if(editor.getControlTable ().getById (controls [i].getAttribute (ID))) {
-					//alert(controls [i].getAttribute (ID));
 					editor.getControlTable ().update (controls [i].getAttribute (ID),
 									controls [i]);
 						if(DEBUG)
@@ -189,8 +216,7 @@ var gNsIEditActionListenerImplementation = {
 
 		if(editor.nodeIsControl (node) &&
 		   (node.nodeType == 1 || node.nodeType == 3)) {
-			var element = editor.getElementById(node.getAttribute (ID));
-			editor.selectElement (element);
+			//editor.selectControl (node.getAttribute (ID));
 		}
 		if(editor.getDragState ())
 			editor.setDragState (false);
@@ -219,16 +245,21 @@ var gNsIEditActionListenerImplementation = {
 	WillDeleteNode: function(child)
 	{
 		if(!editor.getInResize () && !editor.getDragState ()) {
+			var deletionStr = 'Will delete control(s):';
 			var i       = 0;
 			var control = editor.getControlFromTableByIndex (i);
 			while(control) {
 				if(child == control) {
+					deletionStr += ' id=' +
+						control.getAttribute (ID) + ',';
 					editor.addLastDeletedControl (control.getAttribute (ID));
-					//alert (control.getAttribute(ID));
 				}
 				i++;
 				control = editor.getControlFromTableByIndex (i);
 			}
+			if(DEBUG && deletionStr != 'Will delete control(s):')
+				dump (deletionStr +
+					' Message source: WillDeleteNode()');
 		}
 	},
 
@@ -251,7 +282,7 @@ var gNsIEditActionListenerImplementation = {
 					i++;
 					control = editor.getControlFromTableByIndex (i);
 				}
-				if(DEBUG)
+				if(DEBUG && deletionStr != 'Will delete control(s):')
 					dump (deletionStr +
 						' Message source: WillDeleteSelection()');
 			}
@@ -537,6 +568,7 @@ var controlTable = {
 //_____________________________________________________________________________
 function aspNetEditor_initialize()
 {
+	dump ("Initialising...");
 	editor = new aspNetEditor ();
 	editor.initialize ();
 	host = new aspNetHost ();
@@ -785,7 +817,6 @@ aspNetEditor.prototype =
 		// If not at the beginning offset of a text node, focus offset
 		// minus 1 is our current element; use it to get next
 		else {
-			//alert (focusOffset);
 			prev = focusNode.childNodes [focusOffset - 1];
 			if(prev && this.nodeIsControl (prev))
 				return prev;
@@ -863,9 +894,29 @@ aspNetEditor.prototype =
 
 	transformControlsInHtml: function(aHTML)
 	{
-		var aHTML = aHTML.replace (BEGIN_CONTROL_TAG_EXP, "$&" + APPEND_TO_CONTROL_BEGIN);
-		var aHTML = aHTML.replace (END_CONTROL_TAG_EXP, APPEND_TO_CONTROL_END + "$&");
-		return (aHTML);
+		var emptyControl =
+			aHTML.match(/(<aspcontrol.[^(><.)]+><\/aspcontrol>)/g);
+		var controlBegin = "$&" + APPEND_TO_CONTROL_BEGIN;
+		controlBegin = (emptyControl) ?
+					controlBegin + EMPTY_CONTROL_MSG :
+					controlBegin;
+
+		var htmlOut = aHTML.replace (BEGIN_CONTROL_TAG_EXP, controlBegin);
+		htmlOut = htmlOut.replace (END_CONTROL_TAG_EXP, APPEND_TO_CONTROL_END +
+					"$&");
+		htmlOut = htmlOut.replace (DIRECTIVE_PLACE_HOLDER_EXP, '<!--' +
+					"$&" + '-->');
+		htmlOut = htmlOut.replace (SCRIPT_PLACE_HOLDER_EXP, '<!--' +
+					"$&" + '-->');
+		return (htmlOut);
+	},
+
+	detransformControlsInHtml: function(aHTML)
+	{
+		var htmlOut = aHTML.replace(STRIP_CONTROL_EXP, '');
+		htmlOut = htmlOut.replace (STRIP_DIRECTIVE_PLACE_HOLDER_EXP, '');
+ 		htmlOut = htmlOut.replace (STRIP_SCRIPT_PLACE_HOLDER_EXP, '');
+		return (htmlOut);
 	},
 
 	//  Loading/Saving/ControlState
@@ -876,28 +927,35 @@ aspNetEditor.prototype =
 				this.selectAll ();
 				this.deleteSelection ();
 				var html = this.transformControlsInHtml(aHtml);
+				if(DEBUG)
+					dump ("Loading page: " + html);
 				this.insertHTML (html);
-				// TODO: we might have a legasy control table
-				// so empty it
-			} catch (e) { ;}
+			} catch (e) {throwException (e);}
 		}
 	},
 
 	getPage: function()
 	{
-		var html = this.serializePage ();
-		return html;
+		var htmlOut = this.serializePage ();
+		htmlOut = this.detransformControlsInHtml(htmlOut);
+		if(DEBUG)
+			dump (htmlOut);
+		return htmlOut;
 	},
 
 	addControl: function(aControlHtml, aControlId)
 	{
 		if(aControlHtml) {
+			if(DEBUG)
+				dump ('Will add control:' + aControlId);
 			var insertIn = null;
 			var destinationOffset = 0;
 			var selectedElement = this.getSelectedElement ('');
 			var focusNode = this.getSelection ().focusNode;
-
 			var controlHTML = this.transformControlsInHtml (aControlHtml);
+			var parentControl =
+				this.getElementOrParentByTagName (CONTROL_TAG_NAME,
+					focusNode);
 
 			// If we have a single-element selection and the element
 			// happens to be a control
@@ -908,12 +966,9 @@ aspNetEditor.prototype =
 					destinationOffset++;
 				destinationOffset++;
 			}
-			
-			// If selection is somewhere inside a control
-			if(focusNode) {
-				var parentControl =
-					this.getElementOrParentByTagName (CONTROL_TAG_NAME,
-						focusNode);
+
+			else if(focusNode) {
+				// If selection is somewhere inside a control
 				if(parentControl){
 					insertIn = parentControl.parentNode;
 					while(parentControl != insertIn.childNodes [destinationOffset])
@@ -924,13 +979,12 @@ aspNetEditor.prototype =
 
 			// If none of the above is true, we are just inserting
 			// with defaults insertIn=null, destinationOffset=0
-			this.insertHTMLWithContext (controlHTML, '', '', '',
+			this.insertHTMLWithContext (controlHTML, '', '', 'text/html',
 				null, insertIn, destinationOffset, false);
-			var newControl = this.getElementById (aControlId);
 
-			this.selectElement (this.getElementById (aControlId));
+			this.selectControl (aControlId);
 			if(DEBUG)
-				dump (controlHTML);
+				dump ('Did add control:' + controlHTML);
 		}
 	},
 
@@ -938,8 +992,12 @@ aspNetEditor.prototype =
 	{
 		var control = this.getDocument ().getElementById (aControlId);
 		if(control) {
+			if(DEBUG)
+				dump ('Will remove control:' + aControlId);
 			this.selectElement (control);
 			this.deleteSelection ();
+			if(DEBUG)
+				dump ('Did remove control:' + aControlId);
 		}
 	},
 
@@ -947,6 +1005,8 @@ aspNetEditor.prototype =
 	{
 		if(aControlId && aNewDesignTimeHtml &&
 		   this.getDocument ().getElementById (aControlId)) {
+			if(DEBUG)
+				dump ('Will update control:' + aControlId);
 			this.hideResizers ();
 			var newDesignTimeHtml =
 				this.transformControlsInHtml (aNewDesignTimeHtml);
@@ -965,7 +1025,7 @@ aspNetEditor.prototype =
 			this.updateControlInTable(aControlId,
 				this.getDocument ().getElementById (aControlId));
 			if(DEBUG)
-				dump ('End control update.');
+				dump ('Did update control:' + aControlId);
 			this.setInResize (false);
 		}
 	},
@@ -1065,7 +1125,8 @@ aspNetEditor.prototype =
 			this.getElementOrParentByTagName (CONTROL_TAG_NAME,
 				focusNode);
 		if(control) {
-			this.selectElement (control);
+			var controlId = control.getAttribute (ID);
+			this.selectControl (controlId);
 		}
 		this.collapseBeforeInsertion ("end");
 		if(this.mNsIEditor.canPaste (1))
@@ -1096,9 +1157,9 @@ aspNetEditor.prototype =
 
 	showResizers: function(aElement)
 	{
+		this.mNsIHtmlEditor.hideResizers ();
 		if(this.nodeIsControl (aElement) &&
 		   aElement.getAttribute ('-md-can-resize') == 'true') {
-			this.mNsIHtmlEditor.hideResizers ();
 			this.mNsIHtmlEditor.showResizers (aElement);
 		}
 	},
@@ -1124,11 +1185,6 @@ aspNetEditor.prototype =
 			else
 				return null;
 		}
-	},
-
-	repaintSelection: function(aElementId)
-	{
-  this.getSelection ();
 	},
 
 	hideResizers: function()
@@ -1244,9 +1300,9 @@ function selectFromClick(aEvent)
 		if(editor.getResizedObject ()) {
 			editor.hideResizers ();
 			editor.hideTableUI ();
-		 }
-		editor.selectElement (control);
-		editor.showResizers (control);
+		}
+		var controlId = control.getAttribute (ID);
+		editor.selectControl (controlId);
 	}
 }
 
@@ -1268,7 +1324,7 @@ function dragOverControl(aEvent) {
 	if(editor.getWillFlash () && aEvent.target.nodeType == 1) {
 		var element = editor.getElementOrParentByAttribute (aEvent.target,
 					'md-can-drop', 'true');
-    
+
 		if(element)
 			editor.highlightOnCanDrop (element);
 		else
@@ -1285,7 +1341,6 @@ function handleDragStart(aEvent) {
 	// "-moz-user-select: all" in preparation for insertFromDrop(). We
 	// revert back to -moz-user-select: none later in DidInsertNode(),
 	// which is the real end of a Drag&Drop operation
-	//alert(aEvent.target.nodeName);
 	editor.hideResizers ();
 	var selectedControl = editor.getSelectedControl ();
 	var controls = editor.getDocument ().getElementsByTagName (CONTROL_TAG_NAME);
@@ -1327,6 +1382,8 @@ function handleSingleClick(aButton, aTarget) {
 			host.click (RIGHT_CLICK, controlId);
 			break;
 		}
+		if(controlId == '')
+			editor.hideResizers ();
 	}
 }
 
@@ -1467,6 +1524,8 @@ function handleKeyPress(aEvent) {
 		if(control && !editor.getSelectedControl ()) {
 			controlId = control.getAttribute (ID);
 			editor.selectControl (controlId);
+			// Hack. We should change the way selection works
+			host.click (SINGLE_CLICK, controlId);
 			aEvent.stopPropagation ();
 			aEvent.preventDefault ();
 		}
@@ -1481,6 +1540,8 @@ function handleKeyPress(aEvent) {
 		if(control && !editor.getSelectedControl ()) {
 			controlId = control.getAttribute (ID);
 			editor.selectControl (controlId);
+			// Hack. We should change the way selection works
+			host.click (SINGLE_CLICK, controlId);
 			aEvent.stopPropagation ();
 			aEvent.preventDefault ();
 		}
