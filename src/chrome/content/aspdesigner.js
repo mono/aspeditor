@@ -2,35 +2,40 @@ var editor                 = null;
 var host                   = null;
 var gCancelClick           = false;
 
-const DEBUG                     = true;
-const ID                        = 'id';
-const WIDTH                     = 'width';
-const HEIGHT                    = 'height';
-const MIN_WIDTH                 = 'min-width';
-const MIN_HEIGHT                = 'min-height';
-const DISPLAY                   = 'display';
-const BORDER                    = 'border';
-const VERTICAL_ALIGN            = 'vertical-align';
-const BORDER_CAN_DROP_COLOR     = '#ee0000';
-const BORDER_CAN_DROP_THICK     = '2';
-const BORDER_CAN_DROP_INVERT    = false;
-const CONTROL_TAG_NAME          = 'aspcontrol';
-const END_CONTROL_TAG_EXP       = /<\/aspcontrol>/g;
-const BEGIN_CONTROL_TAG_EXP     = /(<aspcontrol.[^(><.)]+>)/g;
-const APPEND_TO_CONTROL_END     = '</div></span></span>';
-const APPEND_TO_CONTROL_BEGIN   = "<span style=\"display: block; position: relative\"><span style=\"position: absolute; display: block; z-index: -1;\"><div>";
-const SINGLE_CLICK              = 'single';
-const DOUBLE_CLICK              = 'double';
-const RIGHT_CLICK               = 'right';
-const OBJECT_RESIZER            = Components.interfaces.nsIHTMLObjectResizer;
-const INLINE_TABLE_EDITOR       = Components.interfaces.nsIHTMLInlineTableEditor;
-const TABLE_EDITOR              = Components.interfaces.nsITableEditor;
-const EDITOR                    = Components.interfaces.nsIEditor;
-const SELECTION_PRIVATE         = Components.interfaces.nsISelectionPrivate;
-const OBJECT                    = 'object';
-const CUT                       = 'cut';
-const COPY                      = 'copy';
-const PASTE                     = 'paste';
+const DEBUG                            = true;
+const ID                               = 'id';
+const WIDTH                            = 'width';
+const HEIGHT                           = 'height';
+const MIN_WIDTH                        = 'min-width';
+const MIN_HEIGHT                       = 'min-height';
+const DISPLAY                          = 'display';
+const BORDER                           = 'border';
+const VERTICAL_ALIGN                   = 'vertical-align';
+const BORDER_CAN_DROP_COLOR            = '#ee0000';
+const BORDER_CAN_DROP_THICK            = '2';
+const BORDER_CAN_DROP_INVERT           = false;
+const DIRECTIVE_PLACE_HOLDER_EXP       = /(<directiveplaceholder.[^(><.)]+\/>)/g;
+const STRIP_DIRECTIVE_PLACE_HOLDER_EXP = /<!(?:--<directiveplaceholder[\s\S]*?--\s*)?>\s*/g;
+const SCRIPT_PLACE_HOLDER_EXP          = /(<scriptblockplaceholder.[^(><.)]+\/>)/g;
+const STRIP_SCRIPT_PLACE_HOLDER_EXP    = /<!(?:--<scriptblockplaceholder[\s\S]*?--\s*)?>\s*/g;
+const CONTROL_TAG_NAME                 = 'aspcontrol';
+const BEGIN_CONTROL_TAG_EXP            = /(<aspcontrol.[^(><.)]+>)/g;
+const END_CONTROL_TAG_EXP              = /<\/aspcontrol>/g;
+const STRIP_CONTROL_EXP                = /<!(?:--<balast>[\s\S]*?<\/balast>--\s*)?>\s*/g;
+const APPEND_TO_CONTROL_END            = '</div></span></span><!--</balast>-->';
+const APPEND_TO_CONTROL_BEGIN          = "<!--<balast>--><span style=\"display: block; position: relative\"><span style=\"position: absolute; display: block; z-index: -1;\"><div>";
+const SINGLE_CLICK                     = 'single';
+const DOUBLE_CLICK                     = 'double';
+const RIGHT_CLICK                      = 'right';
+const OBJECT_RESIZER                   = Components.interfaces.nsIHTMLObjectResizer;
+const INLINE_TABLE_EDITOR              = Components.interfaces.nsIHTMLInlineTableEditor;
+const TABLE_EDITOR                     = Components.interfaces.nsITableEditor;
+const EDITOR                           = Components.interfaces.nsIEditor;
+const SELECTION_PRIVATE                = Components.interfaces.nsISelectionPrivate;
+const OBJECT                           = 'object';
+const CUT                              = 'cut';
+const COPY                             = 'copy';
+const PASTE                            = 'paste';
 
 var gRepaintElement = 'button1';
 var controlId       = 'asptag2';
@@ -349,6 +354,7 @@ aspNetHost.prototype =
 		JSCallRegisterClrHandler ('UpdateControl', JSCall_UpdateControl);
 		// Control selection
 		JSCallRegisterClrHandler ('SelectControl', JSCall_SelectControl);
+		JSCallRegisterClrHandler ('DoCommand', JSCall_DoCommand);
 		// Cut/Copy/Paste/Undp/Redo
 		//JSCallRegisterClrHandler ('GetPage', JSCall_undo);
 		//JSCallRegisterClrHandler ('GetPage', JSCall_redo);
@@ -862,9 +868,19 @@ aspNetEditor.prototype =
 
 	transformControlsInHtml: function(aHTML)
 	{
-		var aHTML = aHTML.replace (BEGIN_CONTROL_TAG_EXP, "$&" + APPEND_TO_CONTROL_BEGIN);
-		var aHTML = aHTML.replace (END_CONTROL_TAG_EXP, APPEND_TO_CONTROL_END + "$&");
-		return (aHTML);
+		var htmlOut = aHTML.replace (BEGIN_CONTROL_TAG_EXP, "$&" + APPEND_TO_CONTROL_BEGIN);
+		htmlOut = htmlOut.replace (END_CONTROL_TAG_EXP, APPEND_TO_CONTROL_END + "$&");
+		htmlOut = htmlOut.replace (DIRECTIVE_PLACE_HOLDER_EXP, '<!--' + "$&" + '-->');
+		htmlOut = htmlOut.replace (SCRIPT_PLACE_HOLDER_EXP, '<!--' + "$&" + '-->');
+		return (htmlOut);
+	},
+
+	detransformControlsInHtml: function(aHTML)
+	{
+		var htmlOut = aHTML.replace(STRIP_CONTROL_EXP, '');
+		htmlOut = htmlOut.replace (STRIP_DIRECTIVE_PLACE_HOLDER_EXP, '');
+ 		htmlOut = htmlOut.replace (STRIP_SCRIPT_PLACE_HOLDER_EXP, '');
+		return (htmlOut);
 	},
 
 	//  Loading/Saving/ControlState
@@ -875,17 +891,20 @@ aspNetEditor.prototype =
 				this.selectAll ();
 				this.deleteSelection ();
 				var html = this.transformControlsInHtml(aHtml);
+				if(DEBUG)
+					dump (html);
 				this.insertHTML (html);
-				// TODO: we might have a legasy control table
-				// so empty it
 			} catch (e) { ;}
 		}
 	},
 
 	getPage: function()
 	{
-		var html = this.serializePage ();
-		return html;
+		var htmlOut = this.serializePage ();
+		htmlOut = this.detransformControlsInHtml(htmlOut);
+		if(DEBUG)
+			dump (htmlOut);
+		return htmlOut;
 	},
 
 	addControl: function(aControlHtml, aControlId)
@@ -1267,7 +1286,7 @@ function dragOverControl(aEvent) {
 	if(editor.getWillFlash () && aEvent.target.nodeType == 1) {
 		var element = editor.getElementOrParentByAttribute (aEvent.target,
 					'md-can-drop', 'true');
-    
+
 		if(element)
 			editor.highlightOnCanDrop (element);
 		else
