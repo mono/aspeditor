@@ -425,6 +425,11 @@ aspNetHost.prototype =
 	{
 		JSCallPlaceClrCall ('ThrowException', '', new Array(location, msg));
 	},
+	
+	removeControl: function (aControlId)
+	{
+		JSCallPlaceClrCall ('RemoveControl', '', new Array(aControlId));
+	},
 }
 
 
@@ -466,27 +471,29 @@ function JSCall_LoadPage (arg) {
 
 function JSCall_DoCommand (arg) {
 	var command = arg [0];
-
-	switch(command) {
-	case   CUT:
+	dump ('Executing command "' + command +'"...');
+	
+	switch (command) {
+	case   "Cut":
 		editor.cut ();
 		break;
-	case   COPY:
+	case   "Copy":
 		editor.copy ();
 		break;
-	case   PASTE:
+	case   "Paste":
 		editor.paste ();
 		break;
-	case   UNDO:
+	case   "Undo":
 		editor.undo ();
 		break;
-	case   REDO:
+	case   "Redo":
 		editor.redo ();
 		break;
 	default    :
-		host.throwException ('DoComand', 'Invalid or no command');
+		host.throwException ('DoCommand', 'Invalid or no command');
 		break;
 	}
+	return "";
 }
 
 
@@ -569,10 +576,15 @@ var controlTable = {
 function aspNetEditor_initialize()
 {
 	dump ("Initialising...");
+	dump ("\tCreating host...");
 	editor = new aspNetEditor ();
+	dump ("\tCreated editor, initialising...");
 	editor.initialize ();
+	dump ("\tEditor initialised, creating host...");
 	host = new aspNetHost ();
+	dump ("\tHost created, initialising...");
 	host.initialize ();
+	dump ("Initialised.");
 }
 
 function aspNetEditor()
@@ -951,7 +963,7 @@ aspNetEditor.prototype =
 			var destinationOffset = 0;
 			var selectedElement = this.getSelectedElement ('');
 			var focusNode = this.getSelection ().focusNode;
-			var controlHTML = this.transformControlsInHtml (aControlHtml);
+			var controlHTML = this.transformControlsToHtml (aControlHtml);
 			var parentControl =
 				this.getElementOrParentByTagName (CONTROL_TAG_NAME,
 					focusNode);
@@ -1008,7 +1020,7 @@ aspNetEditor.prototype =
 				dump ('Will update control:' + aControlId);
 			this.hideResizers ();
 			var newDesignTimeHtml =
-				this.transformControlsInHtml (aNewDesignTimeHtml);
+				this.transformControlsToHtml (aNewDesignTimeHtml);
 			try {
 				var oldControl =
 					this.getDocument ().getElementById (aControlId);
