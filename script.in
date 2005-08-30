@@ -1,2 +1,2 @@
 #!/bin/sh
-exec @MONO@ --debug @prefix@/lib/aspnetedit/aspnetedit.exe $MONO_EXTRA_ARGS "$@"
+LD_LIBRARY_PATH=@prefix@/lib/aspnetedit:$LD_LIBRARY_PATH exec @MONO@ --debug @prefix@/lib/aspnetedit/aspnetedit.exe $MONO_EXTRA_ARGS "$@"
