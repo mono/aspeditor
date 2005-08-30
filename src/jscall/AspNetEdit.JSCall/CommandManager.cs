@@ -39,7 +39,10 @@ namespace AspNetEdit.JSCall
 	public class CommandManager
 	{
 		[DllImport ("jscallglue.dll")]
-		static extern int PlaceFunctionCall (IntPtr embed, IntPtr call, IntPtr returnto, IntPtr args);
+		static extern int PlaceFunctionCall (IntPtr embed,
+			[MarshalAs(UnmanagedType.LPWStr)] string call,
+			[MarshalAs(UnmanagedType.LPWStr)] string returnto,
+			[MarshalAs(UnmanagedType.LPWStr)] string args);
 		
 		private Hashtable functions;
 		private WebControl webControl;
@@ -98,16 +101,8 @@ namespace AspNetEdit.JSCall
 					argsOut += "|" + args[i];
 				}
 			}
-			
-			IntPtr functionPtr = GLib.Marshaller.StringToPtrGStrdup (function);
-			IntPtr returnToPtr = GLib.Marshaller.StringToPtrGStrdup (returnTo);
-			IntPtr argsPtr = GLib.Marshaller.StringToPtrGStrdup (argsOut);
 				
-			int result = PlaceFunctionCall (webControl.Handle, functionPtr, returnToPtr, argsPtr);
-			
-			GLib.Marshaller.Free (functionPtr);
-			GLib.Marshaller.Free (returnToPtr);
-			GLib.Marshaller.Free (argsPtr);
+			int result = PlaceFunctionCall (webControl.Handle, function, returnTo, argsOut);
 			
 			string err;
 			

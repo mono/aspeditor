@@ -33,7 +33,6 @@
 
 #include <nsCOMPtr.h>
 #include <nsString.h>
-
 #include <nsIWebBrowser.h>
 #include <nsIDOMWindow.h>
 #include <nsIDOMDocument.h>
@@ -43,10 +42,8 @@
 
 extern "C"
 {
-  int PlaceFunctionCall(GtkMozEmbed *embed, char *call, char*returnto, char *args);
-  //void CollectFunctionCall(GtkMozEmbed *embed, char *call, char *args, char*returnto);
+  int PlaceFunctionCall(GtkMozEmbed *embed, const PRUnichar *call, const PRUnichar *returnto, const PRUnichar *args);
 }
-
 
 
 /*
@@ -72,7 +69,7 @@ nsCOMPtr<nsIDOMDocument> GetIDOMDocument(GtkMozEmbed *embed)
  Places a <outfunction call="..." args="..." returnto="..." />
  function call element in the <jscall> element.
 */
-int PlaceFunctionCall(GtkMozEmbed *embed, char *call, char*returnto, char *args)
+int PlaceFunctionCall(GtkMozEmbed *embed, const PRUnichar *call, const PRUnichar *returnto, const PRUnichar *args)
 {
 	nsresult result;
 	
@@ -100,9 +97,9 @@ int PlaceFunctionCall(GtkMozEmbed *embed, char *call, char*returnto, char *args)
     if(NS_FAILED(result) || !infunction) return 6;
     
     //add the properties
-    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("call"), NS_ConvertUTF8toUTF16(call));
-    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("returnto"), NS_ConvertUTF8toUTF16(returnto));
-    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("args"), NS_ConvertUTF8toUTF16(args));
+    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("call"), nsString(call));
+    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("returnto"), nsString(returnto));
+    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("args"), nsString(args));
     if(NS_FAILED(result)) return 7;
     
     //append it to the jscall node
