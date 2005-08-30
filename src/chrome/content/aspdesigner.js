@@ -31,6 +31,7 @@
 var editor                 = null;
 var host                   = null;
 var gCancelClick           = false;
+var gDirectivePlaceholder  = '';
 
 const DEBUG                            = true;
 const ID                               = 'id';
@@ -45,7 +46,6 @@ const BORDER_CAN_DROP_COLOR            = '#ee0000';
 const BORDER_CAN_DROP_THICK            = '2';
 const BORDER_CAN_DROP_INVERT           = false;
 const DIRECTIVE_PLACE_HOLDER_EXP       = /(<directiveplaceholder.[^(><.)]+\/>)/g;
-const STRIP_DIRECTIVE_PLACE_HOLDER_EXP = /<!(?:--(<directiveplaceholder[\s\S]*?)--\s*)?>\s*/g;
 const SCRIPT_PLACE_HOLDER_EXP          = /(<scriptblockplaceholder.[^(><.)]+\/>)/g;
 const STRIP_SCRIPT_PLACE_HOLDER_EXP    = /<!(?:--(<scriptblockplaceholder[\s\S]*?)--\s*)?>\s*/g;
 const CONTROL_TAG_NAME                 = 'aspcontrol';
@@ -595,8 +595,8 @@ aspNetEditor.prototype =
 	mControlTable             : null,
 	mLastDeletedControls      : null,
 	mLastSelectedControls     : null,
-	mInResize                 : null,
-	mInDrag                   : null,
+	mInResize                 : false,
+	mInDrag                   : false,
 	mWillFlash                : false,
 
 	initialize: function()
@@ -666,8 +666,6 @@ aspNetEditor.prototype =
 		this.mLastDeletedControls  = new Array();
 		this.mLastSelectedControls = new Array();
 		this.mControlTable         = controlTable;
-		this.mInResize             = false;
-		this.mInDrag               = false;
 	},
 
 	getDocument: function()
@@ -775,11 +773,6 @@ aspNetEditor.prototype =
 	removeLastDeletedControl: function()
 	{
 		return this.mLastDeletedControls.pop ();
-	},
-
-	emptyLastDeletedControl: function()
-	{
-	
 	},
 
 	nextSiblingIsControl: function()
@@ -892,7 +885,7 @@ aspNetEditor.prototype =
 		}
 	},
 
-	transformControlsInHtml: function(aHTML)
+	transformControlsToHtml: function(aHTML)
 	{
 		var emptyControl =
 			aHTML.match(/(<aspcontrol.[^(><.)]+><\/aspcontrol>)/g);
@@ -904,17 +897,23 @@ aspNetEditor.prototype =
 		var htmlOut = aHTML.replace (BEGIN_CONTROL_TAG_EXP, controlBegin);
 		htmlOut = htmlOut.replace (END_CONTROL_TAG_EXP, APPEND_TO_CONTROL_END +
 					"$&");
-		htmlOut = htmlOut.replace (DIRECTIVE_PLACE_HOLDER_EXP, '<!--' +
-					"$&" + '-->');
+
+		gDirectivePlaceholder =
+			htmlOut.match (DIRECTIVE_PLACE_HOLDER_EXP);
+		if (gDirectivePlaceholder)
+			htmlOut = htmlOut.replace (DIRECTIVE_PLACE_HOLDER_EXP, '');
+
 		htmlOut = htmlOut.replace (SCRIPT_PLACE_HOLDER_EXP, '<!--' +
 					"$&" + '-->');
 		return (htmlOut);
 	},
 
-	detransformControlsInHtml: function(aHTML)
+	detransformControlsToHtml: function(aHTML)
 	{
 		var htmlOut = aHTML.replace(STRIP_CONTROL_EXP, '');
-		htmlOut = htmlOut.replace (STRIP_DIRECTIVE_PLACE_HOLDER_EXP, "$1");
+		if(gDirectivePlaceholder) {
+			htmlOut = gDirectivePlaceholder + htmlOut;
+		}
  		htmlOut = htmlOut.replace (STRIP_SCRIPT_PLACE_HOLDER_EXP, "$1");
 		return (htmlOut);
 	},
@@ -926,18 +925,18 @@ aspNetEditor.prototype =
 			try {
 				this.selectAll ();
 				this.deleteSelection ();
-				var html = this.transformControlsInHtml(aHtml);
+				var html = this.transformControlsToHtml(aHtml);
 				if(DEBUG)
 					dump ("Loading page: " + html);
-				this.insertHTML (html);
-			} catch (e) {throwException ('Javascript', e);}
+				this.mNsIHtmlEditor.rebuildDocumentFromSource (html);
+			} catch (e) {/*throwException ('Javascript', e);*/}
 		}
 	},
 
 	getPage: function()
 	{
 		var htmlOut = this.serializePage ();
-		htmlOut = this.detransformControlsInHtml(htmlOut);
+		htmlOut = this.detransformControlsToHtml(htmlOut);
 		if(DEBUG)
 			dump (htmlOut);
 		return htmlOut;
