@@ -53,7 +53,8 @@ EDITOR_CSFILES =									\
 	$(srcdir)/AspNetEdit.Editor.Persistence/TagAttributes.cs			\
 	$(srcdir)/AspNetEdit.Editor.Persistence/TagType.cs				\
 	$(srcdir)/AspNetEdit.Editor.ComponentModel/Document.cs				\
-	$(srcdir)/AspNetEdit.Editor.ComponentModel/DocumentDirective.cs
+	$(srcdir)/AspNetEdit.Editor.ComponentModel/DocumentDirective.cs			\
+	$(srcdir)/AspNetEdit.Editor.ComponentModel/TextToolboxItem.cs
 
 $(ASSEMBLY): $(EDITOR_CSFILES)
 	$(MCS) $(MCS_OPTIONS) $(EDITOR_REFERENCES) -debug -target:library -out:$@ $(EDITOR_CSFILES)

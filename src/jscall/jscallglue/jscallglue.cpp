@@ -97,9 +97,9 @@ int PlaceFunctionCall(GtkMozEmbed *embed, const PRUnichar *call, const PRUnichar
     if(NS_FAILED(result) || !infunction) return 6;
     
     //add the properties
-    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("call"), nsString(call));
-    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("returnto"), nsString(returnto));
-    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("args"), nsString(args));
+    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("call"), nsDependentString(call));
+    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("returnto"), nsDependentString(returnto));
+    result = infunction->SetAttribute(NS_ConvertUTF8toUTF16("args"), nsDependentString(args));
     if(NS_FAILED(result)) return 7;
     
     //append it to the jscall node

@@ -56,6 +56,7 @@
     <File name="./AspNetEdit.Editor.Persistence/StrUtils.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.Persistence/TagAttributes.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.Persistence/TagType.cs" subtype="Code" buildaction="Compile" />
+    <File name="./AspNetEdit.Editor.ComponentModel/TextToolboxItem.cs" subtype="Code" buildaction="Compile" />
   </Contents>
   <References>
     <ProjectReference type="Project" localcopy="True" refto="jscall" />

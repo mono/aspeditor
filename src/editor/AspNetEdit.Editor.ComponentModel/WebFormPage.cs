@@ -44,9 +44,20 @@ namespace AspNetEdit.Editor.ComponentModel
 {
 	internal class WebFormPage : System.Web.UI.Page
 	{
+		private HttpRequest httpRequest;
+		
 		public WebFormPage ()
 		{
 			pdc = TypeDescriptor.GetProperties (this);
+			
+			//fake the request for some controls which need it
+			/*
+			HttpRequest request = new HttpRequest (string.Empty, "file:///", string.Empty);
+			System.IO.StringWriter strw = new System.IO.StringWriter ();
+			HttpResponse response = new HttpResponse (strw);
+			HttpContext context = new HttpContext (request, response);
+			this.ProcessRequest (context);
+			*/
 		}
 
 		//FIXME: enforce this...

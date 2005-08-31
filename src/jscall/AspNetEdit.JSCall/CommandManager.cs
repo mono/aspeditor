@@ -101,7 +101,8 @@ namespace AspNetEdit.JSCall
 					argsOut += "|" + args[i];
 				}
 			}
-				
+			
+			if (returnTo == null) returnTo = string.Empty;
 			int result = PlaceFunctionCall (webControl.Handle, function, returnTo, argsOut);
 			
 			string err;

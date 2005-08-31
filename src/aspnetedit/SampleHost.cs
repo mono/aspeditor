@@ -47,6 +47,7 @@ namespace AspNetEdit.SampleHost
 	{
 		static DesignerHost host;
 		static Frame geckoFrame;
+		static AspNetEdit.Editor.ComponentModel.ToolboxService toolboxService;
 
 		static void Main ()
 		{
@@ -79,7 +80,9 @@ namespace AspNetEdit.SampleHost
 			#endregion			
 
 			#region Toolbar
-
+			
+			// * Save/Open
+			
 			Toolbar buttons = new Toolbar ();
 			outerBox.PackStart (buttons, false, false, 0);
 
@@ -90,6 +93,10 @@ namespace AspNetEdit.SampleHost
 			ToolButton openButton = new ToolButton(Stock.Open);
 			buttons.Add(openButton);
 			openButton.Clicked += new EventHandler(openButton_Clicked);
+			
+			buttons.Add (new SeparatorToolItem());
+			
+			// * Clipboard
 
 			ToolButton undoButton = new ToolButton (Stock.Undo);
 			buttons.Add (undoButton);
@@ -110,6 +117,38 @@ namespace AspNetEdit.SampleHost
 			ToolButton pasteButton = new ToolButton (Stock.Paste);
 			buttons.Add (pasteButton);
 			pasteButton.Clicked += new EventHandler (pasteButton_Clicked);
+			
+			buttons.Add (new SeparatorToolItem());
+			
+			// * Text style
+			
+			ToolButton boldButton = new ToolButton (Stock.Bold);
+			buttons.Add (boldButton);
+			boldButton.Clicked += new EventHandler (boldButton_Clicked);
+			
+			ToolButton italicButton = new ToolButton (Stock.Italic);
+			buttons.Add (italicButton);
+			italicButton.Clicked += new EventHandler (italicButton_Clicked);
+			
+			ToolButton underlineButton = new ToolButton (Stock.Underline);
+			buttons.Add (underlineButton);
+			underlineButton.Clicked += new EventHandler (underlineButton_Clicked);
+			
+			ToolButton indentButton = new ToolButton (Stock.Indent);
+			buttons.Add (indentButton);
+			indentButton.Clicked += new EventHandler (indentButton_Clicked);
+			
+			ToolButton unindentButton = new ToolButton (Stock.Unindent);
+			buttons.Add (unindentButton);
+			unindentButton.Clicked += new EventHandler (unindentButton_Clicked);
+			
+			buttons.Add (new SeparatorToolItem());
+			
+			// * Toolbox
+			
+			ToolButton toolboxAddButton = new ToolButton (Stock.Add);
+			buttons.Add (toolboxAddButton);
+			toolboxAddButton.Clicked += new EventHandler (toolboxAddButton_Clicked);
 
 			#endregion
 
@@ -117,15 +156,15 @@ namespace AspNetEdit.SampleHost
 
 			//set up the services
 			ServiceContainer services = new ServiceContainer ();
-			services.AddService (typeof (INameCreationService), new AspNetEdit.Editor.ComponentModel.NameCreationService ());
-			services.AddService (typeof (ISelectionService), new AspNetEdit.Editor.ComponentModel.SelectionService ());
-			services.AddService (typeof (IEventBindingService), new AspNetEdit.Editor.ComponentModel.EventBindingService (window));
-			services.AddService (typeof (ITypeResolutionService), new AspNetEdit.Editor.ComponentModel.TypeResolutionService ());
+			services.AddService (typeof (INameCreationService), new NameCreationService ());
+			services.AddService (typeof (ISelectionService), new SelectionService ());
+			services.AddService (typeof (IEventBindingService), new EventBindingService (window));
+			services.AddService (typeof (ITypeResolutionService), new TypeResolutionService ());
 			ExtenderListService extListServ = new AspNetEdit.Editor.ComponentModel.ExtenderListService ();
 			services.AddService (typeof (IExtenderListService), extListServ);
 			services.AddService (typeof (IExtenderProviderService), extListServ);
 			services.AddService (typeof (ITypeDescriptorFilterService), new TypeDescriptorFilterService ());
-			AspNetEdit.Editor.ComponentModel.ToolboxService toolboxService = new AspNetEdit.Editor.ComponentModel.ToolboxService ();
+			toolboxService = new ToolboxService ();
 			services.AddService (typeof (IToolboxService), toolboxService);
 			
 			//create our host
@@ -148,6 +187,7 @@ namespace AspNetEdit.SampleHost
 			Toolbox toolbox = new Toolbox (services);
 			leftBox.Pack1 (toolbox, false, false);
 			toolboxService.PopulateFromAssembly (System.Reflection.Assembly.GetAssembly (typeof (System.Web.UI.Control)));
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<table><tr><td></td><td></td></tr><tr><td></td><td></td></tr></table>", "Table"), "Html");
 			toolbox.UpdateCategories ();
 			
 			#endregion
@@ -193,7 +233,6 @@ namespace AspNetEdit.SampleHost
 			fcd.Filter = new FileFilter();
 			fcd.Filter.AddPattern ("*.aspx");
 			fcd.SelectMultiple = false;
-			fcd.SetFilename (((System.Web.UI.Control)host.RootComponent).ID + ".aspx");
 
 			ResponseType response = (ResponseType) fcd.Run( );
 			fcd.Hide ();
@@ -214,27 +253,77 @@ namespace AspNetEdit.SampleHost
 
 		static void redoButton_Clicked (object sender, EventArgs e)
 		{
-			throw new NotImplementedException ();
+			host.RootDocument.DoCommand (EditorCommand.Redo);
 		}
 
 		static void undoButton_Clicked (object sender, EventArgs e)
 		{
-			throw new NotImplementedException ();
+			host.RootDocument.DoCommand (EditorCommand.Undo);
 		}
 		
 		static void cutButton_Clicked (object sender, EventArgs e)
 		{
-			throw new NotImplementedException ();
+			host.RootDocument.DoCommand (EditorCommand.Cut);
 		}
 		
 		static void copyButton_Clicked (object sender, EventArgs e)
 		{
-			throw new NotImplementedException ();
+			host.RootDocument.DoCommand (EditorCommand.Copy);
 		}
 		
 		static void pasteButton_Clicked (object sender, EventArgs e)
 		{
-			throw new NotImplementedException ();
+			host.RootDocument.DoCommand (EditorCommand.Paste);
+		}
+		
+		static void italicButton_Clicked (object sender, EventArgs e)
+		{
+			host.RootDocument.DoCommand (EditorCommand.Italic);
+		}
+		
+		static void boldButton_Clicked (object sender, EventArgs e)
+		{
+			host.RootDocument.DoCommand (EditorCommand.Bold);
+		}
+		
+		static void underlineButton_Clicked (object sender, EventArgs e)
+		{
+			host.RootDocument.DoCommand (EditorCommand.Underline);
+		}
+		
+		static void indentButton_Clicked (object sender, EventArgs e)
+		{
+			host.RootDocument.DoCommand (EditorCommand.Indent);
+		}
+		
+		static void unindentButton_Clicked (object sender, EventArgs e)
+		{
+			host.RootDocument.DoCommand (EditorCommand.Outdent);
+		}
+		
+		static void toolboxAddButton_Clicked (object sender, EventArgs e)
+		{
+			FileChooserDialog fcd = new FileChooserDialog ("Add custom controls...", (Window)((Widget)sender).Toplevel, FileChooserAction.Open);
+			fcd.AddButton(Stock.Cancel, ResponseType.Cancel);
+			fcd.AddButton(Stock.Open, ResponseType.Ok);
+			fcd.DefaultResponse = ResponseType.Ok;
+			fcd.Filter = new FileFilter();
+			fcd.Filter.AddPattern ("*.dll");
+			fcd.SelectMultiple = false;
+
+			ResponseType response = (ResponseType) fcd.Run( );
+			fcd.Hide ();
+
+			if (response == ResponseType.Ok && fcd.Filename != null)
+				try{
+					System.Reflection.Assembly a = System.Reflection.Assembly.LoadFrom (fcd.Filename);
+					toolboxService.PopulateFromAssembly (a);
+				}
+				catch (Exception ex) {
+					//TODO: handle this better!
+					System.Diagnostics.Trace.WriteLine ("Could not load assembly \"" + fcd.Filename + "\".");
+				}
+			fcd.Destroy();
 		}
 
 		#endregion

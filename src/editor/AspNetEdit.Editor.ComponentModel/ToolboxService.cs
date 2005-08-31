@@ -45,6 +45,13 @@ namespace AspNetEdit.Editor.ComponentModel
 		Hashtable categories = new Hashtable ();
 		private string selectedCategory;
 		private ToolboxItem selectedItem = null;
+		
+		public event EventHandler ToolboxChanged;
+		
+		protected void OnToolboxChanged ()
+		{
+			ToolboxChanged (this, new EventArgs ());
+		} 
 
 		#region IToolboxService Members
 
@@ -78,6 +85,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			if (!categories.ContainsKey (category))
 				categories[category] = new ArrayList ();
 			
+			System.Diagnostics.Trace.WriteLine ("Adding ToolboxItem: " + toolboxItem.DisplayName + ", " + category);
 			((ArrayList) categories[category]).Add (toolboxItem);
 		}
 
@@ -291,6 +299,8 @@ namespace AspNetEdit.Editor.ComponentModel
 			{
 				if (t.IsAbstract || t.IsNotPublic) continue;
 				
+				if (t.GetConstructor (new Type[] {}) == null) continue;
+				
 				AttributeCollection atts = TypeDescriptor.GetAttributes (t);
 				
 				bool containsAtt = false;
@@ -314,9 +324,10 @@ namespace AspNetEdit.Editor.ComponentModel
 					category = "Data Controls";
 				else if (t.IsSubclassOf (typeof (System.Web.UI.WebControls.WebControl)))
 					category = "Web Controls";
-
+				
 				AddToolboxItem ((ToolboxItem) Activator.CreateInstance (toolboxItemType, new object[] {t}), category);
 			}
+			OnToolboxChanged ();
 		}
 		
 		#endregion

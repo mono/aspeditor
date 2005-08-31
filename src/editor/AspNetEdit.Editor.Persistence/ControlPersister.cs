@@ -264,6 +264,8 @@ namespace AspNetEdit.Editor.Persistence
 					PersistenceModeAttribute modeAttrib = prop.Attributes[typeof(PersistenceModeAttribute)] as PersistenceModeAttribute;
 					if (modeAttrib == null || modeAttrib.Mode == PersistenceMode.Attribute)
 						continue;
+					
+					Console.WriteLine ("Prop: "+prop.Name+"PersistenceMode:"+modeAttrib.Mode.ToString()); 
 
 					//handle the different modes
 					switch (modeAttrib.Mode)
@@ -279,7 +281,7 @@ namespace AspNetEdit.Editor.Persistence
 						case PersistenceMode.InnerDefaultProperty:
 							if (contentStarted)
 								throw new Exception("The Control has inner properties in addition to a default inner property");
-							PersistInnerProperty(prop,prop.GetValue (component), writer, host, true);
+							PersistInnerProperty(prop, prop.GetValue (component), writer, host, true);
 							return;
 						case PersistenceMode.InnerProperty:
 							PersistInnerProperty (prop, prop.GetValue (component), writer, host, false);
@@ -294,32 +296,25 @@ namespace AspNetEdit.Editor.Persistence
 		//once we've determined we need to persist a property, this does the actual work
 		private static void PersistInnerProperty (PropertyDescriptor prop, object value, HtmlTextWriter writer, IDesignerHost host, bool isDefault)
 		{
-			//look up tag prefix from host
-			IWebFormReferenceManager refMan = host.GetService (typeof (IWebFormReferenceManager)) as IWebFormReferenceManager;
-			if (refMan == null)
-				throw new Exception("Could not obtain IWebFormReferenceManager service"); ;
-			string prefix = refMan.GetTagPrefix (prop.PropertyType);
-
-
 			//newline and indent
 			writer.WriteLine();
 
 			//trivial case
 			if (value == null) {
 				if (!isDefault) {
-					writer.WriteBeginTag (prefix + ":" + prop.Name);
+					writer.WriteBeginTag (prop.Name);
 					writer.Write (HtmlTextWriter.SelfClosingTagEnd);
 				}
 				return;
 			}
 
 
-			//Persist collections as tag with property name
-			//containing tags of object name, with object properties as attribs
+			//A collection? Persist individual objects.
 			if (value is ICollection) {
 				if (((ICollection) value).Count > 0) {
+					//if default property needs no surrounding tags
 					if(!isDefault) {
-						writer.WriteFullBeginTag(prefix + ":" + prop.Name);
+						writer.WriteFullBeginTag (prop.Name);
 						writer.Indent++;
 					}
 					
@@ -328,15 +323,21 @@ namespace AspNetEdit.Editor.Persistence
 
 					if(!isDefault) {
 						writer.Indent--;
-						writer.WriteEndTag (prefix + ":" + prop.Name);
+						writer.WriteEndTag (prop.Name);
 					}
 				}
 			}
-			//not a collection? Simple: a tag of object name, with object properties as attribs
-			else
-			{		
+			//default but not collection: just write content
+			else if (isDefault) {
+				if (prop.Converter.CanConvertTo (typeof (string))){
+					writer.Write (prop.Converter.ConvertToString (value));
+					return;
+				}
+			}
+			//else: a tag of property name, with sub-properties as attribs
+			else {		
 				//only want to render tag if it has any attributes
-				writer.WriteBeginTag (prefix + ":" + prop.Name);
+				writer.WriteBeginTag (prop.Name);
 
 				foreach (PropertyDescriptor p in TypeDescriptor.GetProperties(value))
 					ProcessAttribute (p, value, writer, string.Empty);

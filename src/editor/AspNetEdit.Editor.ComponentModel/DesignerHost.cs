@@ -80,7 +80,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			//check arguments
 			if (componentClass == null)
 				throw new ArgumentNullException ("componentClass");
-			if (!componentClass.IsSubclassOf (typeof (System.Web.UI.Control)) && componentClass.GetType() != typeof (System.Web.UI.Control))
+			if (!componentClass.IsSubclassOf (typeof (System.Web.UI.Control)) && componentClass != typeof (System.Web.UI.Control))
 				throw new ArgumentException ("componentClass must be a subclass of System.Web.UI.Control", "componentClass");
 
 			if (componentClass.IsSubclassOf (typeof (System.Web.UI.Page)))

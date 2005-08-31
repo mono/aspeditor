@@ -47,7 +47,7 @@ namespace AspNetEdit.Editor.ComponentModel
 	{
 		public static readonly string newDocument = "<html>\n<head>\n\t<title>{0}</title>\n</head>\n<body>\n<form runat=\"server\">\n\n</form></body>\n</html>";
 		public static readonly string ControlSubstituteStructure = "<aspcontrol id=\"{0}\" width=\"{1}\" height=\"{2}\" -md-can-drop=\"{3}\" -md-can-resize=\"{4}\">{5}</aspcontrol>";
-		public static readonly string DirectivePlaceholderStructure = "<directiveplaceholder id =\"{0}\" />";
+		public static readonly string DirectivePlaceholderStructure = "<!--<directiveplaceholder id =\"{0}\" />-->";
 
 		string document;
 		Hashtable directives;
@@ -56,12 +56,13 @@ namespace AspNetEdit.Editor.ComponentModel
 		private Control parent;
 		private DesignerHost host;
 		private RootDesignerView view;
+		private DesignTimeParser aspParser;
 		
 		///<summary>Creates a new document</summary>
 		public Document (Control parent, DesignerHost host, string documentName)
 		{
 			initDocument (parent, host);
-			document = String.Format (newDocument, documentName);
+			this.document = String.Format (newDocument, documentName);
 			GetView ();
 		}
 		
@@ -70,20 +71,15 @@ namespace AspNetEdit.Editor.ComponentModel
 		{
 			initDocument (parent, host);
 
-			DesignTimeParser ps = new DesignTimeParser (host, this);
-
 			TextReader reader = new StreamReader (fileStream);
 			try {
-				Control[] controls;
-				ps.ParseDocument (reader.ReadToEnd (), out controls, out document);
-				foreach (Control c in controls)
-					host.Container.Add (c);
+				this.document = DeserializeAndAdd (reader.ReadToEnd ());
 			}
 			catch (ParseException ex) {
-				document = string.Format ("<html><head></head><body><h1>{0}</h1><p>{1}</p></body></html>", ex.Title, ex.Message);
+				this.document = string.Format ("<html><head></head><body><h1>{0}</h1><p>{1}</p></body></html>", ex.Title, ex.Message);
 			}
 			catch (Exception ex) {
-				document = string.Format ("<html><head></head><body><h1>{0}</h1><p>{1}</p><p>{2}</p></body></html>", "Error loading document", ex.Message, ex.StackTrace);
+				this.document = string.Format ("<html><head></head><body><h1>{0}</h1><p>{1}</p><p>{2}</p></body></html>", "Error loading document", ex.Message, ex.StackTrace);
 			}
 
 			GetView ();
@@ -103,6 +99,8 @@ namespace AspNetEdit.Editor.ComponentModel
 			CaseInsensitiveHashCodeProvider provider = new CaseInsensitiveHashCodeProvider(CultureInfo.InvariantCulture);
 			CaseInsensitiveComparer comparer = new CaseInsensitiveComparer(CultureInfo.InvariantCulture);
 			directives = new Hashtable (provider, comparer);
+			
+			this.aspParser = new DesignTimeParser (host, this);
 		}
 		
 		private void GetView ()
@@ -114,8 +112,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			System.Diagnostics.Trace.WriteLine ("Document created.");
 		}
 
-		#region viewing
-		
+		#region Some Gecko communication stuff
 		
 		//we don't want to have the document lying around forever, but we
 		//want the RootDesignerview to be able to get it when Gecko XUL loads
@@ -128,48 +125,154 @@ namespace AspNetEdit.Editor.ComponentModel
 			document = null;
 			return doc;
 		}
-
-		#endregion
-
+		
+		///<summary>Serialises the entire document to ASP.NET code</summary>
 		public string PersistDocument ()
 		{
-			//TODO: Parse document instead of StringBuilder.Replace
-			string stringDocument = view.GetDocument ();
-			StringBuilder builder = new StringBuilder (stringDocument);
-
-			if (host == null)
-				throw new Exception("The WebFormsPage cannot be persisted without a host");
-
-			//substitute all components
-			foreach (IComponent comp in host.Container.Components)
-			{
-				if (comp is Page)
-					continue;
-				if (!(comp is Control) || comp.Site == null)
-					throw new Exception("The component is not a sited System.Web.UI.Control");
-
-				string substituteText = RenderDesignerControl ((Control)comp);
-				string persistedText = ControlPersister.PersistControl ((Control)comp, host);
-				builder.Replace(substituteText, persistedText);
-			}
-
-			//substitute all directive placeholders
+			StringBuilder builder = new StringBuilder(this.Serialize (view.GetDocument ()));
+			
+			//insert all remaining directives
 			for (int i = 0; i <= directivePlaceholderKey; i++)
 			{
-				string persistedText = RemoveDirective(i);
-				
-				string substituteText = String.Format (DirectivePlaceholderStructure, i.ToString());
-				if (stringDocument.IndexOf(substituteText) > -1)
-					builder.Replace (substituteText, persistedText);
-				else
-					builder.Insert (0, persistedText);
+				builder.Insert (0, RemoveDirective(i));
 			}
-
-			return builder.ToString();
+			
+			return builder.ToString ();
 		}
-
-		#region add/remove/update controls
 		
+		public void DoCommand (string editorCommand)
+		{
+			view.DoCommand (editorCommand);
+		}
+		
+		#endregion
+		
+		#region Serialisation stuff
+		
+		///<summary>Converts a designer document fragment to ASP.NET code</summary>
+		public string Serialize (string designerDocumentFragment)
+		{
+			if (host == null)
+				throw new Exception("The document cannot be persisted without a host");
+			
+			string serializedDoc = string.Empty;
+			StringWriter writer = new StringWriter ();
+			
+			//keep method argument meaningfully named, but keep code readable!
+			string frag = designerDocumentFragment;
+			int length = frag.Length;
+			
+			int pos = 0;
+			SMode mode = SMode.Free;
+			
+			while (pos < length)
+			{
+				char c = frag [pos];
+				
+				switch (mode)
+				{
+					//it's freely copying to output, but watching for a directive or control placeholder 
+					case SMode.Free:
+						if (c == '<')
+						{
+							if ((pos + 10 < length) && frag.Substring (pos + 1, 10) == "aspcontrol") {
+								mode = SMode.ControlId;
+								pos += 10;
+								break;
+							}
+							else if ((pos + 24 < length) && frag.Substring (pos + 1, 24) == "!--<directiveplaceholder") {
+								mode = SMode.DirectiveId;
+								pos += 24;
+								break;
+							}
+						}
+						
+						writer.Write (c);
+						break;
+					
+					//it's found a directive placeholder and is scanning for the ID
+					case SMode.DirectiveId:
+						if (c == 'i' && (pos + 4 < length) && frag.Substring (pos, 4) == "id=\"") {
+							int idEnd = frag.IndexOf ('"', pos + 4 + 1);
+							if (idEnd == -1) throw new Exception ("Identifier was unterminated");
+							int id  = System.Convert.ToInt32 (frag.Substring (pos + 4 + 1, (idEnd - pos - 4)));
+							
+							//TODO: more intelligent removal/copying of directives in case of fragments
+							//works fine with whole document.
+							string directive = RemoveDirective (id);
+							writer.Write (directive);				
+							
+							mode = SMode.DirectiveEnd;
+							pos = idEnd;
+						}
+						break;
+					
+					//it's found a control placeholder and is scanning for the ID
+					case SMode.ControlId:
+						if (c == 'i' && (pos + 4 < length) && frag.Substring (pos, 4) == "id=\"") {
+							int idEnd = frag.IndexOf("\"", pos + 4);
+							if (idEnd == -1) throw new Exception ("Identifier was unterminated");
+							string id  = frag.Substring (pos + 4, (idEnd - pos - 4));
+							System.Diagnostics.Trace.WriteLine ("Persisting control with id: " + id);			
+							
+							DesignContainer dc = (DesignContainer) host.Container;
+							Control control = dc.GetComponent (id) as Control;
+							if (control == null) throw new Exception ("Could not retrieve control "+id);
+							ControlPersister.PersistControl (writer, control);
+							
+							mode = SMode.ControlEnd;
+							pos = idEnd;
+						}
+						break;
+					
+					//it's found the control's ID and is looking for the end
+					case SMode.ControlEnd:
+						if (c == '<' && (pos + 13 < length) && frag.Substring (pos, 13) == "</aspcontrol>") {
+							pos += 12;
+							mode = SMode.Free;
+						}
+						break;
+					
+					//it's found the placeholder's ID and is looking for the end
+					case SMode.DirectiveEnd:
+						mode = SMode.Free;
+						break;
+				}
+				
+				pos++;
+			}
+			
+			serializedDoc = writer.ToString ();
+			writer.Close ();
+
+			return serializedDoc;
+		}
+		
+		///<summary>Converts  a ASP.NET fragment to a a designer document fragment,
+		/// and adds the controls and directives etc to the host.</summary>
+		public string DeserializeAndAdd (string aspFragment)
+		{
+			string document;
+			Control[] controls;
+			
+			aspParser.ParseDocument (aspFragment, out controls, out document);
+			
+			foreach (Control c in controls)
+				host.Container.Add (c);
+			
+			return document;
+		}
+		
+		//modes for the Serializing parser
+		private enum SMode {
+			Free,
+			ControlId,
+			DirectiveId,
+			ControlEnd,
+			DirectiveEnd
+		}
+		
+		///<summary>Renders the designer html for an ASP.NET Control</summary>
 		public static string RenderDesignerControl (Control control)
 		{
 			string height = "auto";
@@ -181,7 +284,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			WebControl wc = control as WebControl;
 			if (wc != null) {
 				height = wc.Height.ToString ();
-				width = wc.Height.ToString ();
+				width = wc.Width.ToString ();
 			}
 			else
 			{
@@ -204,21 +307,29 @@ namespace AspNetEdit.Editor.ComponentModel
 			return string.Format (ControlSubstituteStructure, id, width, height, canDrop, canResize, content);
 		}
 		
-		public void AddControl(Control control)
+		#endregion
+		
+		#region add/remove/update controls
+		
+		public void AddControl (Control control)
 		{
 			view.AddControl (control);
 		}
 
-		public void RemoveControl(Control control)
+		public void RemoveControl (Control control)
 		{
 			view.RemoveControl (control);
 		}
 		
-		public void RenameControl(string oldName, string newName)
+		public void RenameControl (string oldName, string newName)
 		{
 			view.RenameControl (oldName, newName);
+		}		
+				
+		public void InsertFragment (string fragment)
+		{
+			view.InsertFragment (fragment);
 		}
-		
 
 		#endregion
 

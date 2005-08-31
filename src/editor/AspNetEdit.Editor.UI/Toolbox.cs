@@ -33,7 +33,8 @@ using Gtk;
 using System.Collections;
 using System.Drawing.Design;
 using System.ComponentModel.Design;
-using System.ComponentModel;
+using System.ComponentModel;
+using AspNetEdit.Editor.ComponentModel;
 
 namespace AspNetEdit.Editor.UI
 {
@@ -42,7 +43,7 @@ namespace AspNetEdit.Editor.UI
 		private ServiceContainer parentServices;
 		Hashtable expanders = new Hashtable ();
 		private VBox vbox;
-		IToolboxService toolboxService;
+		ToolboxService toolboxService;
 
 
 		public Toolbox(ServiceContainer parentServices)
@@ -50,11 +51,13 @@ namespace AspNetEdit.Editor.UI
 			this.parentServices = parentServices;
 
 			//we need this service, so create it if not present
-			toolboxService = parentServices.GetService (typeof (IToolboxService)) as IToolboxService;
+			toolboxService = parentServices.GetService (typeof (IToolboxService)) as ToolboxService;
 			if (toolboxService == null) {
-				toolboxService = new AspNetEdit.Editor.ComponentModel.ToolboxService ();
+				toolboxService = new ToolboxService ();
 				parentServices.AddService (typeof (IToolboxService), toolboxService);
 			}
+			
+			toolboxService.ToolboxChanged += new EventHandler (tbsChanged);
 
 			base.VscrollbarPolicy = PolicyType.Automatic;
 			base.HscrollbarPolicy = PolicyType.Automatic;
@@ -62,6 +65,11 @@ namespace AspNetEdit.Editor.UI
 
 			vbox = new VBox ();
 			base.AddWithViewport (vbox);
+		}
+		
+		public void tbsChanged (object sender, EventArgs e)
+		{
+			UpdateCategories ();
 		}
 		
 
@@ -110,6 +118,7 @@ namespace AspNetEdit.Editor.UI
 			bottomWidget.CanFocus = true;
 			vbox.PackEnd (bottomWidget, true, true, 0);
 		}
+		
 		public void ResetCategory (string category)
 		{
 			if (!expanders.ContainsKey(category))
@@ -121,6 +130,12 @@ namespace AspNetEdit.Editor.UI
 				expanders.Clear ();
 				return;
 			}
+			
+			//kill existing items
+			VBox vb = new VBox ();
+			((Expander) (expanders[category])).Child.Destroy ();
+			((Expander) (expanders[category])).Child = vb;
+			
 
 			//get the items and add them all
 			ToolboxItemCollection tools = toolboxService.GetToolboxItems (category, host);
@@ -134,8 +149,10 @@ namespace AspNetEdit.Editor.UI
 				itemBox.ButtonReleaseEvent += new ButtonReleaseEventHandler (itemBox_ButtonReleaseEvent);
 				itemBox.ButtonPressEvent += new ButtonPressEventHandler (itemBox_ButtonPressEvent);
 				itemBox.MotionNotifyEvent += new MotionNotifyEventHandler (itemBox_MotionNotifyEvent);
-				((VBox) ((Expander) (expanders[category])).Child).PackEnd (itemBox, false, false, 0);
+				vb.PackEnd (itemBox, false, false, 0);
 			}
+			
+			vb.ShowAll ();
 		}
 		
 		private class SortByName : IComparer
@@ -209,7 +226,12 @@ namespace AspNetEdit.Editor.UI
 		{
 			ToolboxItemBox itemBox = (ToolboxItemBox) o;
 			
-			args.SelectionData.Text = (string) toolboxService.SerializeToolboxItem (itemBox.ToolboxItem);
+			TextToolboxItem textItem = itemBox.ToolboxItem as TextToolboxItem;
+			
+			if (textItem != null)
+				args.SelectionData.Text = textItem.Text;
+			else
+				args.SelectionData.Text = (string) toolboxService.SerializeToolboxItem (itemBox.ToolboxItem);
 		}
 
 		void itemBox_ButtonReleaseEvent (object sender, ButtonReleaseEventArgs args)
@@ -226,7 +248,14 @@ namespace AspNetEdit.Editor.UI
 
 			ToolboxItemBox itemBox = (ToolboxItemBox) o;
 
-			TargetEntry te = new TargetEntry (DragDropIdentifier, TargetFlags.App, 0);
+			TargetEntry te;
+			
+			if (itemBox.ToolboxItem is TextToolboxItem)
+				te = new TargetEntry ("text/plain", TargetFlags.App, 0);
+			else
+				te = new TargetEntry (DragDropIdentifier, TargetFlags.App, 0);
+			
+			
 			TargetList tl = new TargetList (new TargetEntry[] { te } );
 			
 			Gdk.DragContext context = Drag.Begin (itemBox,  tl, Gdk.DragAction.Copy, 1, args.Event);

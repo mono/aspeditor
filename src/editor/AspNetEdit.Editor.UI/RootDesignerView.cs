@@ -98,18 +98,15 @@ namespace AspNetEdit.Editor.UI
 	
 			//Register incoming calls from JavaScript
 			comm.RegisterJSHandler ("Click", new ClrCall (JSClick));
-			comm.RegisterJSHandler ("SavePage", new ClrCall (JSSave));
 			comm.RegisterJSHandler ("Activate", new ClrCall (JSActivate));
 			comm.RegisterJSHandler ("ThrowException", new ClrCall (JSException));
 			comm.RegisterJSHandler ("DebugStatement", new ClrCall (JSDebugStatement));
 			comm.RegisterJSHandler ("ResizeControl", new ClrCall (JSResize));
 			comm.RegisterJSHandler ("DocumentReturn", new ClrCall (JSDocumentReturn));
+			comm.RegisterJSHandler ("RemoveControl", new ClrCall (JSRemoveControl));
+			comm.RegisterJSHandler ("DeserializeAndAdd", new ClrCall (JSDeserializeAndAdd));
+			comm.RegisterJSHandler ("Serialize", new ClrCall (JSSerialize));
 			System.Diagnostics.Trace.WriteLine ("RootDesignerView created");
-			//TODO: Gecko seems to be taking over DND
-			//register for drag+drop
-			//TargetEntry te = new TargetEntry(Toolbox.DragDropIdentifier, TargetFlags.App, 0);
-			//Drag.DestSet (this, DestDefaults.All, new TargetEntry[] { te }, Gdk.DragAction.Copy);
-			//this.DragDataReceived += new DragDataReceivedHandler(view_DragDataReceived);
 		}
 		
 		internal void BeginLoad ()
@@ -163,6 +160,12 @@ namespace AspNetEdit.Editor.UI
 		
 		#region document modification accessors for AspNetEdit.Editor.ComponentModel.Document
 		
+		internal void InsertFragment (string fragment)
+		{
+			System.Diagnostics.Trace.WriteLine ("Inserting document fragment: " + fragment);
+			comm.JSCall (GeckoFunctions.InsertFragment, null, fragment);
+		}
+		
 		internal void AddControl(Control control)
 		{
 			if (!active) return;
@@ -204,6 +207,24 @@ namespace AspNetEdit.Editor.UI
 			return d;
 		}
 		
+		internal void DoCommand (string editorCommand)
+		{
+			System.Diagnostics.Trace.WriteLine ( "Executing command \"" + editorCommand +"\"");
+			comm.JSCall (GeckoFunctions.DoCommand, null, editorCommand);
+		}
+		
+		#endregion
+
+		#region Inbound Gecko functions
+		
+				
+		///<summary>
+		/// Name:	DocumentReturn
+		///			Callback function for when host initiates document save
+		/// Arguments:
+		///		string document:	the document text, with placeholder'd controls
+		/// Returns:	none
+		///</summary>
 		private string JSDocumentReturn (string[] args)
 		{
 			if (args.Length != 1)
@@ -211,10 +232,6 @@ namespace AspNetEdit.Editor.UI
 			outDocument = args [0];
 			return string.Empty;
 		}
-		
-		#endregion
-
-		#region Inbound Gecko functions
 		
 		//this is because of the Gecko# not wanting to give up its DomDocument until it's been shown.
 		///<summary>
@@ -281,23 +298,6 @@ namespace AspNetEdit.Editor.UI
 		}
 		
 		///<summary>
-		/// Name:	SavePage
-		///			Callback function for when host initiates document save
-		/// Arguments:
-		///		string document:	the document text, with placeholder'd controls
-		/// Returns:	none
-		///</summary>
-		private string JSSave (string[] args)
-		{
-			if (args.Length != 1)
-				throw new InvalidJSArgumentException ("SavePage", -1);
-			
-			throw new NotImplementedException (args[0]);
-
-			return string.Empty;
-		}
-		
-		///<summary>
 		/// Name:	ThrowException
 		///			Throws managed exceptions on behalf of Javascript
 		/// Arguments:
@@ -359,12 +359,67 @@ namespace AspNetEdit.Editor.UI
 
 			return string.Empty;
 		}
+		
+		///<summary>
+		/// Name:	RemoveControl
+		///			Removes a control from the host when its Gecko representation is removed
+		/// Arguments:
+		///		string id:	the control's ID
+		/// Returns:	none
+		///</summary>
+		private string JSRemoveControl (string[] args)
+		{
+			if (args.Length != 1)
+				throw new InvalidJSArgumentException ("ResizeControl", -1);
+				
+			//look up our component
+			DesignContainer container = (DesignContainer) host.Container;
+			IComponent component = container.GetComponent (args[0]);
+			if (component == null)
+				throw new InvalidJSArgumentException ("ResizeControl", 0);
+			
+			//and remove it
+			container.Remove (component);
+			
+			return string.Empty;
+		}
+		
+		///<summary>
+		/// Name:	Serialize
+		///			Serialises a fragment of a Gecko document into ASP.NET code
+		/// Arguments:
+		///		string designerDocumentFragment:	the Gecko document fragment
+		/// Returns:	the serialised document
+		///</summary>
+		private string JSSerialize (string[] args)
+		{
+			if (args.Length != 1)
+				throw new InvalidJSArgumentException ("Serialize", -1);
+						
+			return host.RootDocument.Serialize (args [0]);
+		}
+		
+		///<summary>
+		/// Name:	DeserializeAndAdd
+		///			Deserialises a fragment of ASP.NET code into a Gecko designer document fragment
+		///			and adds the controls, directives etc to the host.
+		/// Arguments:
+		///		string designerDocumentFragment:	the ASP.NET document fragment
+		/// Returns:	the deserialised document
+		///</summary>
+		private string JSDeserializeAndAdd (string[] args)
+		{
+			if (args.Length != 1)
+				throw new InvalidJSArgumentException ("DeserializeAndAdd", -1);
+						
+			return host.RootDocument.DeserializeAndAdd (args [0]);
+		}
 
 		#endregion
 		
 		#region Outbound Gecko functions
 		
-		public class GeckoFunctions
+		private class GeckoFunctions
 		{
 			///<summary>
 			/// Add a control to the document
@@ -414,8 +469,72 @@ namespace AspNetEdit.Editor.UI
 			/// Returns: none
 			///</summary>
 			public static readonly string GetPage = "GetPage";
+			
+			///<summary>
+			/// Passes a simple command to Gecko
+			/// Args:
+			///		string command:		Use the enum EditorCommand
+			/// Returns: none
+			///</summary>
+			public static readonly string DoCommand = "DoCommand";
+			
+			///<summary>
+			/// Inserts a document fragment. May contain HTML or ASP.NET; document should call host to deserialise it.
+			/// Args:
+			///		string fragment:		The document fragment
+			/// Returns: none
+			///</summary>
+			public static readonly string InsertFragment = "InsertFragment";
 		}
 		
+		
+		
 		#endregion
+	}
+	
+	//TODO: GetCommandState to check whether we can perform these commands
+	
+	//commands for DoCommand
+	//simply triggers functionality in Mozilla editor
+	public class EditorCommand
+	{
+		//clipboard
+		public static readonly string Cut = "cmd_cut";
+		public static readonly string Copy = "cmd_copy";
+		public static readonly string Paste = "cmd_paste";
+		public static readonly string Delete = "cmd_delete";
+		
+		//transactions
+		public static readonly string Undo = "cmd_undo";
+		public static readonly string Redo = "cmd_redo";
+		
+		//styles
+		public static readonly string Bold = "cmd_bold";
+		public static readonly string Italic = "cmd_italic";
+		public static readonly string Underline = "cmd_underline";
+		public static readonly string TeleType = "cmd_tt";
+		public static readonly string Strikethrough = "cmd_strikethru";
+		public static readonly string Superscript = "cmd_superscript";
+		public static readonly string Subscript = "cmd_subscript";
+		public static readonly string Indent = "cmd_indent";
+		public static readonly string Outdent = "cmd_outdent";
+		public static readonly string IncreaseFont = "cmd_increaseFont";
+		public static readonly string DecreaseFont = "cmd_decreaseFont";
+		
+		//semantic
+		public static readonly string Emphasis = "cmd_em";
+		public static readonly string Strong = "cmd_strong";
+		public static readonly string Citation = "cmd_cite";
+		public static readonly string Abbreviation = "cmd_abbr";
+		public static readonly string Acronym = "cmd_acronym";
+		public static readonly string Code = "cmd_code";
+		
+		//lists
+		public static readonly string OrderedList = "cmd_ol";
+		public static readonly string UnorderedList = "cmd_ul";
+		
+		//public static readonly string NoBreak = "cmd_nobreak";
+		//public static readonly string Underline = "cmd_dt";
+		//public static readonly string Underline = "cmd_dd";
 	}
 }
