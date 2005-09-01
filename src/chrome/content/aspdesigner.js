@@ -252,6 +252,7 @@ var gNsIEditActionListenerImplementation = {
 
 	WillDeleteNode: function(child)
 	{
+		//alert ('will delete node');
 		if(!editor.getInResize () && !editor.getDragState ()) {
 			var deletionStr = 'Will delete control(s):';
 			var i       = 0;
@@ -276,6 +277,7 @@ var gNsIEditActionListenerImplementation = {
 	// access them after actual deletion in order to notify the host.
 	WillDeleteSelection: function(selection)
 	{
+		//alert ('will delete selection');
 		if(!editor.getInResize () && !editor.getDragState ()) {
 			var i       = 0;
 			var control = editor.getControlFromTableByIndex (i);
@@ -1037,7 +1039,6 @@ aspNetEditor.prototype =
 	{
 		// TODO: talk to Michael about selecting controls. Why do we
 		// need to have multiple controls selected and what is primary?
-		
 		this.clearSelection ();
 		
 		if (aControlId == '') {
@@ -1158,7 +1159,8 @@ aspNetEditor.prototype =
 	serializePage: function()
 	{
 		var xml =
-			this.mNsIHtmlEditor.outputToString (this.mNsIHtmlEditor.contentsMIMEType, 256);
+			this.mNsIHtmlEditor.outputToString (this.mNsIHtmlEditor.contentsMIMEType,
+						256);
 		return xml;
 	},
 
@@ -1377,8 +1379,6 @@ function handleSingleClick(aButton, aTarget) {
 			host.click (RIGHT_CLICK, controlId);
 			break;
 		}
-		if(controlId == '')
-			editor.hideResizers ();
 	}
 }
 
@@ -1412,6 +1412,7 @@ function handleContextMenu(aEvent)
 // We have to detect cut, copy and paste, for they may involve controls
 // If we copy a control and then past it, the host must be notified so
 // it can create a new instance and assign the pasted control a new id
+// TODO: Make those key really work
 function handleKeyPress(aEvent) {
 	// Handle cut
 	if(aEvent.ctrlKey && aEvent.charCode == 120) {
@@ -1440,15 +1441,15 @@ function handleKeyPress(aEvent) {
 		// is selected we should reselect the control with resizers so it
 		// gets deleted entirely. We get here when selecting ajasent
 		// controls with the arrow keys
-		if(resizedObject && !control) {
-			editor.selectControl(resizedObject.getAttribute(ID));
-			editor.hideResizers ();
-			editor.setSelectAll (editor.getResizedObject ());
-		}
+		//if(resizedObject && !control && editor.nextSiblingIsControl ()) {
+			//editor.selectControl(editor.nextSiblingIsControl ());
+			//editor.hideResizers ();
+			//editor.setSelectAll (editor.getResizedObject ());
+		//}
 
 		// If we have a single element selected and it happens to be a
 		// control
-		else if(control) {
+		if(control) {
 			editor.hideResizers ();
 			editor.setSelectAll (control);
 		}
