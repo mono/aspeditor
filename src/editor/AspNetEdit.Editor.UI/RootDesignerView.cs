@@ -163,7 +163,7 @@ namespace AspNetEdit.Editor.UI
 		internal void InsertFragment (string fragment)
 		{
 			System.Diagnostics.Trace.WriteLine ("Inserting document fragment: " + fragment);
-			comm.JSCall (GeckoFunctions.InsertFragment, null, fragment);
+			comm.JSCall (GeckoFunctions.InsertFragment, null, host.RootDocument.Serialize (fragment));
 		}
 		
 		internal void AddControl(Control control)
@@ -479,7 +479,7 @@ namespace AspNetEdit.Editor.UI
 			public static readonly string DoCommand = "DoCommand";
 			
 			///<summary>
-			/// Inserts a document fragment. May contain HTML or ASP.NET; document should call host to deserialise it.
+			/// Inserts a document fragment. Host should have deserialised it.
 			/// Args:
 			///		string fragment:		The document fragment
 			/// Returns: none

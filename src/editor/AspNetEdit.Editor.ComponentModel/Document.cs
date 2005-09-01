@@ -47,7 +47,7 @@ namespace AspNetEdit.Editor.ComponentModel
 	{
 		public static readonly string newDocument = "<html>\n<head>\n\t<title>{0}</title>\n</head>\n<body>\n<form runat=\"server\">\n\n</form></body>\n</html>";
 		public static readonly string ControlSubstituteStructure = "<aspcontrol id=\"{0}\" width=\"{1}\" height=\"{2}\" -md-can-drop=\"{3}\" -md-can-resize=\"{4}\">{5}</aspcontrol>";
-		public static readonly string DirectivePlaceholderStructure = "<!--<directiveplaceholder id =\"{0}\" />-->";
+		public static readonly string DirectivePlaceholderStructure = "<directiveplaceholder id=\"{0}\" />";
 
 		string document;
 		Hashtable directives;
@@ -180,9 +180,9 @@ namespace AspNetEdit.Editor.ComponentModel
 								pos += 10;
 								break;
 							}
-							else if ((pos + 24 < length) && frag.Substring (pos + 1, 24) == "!--<directiveplaceholder") {
+							else if ((pos + 20 < length) && frag.Substring (pos + 1, 20) == "directiveplaceholder") {
 								mode = SMode.DirectiveId;
-								pos += 24;
+								pos += 20;
 								break;
 							}
 						}
@@ -195,7 +195,7 @@ namespace AspNetEdit.Editor.ComponentModel
 						if (c == 'i' && (pos + 4 < length) && frag.Substring (pos, 4) == "id=\"") {
 							int idEnd = frag.IndexOf ('"', pos + 4 + 1);
 							if (idEnd == -1) throw new Exception ("Identifier was unterminated");
-							int id  = System.Convert.ToInt32 (frag.Substring (pos + 4 + 1, (idEnd - pos - 4)));
+							int id  = Int32.Parse (frag.Substring (pos + 4, (idEnd - pos - 4)));
 							
 							//TODO: more intelligent removal/copying of directives in case of fragments
 							//works fine with whole document.
@@ -212,8 +212,7 @@ namespace AspNetEdit.Editor.ComponentModel
 						if (c == 'i' && (pos + 4 < length) && frag.Substring (pos, 4) == "id=\"") {
 							int idEnd = frag.IndexOf("\"", pos + 4);
 							if (idEnd == -1) throw new Exception ("Identifier was unterminated");
-							string id  = frag.Substring (pos + 4, (idEnd - pos - 4));
-							System.Diagnostics.Trace.WriteLine ("Persisting control with id: " + id);			
+							string id  = frag.Substring (pos + 4, (idEnd - pos - 4));		
 							
 							DesignContainer dc = (DesignContainer) host.Container;
 							Control control = dc.GetComponent (id) as Control;
@@ -235,7 +234,10 @@ namespace AspNetEdit.Editor.ComponentModel
 					
 					//it's found the placeholder's ID and is looking for the end
 					case SMode.DirectiveEnd:
-						mode = SMode.Free;
+						if (c == '/' && (pos + 2 < length) && frag.Substring (pos, 2) == "/>") {
+							pos += 1;
+							mode = SMode.Free;
+						}
 						break;
 				}
 				

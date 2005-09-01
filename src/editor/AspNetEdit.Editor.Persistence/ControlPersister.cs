@@ -264,8 +264,6 @@ namespace AspNetEdit.Editor.Persistence
 					PersistenceModeAttribute modeAttrib = prop.Attributes[typeof(PersistenceModeAttribute)] as PersistenceModeAttribute;
 					if (modeAttrib == null || modeAttrib.Mode == PersistenceMode.Attribute)
 						continue;
-					
-					Console.WriteLine ("Prop: "+prop.Name+"PersistenceMode:"+modeAttrib.Mode.ToString()); 
 
 					//handle the different modes
 					switch (modeAttrib.Mode)
