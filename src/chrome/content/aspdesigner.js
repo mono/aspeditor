@@ -108,20 +108,18 @@ var gNsIEditActionListenerImplementation = {
 	// TODO: Check if deleted node contains a control, not only if it is one
 	DidDeleteNode: function(child, result)
 	{
-		if(!editor.getInResize() && !editor.getDragState ()) {
+		if(!editor.getInResize() && !editor.getDragState () && !editor.getInUpdate ()) {
 			var control = editor.removeLastDeletedControl ();
 			if(control) {
 				var deletionStr = 'deleteControl(s):';
 				deletionStr += ' id=' + control + ',';
 				editor.removeFromControlTable (control);
-				//host.removeControl (control);
-				if(DEBUG) {
-					dump (deletionStr +
-						' Message source: DidDeleteNode()');
-					dump ('There is/are '
-						+ editor.getControlCount()
-						+ ' controls left in the page');
-				}
+				host.removeControl (control);
+				dump (deletionStr +
+					' Message source: DidDeleteNode()');
+				dump ('There is/are '
+					+ editor.getControlCount()
+					+ ' controls left in the page');
 			}
 		}
 	},
@@ -131,23 +129,21 @@ var gNsIEditActionListenerImplementation = {
 	// respective method, and remove from to-be-deleted array.
 	DidDeleteSelection: function(selection)
 	{
-		if(!editor.getInResize () && !editor.getDragState ()) {
+		if(!editor.getInResize () && !editor.getDragState () && !editor.getInUpdate ()) {
 			var control = editor.removeLastDeletedControl ();
 			if(control) {
 				var deletionStr = 'Did delete control(s):';
 				while(control) {
 					deletionStr += ' id=' + control + ',';
 					editor.removeFromControlTable (control);
+					host.removeControl (control);
 					control = editor.removeLastDeletedControl ();
-					//host.removeControl (control);
 				}
-				if(DEBUG) {
-					dump (deletionStr +
-						' Message source: DidDeleteSelection()');
-					dump ('There is/are ' +
-						editor.getControlCount() +
-						' controls left in the page');
-				}
+				dump (deletionStr +
+					' Message source: DidDeleteSelection()');
+				dump ('There is/are ' +
+					editor.getControlCount() +
+					' controls left in the page');
 			}
 		}
 	},
@@ -161,13 +157,11 @@ var gNsIEditActionListenerImplementation = {
 	// a table (or any other element) with a control inside.
 	DidInsertNode: function(node, parent, position, result)
 	{
-		if(DEBUG) {
-			var dumpStr = 'Did insert node ' + node.nodeName;
-			dumpStr += (node.nodeType == 1) ?
-				', id=' + node.getAttribute(ID) :
-				'';
-			dump (dumpStr);
-		}
+		var dumpStr = 'Did insert node ' + node.nodeName;
+		dumpStr += (node.nodeType == 1) ?
+			', id=' + node.getAttribute(ID) :
+			'';
+		dump (dumpStr);
 
 		// Check to see if we have inserted a new controls. We need to
 		// add'em to the control table. Also update reference to all
@@ -180,22 +174,19 @@ var gNsIEditActionListenerImplementation = {
 				if(editor.getControlTable ().getById (controls [i].getAttribute (ID))) {
 					editor.getControlTable ().update (controls [i].getAttribute (ID),
 									controls [i]);
-						if(DEBUG)
-							dump ('Did update control(id=' +
-								controls [i].getAttribute (ID) +
-								') reference in table');
+					dump ('Did update control(id=' +
+						controls [i].getAttribute (ID) +
+						') reference in table');
 				}
 				else {
 					editor.insertInControlTable (controls [i].getAttribute (ID),
 							controls [i]);
-					if(DEBUG) {
-						dump ('New control (id=' +
-							controls [i].getAttribute (ID) +
-							') inserted');
-						dump ('There is/are ' +
-							editor.getControlCount() +
-							' controls in the page');
-					}
+					dump ('New control (id=' +
+						controls [i].getAttribute (ID) +
+						') inserted');
+					dump ('There is/are ' +
+						editor.getControlCount() +
+						' controls in the page');
  				}
 				editor.setSelectNone (controls [i]);
 				width = controls [i].getAttribute(WIDTH);
@@ -218,7 +209,7 @@ var gNsIEditActionListenerImplementation = {
 			}
 		}
 
-		if(DEBUG && editor.getDragState ()) {
+		if(editor.getDragState ()) {
 			dump ('End drag');
 		}
 
@@ -253,7 +244,7 @@ var gNsIEditActionListenerImplementation = {
 	WillDeleteNode: function(child)
 	{
 		//alert ('will delete node');
-		if(!editor.getInResize () && !editor.getDragState ()) {
+		if(!editor.getInResize () && !editor.getDragState () && !editor.getInUpdate ()) {
 			var deletionStr = 'Will delete control(s):';
 			var i       = 0;
 			var control = editor.getControlFromTableByIndex (i);
@@ -266,7 +257,7 @@ var gNsIEditActionListenerImplementation = {
 				i++;
 				control = editor.getControlFromTableByIndex (i);
 			}
-			if(DEBUG && deletionStr != 'Will delete control(s):')
+			if(deletionStr != 'Will delete control(s):')
 				dump (deletionStr +
 					' Message source: WillDeleteNode()');
 		}
@@ -278,7 +269,7 @@ var gNsIEditActionListenerImplementation = {
 	WillDeleteSelection: function(selection)
 	{
 		//alert ('will delete selection');
-		if(!editor.getInResize () && !editor.getDragState ()) {
+		if(!editor.getInResize () && !editor.getDragState () && !editor.getInUpdate ()) {
 			var i       = 0;
 			var control = editor.getControlFromTableByIndex (i);
 			var deletionStr = 'Will delete control(s):';
@@ -292,7 +283,7 @@ var gNsIEditActionListenerImplementation = {
 					i++;
 					control = editor.getControlFromTableByIndex (i);
 				}
-				if(DEBUG && deletionStr != 'Will delete control(s):')
+				if(deletionStr != 'Will delete control(s):')
 					dump (deletionStr +
 						' Message source: WillDeleteSelection()');
 			}
@@ -332,15 +323,18 @@ var gNsIHTMLObjectResizeListenerImplementation = {
 		if(editor.nodeIsControl (element)) {
 			var id = element.getAttribute (ID);
 			host.resizeControl (id, newWidth, newHeight);
+			editor.setInResize (false);
+			dump ('End resize.');
 		}
 	},
 
 	onStartResizing: function(element)
 	{
-		editor.beginBatch ();
-		editor.setInResize (true);
-			if(DEBUG)
-				dump ('Begin resize.');
+		if(editor.nodeIsControl (element)) {
+			editor.beginBatch ();
+			editor.setInResize (true);
+			dump ('Begin resize.');
+		}
 	}
 }
 
@@ -418,12 +412,14 @@ aspNetHost.prototype =
 		}
 		
 		JSCallPlaceClrCall ('Click', '', new Array(clickType, aControlId));
+		dump ('Outbound call to Click() ' + aControlId);
 	},
 
 	resizeControl: function(aControlId, aWidth, aHeight)
 	{
 		JSCallPlaceClrCall ('ResizeControl', '', new Array(aControlId, aWidth, aHeight));
-		dump ('Resizing ' + aControlId +', new size ' +	aWidth + 'x' + aHeight);
+		dump ('Outbound call to ResizeControl() id=' + aControlId +
+			', new size ' + aWidth + 'x' + aHeight);
 	},
 	
 	throwException: function (location, msg)
@@ -434,7 +430,8 @@ aspNetHost.prototype =
 	removeControl: function (aControlId)
 	{
 		JSCallPlaceClrCall ('RemoveControl', '', new Array(aControlId));
-	}
+		dump ('Outbound call to removeControl() id=' + aControlId);
+	},
 }
 
 
@@ -503,10 +500,9 @@ var controlTable = {
 	add: function(aControlId, aControlRef)
 	{
 		if(this.hash [aControlId]) {
-			if(DEBUG)
-				dump ('Panic: atempt to add an already existing control with id=' +
-					aControlId +
-					'. Remove first.');
+			dump ('Panic: atempt to add an already existing control with id=' +
+				aControlId +
+				'. Remove first.');
 		}
 		else {
 			this.hash [aControlId] = aControlRef;
@@ -527,9 +523,8 @@ var controlTable = {
 			this.length--;
 		}
 		else {
-			if(DEBUG)
-				dump ('Panic: atempt to remove control with unexisting id=' +
-					aControlId);
+			dump ('Panic: atempt to remove control with unexisting id=' +
+				aControlId);
 		}
 	},
 
@@ -594,6 +589,7 @@ aspNetEditor.prototype =
 	mLastDeletedControls      : null,
 	mLastSelectedControls     : null,
 	mInResize                 : false,
+	mInUpdate                 : false,
 	mInDrag                   : false,
 
 	initialize: function()
@@ -681,6 +677,16 @@ aspNetEditor.prototype =
 	setInResize: function(aBool)
 	{
 		this.mInResize = aBool;
+	},
+
+	getInUpdate: function()
+	{
+		return this.mInUpdate;
+	},
+  
+	setInUpdate: function(aBool)
+	{
+		this.mInUpdate = aBool;
 	},
   
 	getDragState: function()
@@ -931,8 +937,7 @@ aspNetEditor.prototype =
 				this.selectAll ();
 				this.deleteSelection ();
 				var html = this.transformBeforeInput(aHtml, true);
-				if(DEBUG)
-					dump ("Loading page: " + html);
+				dump ("Loading page: " + html);
 				this.mNsIHtmlEditor.rebuildDocumentFromSource (html);
 			} catch (e) {/*host.throwException ('Javascript', e);*/}
 		}
@@ -942,16 +947,14 @@ aspNetEditor.prototype =
 	{
 		var htmlOut = this.serializePage ();
 		htmlOut = this.transformBeforeOutput(htmlOut, true);
-		if(DEBUG)
-			dump (htmlOut);
+		dump (htmlOut);
 		return htmlOut;
 	},
 
 	addControl: function(aControlHtml, aControlId)
 	{
 		if(aControlHtml) {
-			if(DEBUG)
-				dump ('Will add control:' + aControlId);
+			dump ('Will add control:' + aControlId);
 			var insertIn = null;
 			var destinationOffset = 0;
 			var selectedElement = this.getSelectedElement ('');
@@ -987,8 +990,7 @@ aspNetEditor.prototype =
 				null, insertIn, destinationOffset, false);
 
 			this.selectControl (aControlId);
-			if(DEBUG)
-				dump ('Did add control:' + controlHTML);
+			dump ('Did add control:' + controlHTML);
 		}
 	},
 
@@ -996,12 +998,10 @@ aspNetEditor.prototype =
 	{
 		var control = this.getDocument ().getElementById (aControlId);
 		if(control) {
-			if(DEBUG)
-				dump ('Will remove control:' + aControlId);
+			dump ('Will remove control:' + aControlId);
 			this.selectElement (control);
 			this.deleteSelection ();
-			if(DEBUG)
-				dump ('Did remove control:' + aControlId);
+			dump ('Did remove control:' + aControlId);
 		}
 	},
 
@@ -1009,8 +1009,8 @@ aspNetEditor.prototype =
 	{
 		if(aControlId && aNewDesignTimeHtml &&
 		   this.getDocument ().getElementById (aControlId)) {
-			if(DEBUG)
-				dump ('Will update control:' + aControlId);
+			this.setInUpdate (true);
+			dump ('Will update control:' + aControlId);
 			this.hideResizers ();
 			var newDesignTimeHtml =
 				this.transformBeforeInput (aNewDesignTimeHtml, false);
@@ -1020,17 +1020,15 @@ aspNetEditor.prototype =
 				this.collapseBeforeInsertion ("start");
 				this.selectElement (oldControl);
 				this.insertHTML (newDesignTimeHtml);
-				if(DEBUG)
-					dump ('Updated control ' + aControlId +
-						'; newDesignTimeHtml is ' +
-						newDesignTimeHtml);
+				dump ('Updated control ' + aControlId +
+					'; newDesignTimeHtml is ' +
+					newDesignTimeHtml);
 				} catch (e) { }
+			this.setInUpdate (false);
 			this.endBatch ();
 			this.updateControlInTable(aControlId,
 				this.getDocument ().getElementById (aControlId));
-			if(DEBUG)
 				dump ('Did update control:' + aControlId);
-			this.setInResize (false);
 		}
 	},
 
@@ -1237,21 +1235,18 @@ aspNetEditor.prototype =
 		var oldElement = this.mDropInElement;
 		if(oldElement != aElement) {
 			if(oldElement) {
-				if(DEBUG)
-					dump ('ajacent can drop');
+				dump ('ajacent can drop');
 				this.mShell.repaintElement (oldElement);
 				this.mShell.drawElementOutline (aElement);
 				this.mDropInElement = aElement;
 			}
 			else {
-				if(DEBUG)
-					dump ('enter new can drop ' +
-						oldElement + aElement);
+				dump ('enter new can drop ' +
+					oldElement + aElement);
 				this.mDropInElement = aElement;
 				this.mShell.drawElementOutline (aElement);
 			}
-			//if(DEBUG)
-				//dump ('can drop in this ' + aElement.nodeName);
+			//dump ('can drop in this ' + aElement.nodeName);
 		}
 	},
 
@@ -1322,15 +1317,9 @@ function selectFromClick(aEvent)
 
 function suppressMouseUp(aEvent) {
 	if(editor.getResizedObject ()) {
-		if(DEBUG) {
-			var object = editor.getResizedObject ();
-			dump ('handles around <' + object.tagName + ' id=' +
-				object.getAttribute(ID) + '>');
-		}
-		else {
-			aEvent.stopPropagation ();
-			aEvent.preventDefault ();
-		}
+		var object = editor.getResizedObject ();
+		dump ('handles around <' + object.tagName + ' id=' +
+			object.getAttribute(ID) + '>');
 	}
 }
 
@@ -1356,8 +1345,7 @@ function handleDragStart(aEvent) {
 	}
 
 	editor.setDragState (true);
-		if(DEBUG)
-			dump ('Begin drag.');
+	dump ('Begin drag.');
 }
 
 function handleDrop(aEvent) {
