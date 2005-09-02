@@ -179,7 +179,12 @@ namespace AspNetEdit.Editor.ComponentModel
 			}
 			
 			//TODO: remove references from referenceManager
-
+			
+			//clean up selection service
+			ISelectionService sel = (ISelectionService) this.GetService (typeof (ISelectionService));
+			if (sel != null && sel.GetComponentSelected (component))
+				sel.SetSelectedComponents (new IComponent[] {}); 
+			
 			//broadcast completion of removal process
 			OnComponentRemoved (component);
 		}

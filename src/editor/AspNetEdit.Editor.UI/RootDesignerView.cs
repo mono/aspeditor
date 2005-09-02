@@ -166,7 +166,7 @@ namespace AspNetEdit.Editor.UI
 			comm.JSCall (GeckoFunctions.InsertFragment, null, host.RootDocument.Serialize (fragment));
 		}
 		
-		internal void AddControl(Control control)
+		internal void AddControl (Control control)
 		{
 			if (!active) return;
 			
@@ -174,14 +174,14 @@ namespace AspNetEdit.Editor.UI
 			comm.JSCall (GeckoFunctions.AddControl, null, control.UniqueID, ctext);
 		}
 
-		internal void RemoveControl(Control control)
+		internal void RemoveControl (Control control)
 		{
 			if (!active) return;
 			
 			comm.JSCall (GeckoFunctions.RemoveControl, null, control.UniqueID);
 		}
 		
-		internal void RenameControl(string oldName, string newName)
+		internal void RenameControl (string oldName, string newName)
 		{
 			throw new NotImplementedException ();
 		}
@@ -370,16 +370,18 @@ namespace AspNetEdit.Editor.UI
 		private string JSRemoveControl (string[] args)
 		{
 			if (args.Length != 1)
-				throw new InvalidJSArgumentException ("ResizeControl", -1);
+				throw new InvalidJSArgumentException ("RemoveControl", -1);
 				
 			//look up our component
 			DesignContainer container = (DesignContainer) host.Container;
 			IComponent component = container.GetComponent (args[0]);
 			if (component == null)
-				throw new InvalidJSArgumentException ("ResizeControl", 0);
+				throw new InvalidJSArgumentException ("RemoveControl", 0);
 			
 			//and remove it
+			System.Diagnostics.Trace.WriteLine ("Removing control: " + args[0]);
 			container.Remove (component);
+			component.Dispose ();
 			
 			return string.Empty;
 		}
