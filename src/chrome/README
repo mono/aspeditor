@@ -12,7 +12,6 @@ locale,install,url,resource:/chrome/aspdesigner/locale/en-US/aspdesigner/
 The extention will be available through the following URL:
 chrome://aspdesigner/content/aspdesigner.xul
 
-******************************************************************************************************
 Alternatively a jar file instalation will yield the following:
 $MOZ_HOME/chrome/aspNetEditor.jar
 
@@ -20,4 +19,11 @@ The following lines should be added to the end of $MOZ_HOME/chrome/installed-chr
 content,install,url,jar:resource:/chrome/aspNetEditor.jar!/content/
 locale,install,url,jar:resource:/chrome/aspNetEditor.jar!/locale/en-US/
 skin,install,url,jar:resource:/chrome/aspNetEditor.jar!/skin/
+
+EDITOR COMMANDS
+===============
+This document describes the editor commands:
+http://lxr.mozilla.org/seamonkey/source/editor/docs/Editor_Embedding_Guide.html
+
+Currently commands with parameters are NOT supported. This is going to change soon.
 
