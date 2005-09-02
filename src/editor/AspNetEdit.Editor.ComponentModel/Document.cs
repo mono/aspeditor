@@ -40,6 +40,7 @@ using System.ComponentModel;
 using AspNetEdit.Editor.ComponentModel;
 using System.Globalization;
 using AspNetEdit.Editor.UI;
+using System.Reflection;
 
 namespace AspNetEdit.Editor.ComponentModel
 {
@@ -259,8 +260,10 @@ namespace AspNetEdit.Editor.ComponentModel
 			
 			aspParser.ParseDocument (aspFragment, out controls, out document);
 			
-			foreach (Control c in controls)
+			foreach (Control c in controls) {
+				OnInitMethodInfo.Invoke (c, new object[] {EventArgs.Empty});
 				host.Container.Add (c);
+			}
 			
 			return document;
 		}
@@ -272,6 +275,19 @@ namespace AspNetEdit.Editor.ComponentModel
 			DirectiveId,
 			ControlEnd,
 			DirectiveEnd
+		}
+		
+		//we need this to invoke protected member before rendering
+		private static MethodInfo onPreRenderMethodInfo;
+		
+		private static MethodInfo OnPreRenderMethodInfo {
+			get {
+				if (onPreRenderMethodInfo == null)
+					onPreRenderMethodInfo = 
+					typeof (Control).GetMethod ("OnPreRender", BindingFlags.NonPublic|BindingFlags.Instance);
+				
+				return onPreRenderMethodInfo;
+			}
 		}
 		
 		///<summary>Renders the designer html for an ASP.NET Control</summary>
@@ -298,6 +314,9 @@ namespace AspNetEdit.Editor.ComponentModel
 			if (width == "" || width == "auto") width = "20px";
 			
 			//render the control
+			//TODO: use designer, when they're written
+			
+			OnPreRenderMethodInfo.Invoke (control, new object[] {EventArgs.Empty});
 			System.IO.StringWriter strWriter = new System.IO.StringWriter ();
 			System.Web.UI.HtmlTextWriter writer = new System.Web.UI.HtmlTextWriter (strWriter);
 			control.RenderControl (writer);
@@ -311,10 +330,24 @@ namespace AspNetEdit.Editor.ComponentModel
 		
 		#endregion
 		
+		//we need this to invoke protected member before rendering
+		private static MethodInfo onInitMethodInfo;
+		
+		private static MethodInfo OnInitMethodInfo {
+			get {
+				if (onInitMethodInfo == null)
+					onInitMethodInfo = 
+					typeof (Control).GetMethod ("OnInit", BindingFlags.NonPublic|BindingFlags.Instance);
+				
+				return onInitMethodInfo;
+			}
+		}
+		
 		#region add/remove/update controls
 		
 		public void AddControl (Control control)
 		{
+			OnInitMethodInfo.Invoke (control, new object[] {EventArgs.Empty});
 			view.AddControl (control);
 		}
 
