@@ -108,7 +108,8 @@ var gNsIEditActionListenerImplementation = {
 	// TODO: Check if deleted node contains a control, not only if it is one
 	DidDeleteNode: function(child, result)
 	{
-		if(!editor.getInResize() && !editor.getDragState () && !editor.getInUpdate ()) {
+		if(!editor.getInResize() && !editor.getDragState () &&
+		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
 			var control = editor.removeLastDeletedControl ();
 			if(control) {
 				var deletionStr = 'deleteControl(s):';
@@ -129,7 +130,8 @@ var gNsIEditActionListenerImplementation = {
 	// respective method, and remove from to-be-deleted array.
 	DidDeleteSelection: function(selection)
 	{
-		if(!editor.getInResize () && !editor.getDragState () && !editor.getInUpdate ()) {
+		if(!editor.getInResize () && !editor.getDragState () &&
+		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
 			var control = editor.removeLastDeletedControl ();
 			if(control) {
 				var deletionStr = 'Did delete control(s):';
@@ -244,7 +246,8 @@ var gNsIEditActionListenerImplementation = {
 	WillDeleteNode: function(child)
 	{
 		//alert ('will delete node');
-		if(!editor.getInResize () && !editor.getDragState () && !editor.getInUpdate ()) {
+		if(!editor.getInResize () && !editor.getDragState () &&
+		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
 			var deletionStr = 'Will delete control(s):';
 			var i       = 0;
 			var control = editor.getControlFromTableByIndex (i);
@@ -269,7 +272,8 @@ var gNsIEditActionListenerImplementation = {
 	WillDeleteSelection: function(selection)
 	{
 		//alert ('will delete selection');
-		if(!editor.getInResize () && !editor.getDragState () && !editor.getInUpdate ()) {
+		if(!editor.getInResize () && !editor.getDragState () &&
+		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
 			var i       = 0;
 			var control = editor.getControlFromTableByIndex (i);
 			var deletionStr = 'Will delete control(s):';
@@ -382,10 +386,13 @@ aspNetHost.prototype =
 		JSCallRegisterClrHandler ('AddControl', JSCall_AddControl);
 		JSCallRegisterClrHandler ('RemoveControl', JSCall_RemoveControl);
 		JSCallRegisterClrHandler ('UpdateControl', JSCall_UpdateControl);
+		JSCallRegisterClrHandler ('RenameControl', JSCall_RenameControl);
 		// Control selection
 		JSCallRegisterClrHandler ('SelectControl', JSCall_SelectControl);
+		// HTML editing
 		JSCallRegisterClrHandler ('DoCommand', JSCall_DoCommand);
-		
+		JSCallRegisterClrHandler ('InsertFragment', JSCall_InsertFragment);
+
 		//tell the host we're ready for business
 		JSCallPlaceClrCall ('Activate', '', '');
 	},
@@ -457,6 +464,10 @@ function JSCall_RemoveControl (arg) {
 	return editor.removeControl (arg [0]);
 }
 
+function JSCall_RenameControl (arg) {
+	return editor.renameControl (arg [0], arg [1]);
+}
+
 function JSCall_AddControl (arg) {
 	aControlId = arg [0];
 	aControlHtml = arg [1];
@@ -478,7 +489,9 @@ function JSCall_DoCommand (arg) {
 	return "";
 }
 
-
+function JSCall_InsertFragment (arg) {
+	return editor.insertFragment (arg [0]);
+}
 
 //* ___________________________________________________________________________
 // A rather strange data structure to store current controls in the page.
@@ -589,6 +602,7 @@ aspNetEditor.prototype =
 	mLastDeletedControls      : null,
 	mLastSelectedControls     : null,
 	mInResize                 : false,
+	mInCommandExec            : false,
 	mInUpdate                 : false,
 	mInDrag                   : false,
 
@@ -673,7 +687,7 @@ aspNetEditor.prototype =
 	{
 		return this.mInResize;
 	},
-  
+
 	setInResize: function(aBool)
 	{
 		this.mInResize = aBool;
@@ -683,37 +697,47 @@ aspNetEditor.prototype =
 	{
 		return this.mInUpdate;
 	},
-  
+
 	setInUpdate: function(aBool)
 	{
 		this.mInUpdate = aBool;
 	},
-  
+
+	getInCommandExec: function()
+	{
+		return this.mInCommandExec;
+	},
+
+	setInCommandExec: function(aBool)
+	{
+		this.mInCommandExec = aBool;
+	},
+
 	getDragState: function()
 	{
 		return this.mInDrag;
 	},
-  
+
 	setDragState: function(aBool)
 	{
 		this.mInDrag = aBool;
 	},
-  
+
 	getLastSelectedControls: function()
 	{
 		return this.mLastSelectedControls;
 	},
-  
+
 	setLastSelectedControls: function(aNewSelectedControls)
 	{
 		
 	},
-  
+
 	beginBatch: function()
 	{
 		//this.mNsIHtmlEditor.transactionManager.beginBatch ();
 	},
-  
+
 	endBatch: function()
 	{
 		//this.mNsIHtmlEditor.transactionManager.endBatch ();
@@ -953,41 +977,17 @@ aspNetEditor.prototype =
 
 	addControl: function(aControlHtml, aControlId)
 	{
-		if(aControlHtml) {
+		if(aControlHtml && aControlId) {
 			dump ('Will add control:' + aControlId);
-			var insertIn = null;
-			var destinationOffset = 0;
-			var selectedElement = this.getSelectedElement ('');
-			var focusNode = this.getSelection ().focusNode;
-			var controlHTML = this.transformBeforeInput (aControlHtml, false);
-			var parentControl =
-				this.getElementOrParentByTagName (CONTROL_TAG_NAME,
-					focusNode);
+			var insertionPoint =
+				{insertIn: null, destinationOffset: 0};
+			this.findInsertionPoint (insertionPoint);
+			var controlHTML =
+				this.transformBeforeInput (aControlHtml, false);
 
-			// If we have a single-element selection and the element
-			// happens to be a control
-			if (selectedElement &&
-			    this.nodeIsControl (selectedElement)) {
-				insertIn = selectedElement.parentNode;
-				while(selectedElement != insertIn.childNodes [destinationOffset])
-					destinationOffset++;
-				destinationOffset++;
-			}
-
-			else if(focusNode) {
-				// If selection is somewhere inside a control
-				if(parentControl){
-					insertIn = parentControl.parentNode;
-					while(parentControl != insertIn.childNodes [destinationOffset])
-						destinationOffset++;
-					destinationOffset++;
-				}
-			}
-
-			// If none of the above is true, we are just inserting
-			// with defaults insertIn=null, destinationOffset=0
-			this.insertHTMLWithContext (controlHTML, '', '', 'text/html',
-				null, insertIn, destinationOffset, false);
+			this.insertHTMLWithContext (controlHTML, '', '',
+				'text/html', null, insertionPoint.insertIn,
+				insertionPoint.destinationOffset, false);
 
 			this.selectControl (aControlId);
 			dump ('Did add control:' + controlHTML);
@@ -1032,6 +1032,23 @@ aspNetEditor.prototype =
 		}
 	},
 
+	renameControl: function(aOldControlId, aNewControlId)
+	{
+		var control = this.getDocument ().getElementById (aOldControlId);
+		if (!aOldControlId || !aNewControlId) {
+			host.throwException ('renameControl () ',
+					'Too few or no arguments');
+			return;
+		}
+		else if (!control) {
+			host.throwException ('renameControl () ',
+					'Invalid control name');
+			return;
+		}
+		else
+			control.setAttribute (ID, aNewControlId);
+	},
+
 	// Control selection
 	selectControl: function(aControlId, aAdd, aPrimary)
 	{
@@ -1044,20 +1061,69 @@ aspNetEditor.prototype =
 			return;
 		}
 
-		dump ("Selecting control "+aControlId);
+		dump ("Selecting control " + aControlId);
 		var controlRef = this.getElementById(aControlId);
 		this.selectElement (controlRef);
 		this.showResizers (controlRef);
 	},
 
+	// TODO: Handle commands on controls independently
 	doCommand: function (aCommand)
 	{
+		this.setInCommandExec (true);
 		if (this.mNsICommandManager.isCommandSupported (aCommand, this.mEditorWindow))
 			this.mNsICommandManager.doCommand (aCommand, null,
 							this.mEditorWindow);
 		else
 			host.throwException ('doCommand (' + aCommand + ')',
 					'Command not supported');
+		dump ("Executed command: " + aCommand);
+		this.setInCommandExec (false);
+	},
+
+	insertFragment: function (aHtml)
+	{
+		if(aHtml) {
+			var insertionPoint =
+				{insertIn: null, destinationOffset: 0};
+			this.findInsertionPoint (insertionPoint);
+			var HTML = this.transformBeforeInput (aHtml, false);
+
+			this.insertHTMLWithContext (HTML, '', '', 'text/html',
+				null, insertionPoint.insertIn,
+				insertionPoint.destinationOffset, false);
+		}
+	},
+
+	findInsertionPoint: function(aInsertionPoint)
+	{
+		aInsertionPoint.insertIn = null;
+		aInsertionPoint.destinationOffset = 0;
+		var selectedElement = this.getSelectedElement ('');
+		var focusNode = this.getSelection ().focusNode;
+		var parentControl =
+			this.getElementOrParentByTagName (CONTROL_TAG_NAME,
+				focusNode);
+
+		// If we have a single-element selection and the element
+		// happens to be a control
+		if (selectedElement &&
+		    this.nodeIsControl (selectedElement)) {
+			aInsertionPoint.insertIn = selectedElement.parentNode;
+			while(selectedElement != aInsertionPoint.insertIn.childNodes [aInsertionPoint.destinationOffset])
+				aInsertionPoint.destinationOffset++;
+			aInsertionPoint.destinationOffset++;
+		}
+
+		else if(focusNode) {
+			// If selection is somewhere inside a control
+			if(parentControl){
+				aInsertionPoint.insertIn = parentControl.parentNode;
+				while(parentControl != aInsertionPoint.insertIn.childNodes [aInsertionPoint.destinationOffset])
+					aInsertionPoint.destinationOffset++;
+				aInsertionPoint.destinationOffset++;
+			}
+		}
 	},
 
 	clearSelection: function()
