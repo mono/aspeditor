@@ -261,7 +261,6 @@ var gNsIEditActionListenerImplementation = {
 			var control = editor.getControlFromTableByIndex (i);
 			while(control) {
 				if(editor.isControlChildOf (child, control)) {
-						control.getAttribute (ID));
 					deletionStr += ' id=' +
 						control.getAttribute (ID) + ',';
 					editor.addLastDeletedControl (control.getAttribute (ID));
