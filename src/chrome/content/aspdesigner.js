@@ -245,14 +245,23 @@ var gNsIEditActionListenerImplementation = {
 
 	WillDeleteNode: function(child)
 	{
-		//alert ('will delete node');
 		if(!editor.getInResize () && !editor.getDragState () &&
 		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
 			var deletionStr = 'Will delete control(s):';
 			var i       = 0;
+
+			// is the node itself control?
+			if(editor.nodeIsControl (child)) {
+					deletionStr += ' id=' +
+						child.getAttribute (ID) + ',';
+					editor.addLastDeletedControl (child.getAttribute (ID));
+			}
+
+			// does the node contain any controls?
 			var control = editor.getControlFromTableByIndex (i);
 			while(control) {
-				if(child == control) {
+				if(editor.isControlChildOf (child, control)) {
+						control.getAttribute (ID));
 					deletionStr += ' id=' +
 						control.getAttribute (ID) + ',';
 					editor.addLastDeletedControl (control.getAttribute (ID));
@@ -271,7 +280,6 @@ var gNsIEditActionListenerImplementation = {
 	// access them after actual deletion in order to notify the host.
 	WillDeleteSelection: function(selection)
 	{
-		//alert ('will delete selection');
 		if(!editor.getInResize () && !editor.getDragState () &&
 		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
 			var i       = 0;
@@ -1093,6 +1101,37 @@ aspNetEditor.prototype =
 				null, insertionPoint.insertIn,
 				insertionPoint.destinationOffset, false);
 		}
+	},
+
+	getChildControls: function (aNode, aRetArray)
+	{
+		var i = 0;
+		while(aNode.childNodes [i]) {
+			if(this.nodeIsControl (aNode.childNodes [i]))
+				aRetArray.arr.push (aNode.childNodes [i]);
+			this.getChildControls (aNode.childNodes [i], aRetArray);
+			i++;
+		}
+	},
+
+	isControlChildOf: function (aNode, aControl)
+	{
+		var i = 0;
+		var ret = false;
+		while(aNode.childNodes [i]) {
+			if(aNode.childNodes [i] == aControl) {
+				ret = true;
+				break;
+			}
+			else {
+				ret = this.isControlChildOf (aNode.childNodes [i],
+						aControl);
+				if(ret)
+					break;
+			}
+			i++;
+		}
+		return ret;
 	},
 
 	findInsertionPoint: function(aInsertionPoint)
