@@ -1,5 +1,5 @@
  /*
- * aspdesigner.js- The asp editor object
+ * aspdesigner.js - The asp editor object
  * 
  * Authors: 
  *  Blagovest Dachev <blago@dachev.com>
@@ -65,12 +65,14 @@ const INLINE_TABLE_EDITOR              = Components.interfaces.nsIHTMLInlineTabl
 const TABLE_EDITOR                     = Components.interfaces.nsITableEditor;
 const EDITOR                           = Components.interfaces.nsIEditor;
 const SELECTION_PRIVATE                = Components.interfaces.nsISelectionPrivate;
+const STYLE_SHEETS                     = Components.interfaces.nsIEditorStyleSheets;
+const EDITOR_CONTENT_STYLE             = 'chrome://aspdesigner/content/editorContent.css';
 const OBJECT                           = 'object';
-const CUT                              = 'cut';
-const COPY                             = 'copy';
-const PASTE                            = 'paste';
-const UNDO                             = 'undo';
-const REDO                             = 'redo';
+const CUT                              = 'cmd_cut';
+const COPY                             = 'cmd_copy';
+const PASTE                            = 'cmd_paste';
+const UNDO                             = 'cmd_undo';
+const REDO                             = 'cmd_redo';
 
 
 //* ___________________________________________________________________________
@@ -89,10 +91,10 @@ var gNsISelectionListenerImplementation = {
 		if(sel.isCollapsed) {
 			var focusNode = sel.focusNode;
 			var parentControl =
-				editor.getElementOrParentByTagName (CONTROL_TAG_NAME,
-					focusNode);
+				editor.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
+							focusNode);
 			if(parentControl) {
-				editor.setCaretAfterElement (parentControl);
+				editor.base.setCaretAfterElement (parentControl);
 			}
 		}
 	}
@@ -108,8 +110,8 @@ var gNsIEditActionListenerImplementation = {
 	// TODO: Check if deleted node contains a control, not only if it is one
 	DidDeleteNode: function(child, result)
 	{
-		if(!editor.getInResize() && !editor.getDragState () &&
-		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
+		if(!editor.inResize && !editor.dragState &&
+		   !editor.inUpdate && !editor.inCommandExec) {
 			var control = editor.removeLastDeletedControl ();
 			if(control) {
 				var deletionStr = 'deleteControl(s):';
@@ -119,7 +121,7 @@ var gNsIEditActionListenerImplementation = {
 				dump (deletionStr +
 					' Message source: DidDeleteNode()');
 				dump ('There is/are '
-					+ editor.getControlCount()
+					+ editor.controlCount()
 					+ ' controls left in the page');
 			}
 		}
@@ -130,8 +132,8 @@ var gNsIEditActionListenerImplementation = {
 	// respective method, and remove from to-be-deleted array.
 	DidDeleteSelection: function(selection)
 	{
-		if(!editor.getInResize () && !editor.getDragState () &&
-		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
+		if(!editor.inResize && !editor.dragState &&
+		   !editor.inUpdate && !editor.inCommandExec) {
 			var control = editor.removeLastDeletedControl ();
 			if(control) {
 				var deletionStr = 'Did delete control(s):';
@@ -144,7 +146,7 @@ var gNsIEditActionListenerImplementation = {
 				dump (deletionStr +
 					' Message source: DidDeleteSelection()');
 				dump ('There is/are ' +
-					editor.getControlCount() +
+					editor.controlCount() +
 					' controls left in the page');
 			}
 		}
@@ -168,7 +170,8 @@ var gNsIEditActionListenerImplementation = {
 		// Check to see if we have inserted a new controls. We need to
 		// add'em to the control table. Also update reference to all
 		// existing controls
-		var controls = editor.getDocument ().getElementsByTagName (CONTROL_TAG_NAME);
+		var controls =
+			editor.base.document.getElementsByTagName (CONTROL_TAG_NAME);
 		if(controls.length > 0) {
 			var i = 0;
 			var width, height;
@@ -187,7 +190,7 @@ var gNsIEditActionListenerImplementation = {
 						controls [i].getAttribute (ID) +
 						') inserted');
 					dump ('There is/are ' +
-						editor.getControlCount() +
+						editor.controlCount() +
 						' controls in the page');
  				}
 				editor.setSelectNone (controls [i]);
@@ -211,7 +214,7 @@ var gNsIEditActionListenerImplementation = {
 			}
 		}
 
-		if(editor.getDragState ()) {
+		if(editor.dragState) {
 			dump ('End drag');
 		}
 
@@ -219,8 +222,8 @@ var gNsIEditActionListenerImplementation = {
 		   (node.nodeType == 1 || node.nodeType == 3)) {
 			//editor.selectControl (node.getAttribute (ID));
 		}
-		if(editor.getDragState ())
-			editor.setDragState (false);
+		if(editor.dragState)
+			editor.dragState = false;
 	},
 
 	DidInsertText: function(textNode, offset, string, result)
@@ -245,8 +248,9 @@ var gNsIEditActionListenerImplementation = {
 
 	WillDeleteNode: function(child)
 	{
-		if(!editor.getInResize () && !editor.getDragState () &&
-		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
+		dump ('will delete node-----------------------');
+		if(!editor.inResize && !editor.dragState &&
+		   !editor.inUpdate && !editor.inCommandExec) {
 			var deletionStr = 'Will delete control(s):';
 			var i       = 0;
 
@@ -279,8 +283,9 @@ var gNsIEditActionListenerImplementation = {
 	// access them after actual deletion in order to notify the host.
 	WillDeleteSelection: function(selection)
 	{
-		if(!editor.getInResize () && !editor.getDragState () &&
-		   !editor.getInUpdate () && !editor.getInCommandExec ()) {
+		dump ('will delete selection-----------------------');
+		if(!editor.inResize && !editor.dragState &&
+		   !editor.inUpdate && !editor.inCommandExec) {
 			var i       = 0;
 			var control = editor.getControlFromTableByIndex (i);
 			var deletionStr = 'Will delete control(s):';
@@ -334,18 +339,18 @@ var gNsIHTMLObjectResizeListenerImplementation = {
 		if(editor.nodeIsControl (element)) {
 			var id = element.getAttribute (ID);
 			host.resizeControl (id, newWidth, newHeight);
-			editor.setInResize (false);
-			dump ('End resize.');
 		}
+		editor.inResize = false;
+		dump ('End resize.');
 	},
 
 	onStartResizing: function(element)
 	{
 		if(editor.nodeIsControl (element)) {
 			editor.beginBatch ();
-			editor.setInResize (true);
-			dump ('Begin resize.');
 		}
+		editor.inResize = true;
+		dump ('Begin resize.');
 	}
 }
 
@@ -596,10 +601,8 @@ aspNetEditor.prototype =
 {
 	mNsIHtmlEditor            : null,
 	mNsIEditor                : null,
-	mNsITableEditor           : null,
 	mNsIHtmlObjectResizer     : null,
 	mNsIHTMLInlineTableEditor : null,
-	mNsISelectionPrivate      : null,
 	mNsIEditorStyleSheets     : null,
 	mNsICommandManager        : null,
 
@@ -625,17 +628,13 @@ aspNetEditor.prototype =
 			editorElement.commandManager;
 		this.mNsIEditor =
 			this.mNsIHtmlEditor.QueryInterface(EDITOR);
-		this.mNsITableEditor =
-			this.mNsIHtmlEditor.QueryInterface(TABLE_EDITOR);
 		this.mNsIHTMLInlineTableEditor =
 			this.mNsIHtmlEditor.QueryInterface(INLINE_TABLE_EDITOR);
 		this.mNsIHtmlObjectResizer =
 			this.mNsIHtmlEditor.QueryInterface(OBJECT_RESIZER);
-		this.mNsIHtmlObjectResizer =
-			this.mNsIHtmlEditor.QueryInterface(OBJECT_RESIZER);
 
-
-		var selectionPrivate = this.getSelection().QueryInterface (SELECTION_PRIVATE);
+		var selectionPrivate =
+			this.base.selection.QueryInterface (SELECTION_PRIVATE);
 		selectionPrivate.addSelectionListener (gNsISelectionListenerImplementation);
 		this.mNsIHtmlEditor.addObjectResizeEventListener (gNsIHTMLObjectResizeListenerImplementation);
 		this.mNsIHtmlEditor.addEditActionListener (gNsIEditActionListenerImplementation);
@@ -644,101 +643,50 @@ aspNetEditor.prototype =
 		//this.mNsIHtmlEditor.addInsertionListener (gNsIContentFilterImplementation);
 
 		// All of our event listeners are added to the document here
-		this.getDocument ().addEventListener ('mousedown',
-					selectFromClick,
-					true);
-		this.getDocument ().addEventListener ('mouseup',
-					suppressMouseUp,
-					true);
-		this.getDocument ().addEventListener ('click',
-					detectSingleClick,
-					true);
-		this.getDocument ().addEventListener ('dblclick',
-					detectDoubleClick,
-					true);
-		this.getDocument ().addEventListener ('contextmenu',
-					handleContextMenu,
-					true);
-		this.getDocument ().addEventListener ('draggesture',
-					handleDragStart,
-					true);
-		this.getDocument ().addEventListener ('dragdrop',
-					handleDrop,
-					true);
-		this.getDocument ().addEventListener ('keypress',
-					handleKeyPress,
-					true);
+		this.base.document.addEventListener ('mousedown',
+						selectFromClick,
+						true);
+		this.base.document.addEventListener ('mouseup',
+						suppressMouseUp,
+						true);
+		this.base.document.addEventListener ('click',
+						detectSingleClick,
+						true);
+		this.base.document.addEventListener ('dblclick',
+						detectDoubleClick,
+						true);
+		this.base.document.addEventListener ('contextmenu',
+						handleContextMenu,
+						true);
+		this.base.document.addEventListener ('draggesture',
+						handleDragStart,
+						true);
+		this.base.document.addEventListener ('dragdrop',
+						handleDrop,
+						true);
+		this.base.document.addEventListener ('keypress',
+						handleKeyPress,
+						true);
 
 		this.mLastDeletedControls  = new Array();
 		this.mLastSelectedControls = new Array();
 		this.mControlTable         = controlTable;
 	},
 
-	getDocument: function()
-	{
-		if(this.mNsIHtmlEditor)
-			return this.mNsIHtmlEditor.document;
-	},
+	get inResize()           { return this.mInResize },
+	set inResize(aBool)      { this.mInResize = aBool },
 
-	getControlCount: function()
-	{
-		return this.mControlTable.getCount ();
-	},
+	get inUpdate()           { return this.mInUpdate },
+	set inUpdate(aBool)      { this.mInUpdate = aBool },
 
-	getResizedObject: function()
-	{
-		return this.mNsIHtmlEditor.resizedObject;
-	},
+	get dragState()          { return this.mInDrag; },
+	set dragState(aBool)     { this.mInDrag = aBool },
 
-	getInResize: function()
-	{
-		return this.mInResize;
-	},
+	get inCommandExec()      { return this.mInCommandExec },
+	set inCommandExec(aBool) { this.mInCommandExec = aBool },
 
-	setInResize: function(aBool)
-	{
-		this.mInResize = aBool;
-	},
-
-	getInUpdate: function()
-	{
-		return this.mInUpdate;
-	},
-
-	setInUpdate: function(aBool)
-	{
-		this.mInUpdate = aBool;
-	},
-
-	getInCommandExec: function()
-	{
-		return this.mInCommandExec;
-	},
-
-	setInCommandExec: function(aBool)
-	{
-		this.mInCommandExec = aBool;
-	},
-
-	getDragState: function()
-	{
-		return this.mInDrag;
-	},
-
-	setDragState: function(aBool)
-	{
-		this.mInDrag = aBool;
-	},
-
-	getLastSelectedControls: function()
-	{
-		return this.mLastSelectedControls;
-	},
-
-	setLastSelectedControls: function(aNewSelectedControls)
-	{
-		
-	},
+	get base()               { return this.mNsIHtmlEditor },
+	get controlCount()       { return this.mControlTable.getCount () },
 
 	beginBatch: function()
 	{
@@ -748,12 +696,6 @@ aspNetEditor.prototype =
 	endBatch: function()
 	{
 		//this.mNsIHtmlEditor.transactionManager.endBatch ();
-	},
-
-	getElementOrParentByTagName: function(aTagName, aTarget)
-	{
-		if(this.mNsIHtmlEditor)
-			return this.mNsIHtmlEditor.getElementOrParentByTagName (aTagName, aTarget);
 	},
 
 	removeFromControlTable: function(aControlId)
@@ -799,8 +741,8 @@ aspNetEditor.prototype =
 	nextSiblingIsControl: function()
 	{
 		var next        = null;
-		var focusNode   = this.getSelection ().focusNode;
-		var focusOffset = this.getSelection ().focusOffset;
+		var focusNode   = this.base.selection.focusNode;
+		var focusOffset = this.base.selection.focusOffset;
 		// Are we at the end offset of a text node?
 		if(this.atEndOfTextNode ()) {
 			next = focusNode.nextSibling;
@@ -820,8 +762,8 @@ aspNetEditor.prototype =
 	previousSiblingIsControl: function()
 	{
 		var prev        = null;
-		var focusNode   = this.getSelection ().focusNode;
-		var focusOffset = this.getSelection ().focusOffset;
+		var focusNode   = this.base.selection.focusNode;
+		var focusOffset = this.base.selection.focusOffset;
 		// Are we at the beginning offset of a text node?
 		if(this.atBeginningOfTextNode ()) {
 			prev = focusNode.previousSibling;
@@ -840,9 +782,11 @@ aspNetEditor.prototype =
 
 	atBeginningOfTextNode: function()
 	{
-		if(this.getSelection ().focusNode) {
-			var focusNode       = this.getSelection ().focusNode;
-			var focusOffset     = this.getSelection ().focusOffset;
+		if(this.base.selection.focusNode) {
+			var focusNode =
+				this.base.selection.focusNode;
+			var focusOffset =
+				this.base.selection.focusOffset;
 			// If we are at offset zero of a text node
 			if(focusNode.nodeType == 3 && focusOffset == 0) {
 				return true;
@@ -854,9 +798,11 @@ aspNetEditor.prototype =
 
 	atEndOfTextNode: function()
 	{
-		if(this.getSelection ().focusNode) {
-			var focusNode       = this.getSelection ().focusNode;
-			var focusOffset     = this.getSelection ().focusOffset;
+		if(this.base.selection.focusNode) {
+			var focusNode =
+				this.base.selection.focusNode;
+			var focusOffset
+				= this.base.selection.focusOffset;
 			// Are we in a text node?
 			if (focusNode.nodeType == 3) {
 				var focusNodeLength = focusNode.nodeValue.length;
@@ -880,28 +826,14 @@ aspNetEditor.prototype =
 		return false;
 	},
 
-	insertHTML: function(aHtml)
-	{
-		this.mNsIHtmlEditor.insertHTML (aHtml);
-	},
-
-	insertHTMLWithContext: function(aInputString, aContextStr, aInfoStr,
-					aFlavor, aSourceDoc, aDestinationNode,
-					aDestinationOffset, aDeleteSelection)
-	{
-		this.mNsIHtmlEditor.insertHTMLWithContext (aInputString,
-			aContextStr, aInfoStr, aFlavor, aSourceDoc,
-			aDestinationNode, aDestinationOffset, aDeleteSelection);
-	},
-
 	collapseBeforeInsertion: function(aPoint)
 	{
 		switch(aPoint) {
 		case "start":
-			this.getSelection().collapseToStart ();
+			this.base.selection.collapseToStart ();
 			break;
 		case   "end":
-			this.getSelection().collapseToEnd ();
+			this.base.selection.collapseToEnd ();
 			break;
 		}
 	},
@@ -965,12 +897,29 @@ aspNetEditor.prototype =
 	{
 		if(aHtml) {
 			try {
-				this.selectAll ();
-				this.deleteSelection ();
 				var html = this.transformBeforeInput(aHtml, true);
 				dump ("Loading page: " + html);
 				this.mNsIHtmlEditor.rebuildDocumentFromSource (html);
-			} catch (e) {/*host.throwException ('Javascript', e);*/}
+
+				// Show caret
+				if (this.base.document.forms.length > 0) {
+					var firstForm =
+						this.base.document.forms [0];
+					this.base.selection.collapse (firstForm,
+										0);
+				}
+				else {
+					var rootElement =
+						this.mNsIHtmlEditor.rootElement;
+					this.base.selection.collapse (rootElement,
+										0);
+				}
+
+				// Load editing stylesheet
+				var baseEditor = this.base;
+				baseEditor.QueryInterface(STYLE_SHEETS);
+				baseEditor.addOverrideStyleSheet(EDITOR_CONTENT_STYLE);
+			} catch (e) {host.throwException ('loadPage()', e);}
 		}
 	},
 
@@ -986,16 +935,21 @@ aspNetEditor.prototype =
 	{
 		if(aControlHtml && aControlId) {
 			dump ('Will add control:' + aControlId);
+			this.hideResizers ();
 			var insertionPoint =
 				{insertIn: null, destinationOffset: 0};
 			this.findInsertionPoint (insertionPoint);
 			var controlHTML =
 				this.transformBeforeInput (aControlHtml, false);
 
-			this.insertHTMLWithContext (controlHTML, '', '',
-				'text/html', null, insertionPoint.insertIn,
-				insertionPoint.destinationOffset, false);
+			this.base.insertHTMLWithContext (controlHTML, '',
+					'', 'text/html', null,
+					insertionPoint.insertIn,
+					insertionPoint.destinationOffset, false);
 
+			var newControl =
+				this.base.document.getElementById (aControlId);
+			this.setSelectNone (newControl);
 			this.selectControl (aControlId);
 			dump ('Did add control:' + controlHTML);
 		}
@@ -1003,11 +957,12 @@ aspNetEditor.prototype =
 
 	removeControl: function(aControlId)
 	{
-		var control = this.getDocument ().getElementById (aControlId);
+		var control =
+			this.base.document.getElementById (aControlId);
 		if(control) {
 			dump ('Will remove control:' + aControlId);
-			this.selectElement (control);
-			this.deleteSelection ();
+			this.base.selectElement (control);
+			this.base.deleteSelection (0);
 			dump ('Did remove control:' + aControlId);
 		}
 	},
@@ -1015,33 +970,34 @@ aspNetEditor.prototype =
 	updateControl: function(aControlId, aNewDesignTimeHtml)
 	{
 		if(aControlId && aNewDesignTimeHtml &&
-		   this.getDocument ().getElementById (aControlId)) {
-			this.setInUpdate (true);
+		   this.base.document.getElementById (aControlId)) {
+			this.inUpdate = true;
 			dump ('Will update control:' + aControlId);
 			this.hideResizers ();
 			var newDesignTimeHtml =
 				this.transformBeforeInput (aNewDesignTimeHtml, false);
 			try {
 				var oldControl =
-					this.getDocument ().getElementById (aControlId);
+					this.base.document.getElementById (aControlId);
 				this.collapseBeforeInsertion ("start");
-				this.selectElement (oldControl);
-				this.insertHTML (newDesignTimeHtml);
+				this.base.selectElement (oldControl);
+				this.base.insertHTML (newDesignTimeHtml);
 				dump ('Updated control ' + aControlId +
 					'; newDesignTimeHtml is ' +
 					newDesignTimeHtml);
 				} catch (e) { }
-			this.setInUpdate (false);
+			this.inUpdate = false;
 			this.endBatch ();
 			this.updateControlInTable(aControlId,
-				this.getDocument ().getElementById (aControlId));
-				dump ('Did update control:' + aControlId);
+			this.base.document.getElementById (aControlId));
+			dump ('Did update control:' + aControlId);
 		}
 	},
 
 	renameControl: function(aOldControlId, aNewControlId)
 	{
-		var control = this.getDocument ().getElementById (aOldControlId);
+		var control =
+			this.base.document.getElementById (aOldControlId);
 		if (!aOldControlId || !aNewControlId) {
 			host.throwException ('renameControl () ',
 					'Too few or no arguments');
@@ -1061,23 +1017,26 @@ aspNetEditor.prototype =
 	{
 		// TODO: talk to Michael about selecting controls. Why do we
 		// need to have multiple controls selected and what is primary?
-		this.clearSelection ();
-		
 		if (aControlId == '') {
+			if(this.base.resizedObject && this.nodeIsControl (this.base.resizedObject)){
+				this.hideResizers ();
+			}
 			dump ("Deselecting all controls");
 			return;
 		}
 
 		dump ("Selecting control " + aControlId);
-		var controlRef = this.getElementById(aControlId);
-		this.selectElement (controlRef);
+		this.clearSelection ();
+		var controlRef =
+			this.base.document.getElementById (aControlId);
+		this.base.selectElement (controlRef);
 		this.showResizers (controlRef);
 	},
 
 	// TODO: Handle commands on controls independently
 	doCommand: function (aCommand)
 	{
-		this.setInCommandExec (true);
+		this.inCommandExec = true;
 		if (this.mNsICommandManager.isCommandSupported (aCommand, this.mEditorWindow))
 			this.mNsICommandManager.doCommand (aCommand, null,
 							this.mEditorWindow);
@@ -1085,7 +1044,7 @@ aspNetEditor.prototype =
 			host.throwException ('doCommand (' + aCommand + ')',
 					'Command not supported');
 		dump ("Executed command: " + aCommand);
-		this.setInCommandExec (false);
+		this.inCommandExec = false;
 	},
 
 	insertFragment: function (aHtml)
@@ -1096,8 +1055,8 @@ aspNetEditor.prototype =
 			this.findInsertionPoint (insertionPoint);
 			var HTML = this.transformBeforeInput (aHtml, false);
 
-			this.insertHTMLWithContext (HTML, '', '', 'text/html',
-				null, insertionPoint.insertIn,
+			this.base.insertHTMLWithContext (HTML, '', '',
+				'text/html', null, insertionPoint.insertIn,
 				insertionPoint.destinationOffset, false);
 		}
 	},
@@ -1137,11 +1096,11 @@ aspNetEditor.prototype =
 	{
 		aInsertionPoint.insertIn = null;
 		aInsertionPoint.destinationOffset = 0;
-		var selectedElement = this.getSelectedElement ('');
-		var focusNode = this.getSelection ().focusNode;
+		var selectedElement = this.base.getSelectedElement ('');
+		var focusNode = this.base.selection.focusNode;
 		var parentControl =
-			this.getElementOrParentByTagName (CONTROL_TAG_NAME,
-				focusNode);
+			this.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
+						focusNode);
 
 		// If we have a single-element selection and the element
 		// happens to be a control
@@ -1198,25 +1157,6 @@ aspNetEditor.prototype =
 		aElement.style.setProperty ('MozUserSelect', 'none', '');
 		aElement.style.setProperty ('-moz-user-select', 'none', '');
 	},
-  
-	insertFromDrop: function(aEvent)
-	{
-		this.mNsIEditor.insertFromDrop (aEvent);
-	},
-
-	// TODO: Notify host to delete component, and remove control
-	// from local control table
-	cut: function()
-	{
-		this.mNsIEditor.cut ();
-	},
-
-	// TODO: Check if a selection contains any controls, if yes
-	// strat a copy-control transaction
-	copy: function()
-	{
-		this.mNsIEditor.copy ();
-	},
 
 	// TODO: Check if we have any copy-control transaction, and
 	// if we are pasting those same controls. If yes, notify host
@@ -1235,10 +1175,10 @@ aspNetEditor.prototype =
 	// proceed with pasting and do nothing else.
 	paste: function(aEvent)
 	{
-		var focusNode = this.getSelection ().focusNode;
+		var focusNode = this.base.selection.focusNode;
 		var control =
-			this.getElementOrParentByTagName (CONTROL_TAG_NAME,
-				focusNode);
+			this.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
+						focusNode);
 		if(control) {
 			var controlId = control.getAttribute (ID);
 			this.selectControl (controlId);
@@ -1248,20 +1188,10 @@ aspNetEditor.prototype =
 			this.mNsIEditor.paste (1);
 	},
 
-	undo: function()
-	{
-		this.mNsIEditor.undo (1);
-	},
-
-	redo: function()
-	{
-		this.mNsIEditor.redo (1);
-	},
-
 	serializePage: function()
 	{
 		var xml =
-			this.mNsIHtmlEditor.outputToString (this.mNsIHtmlEditor.contentsMIMEType,
+			this.base.outputToString (this.base.contentsMIMEType,
 						256);
 		return xml;
 	},
@@ -1280,93 +1210,20 @@ aspNetEditor.prototype =
 		}
 	},
 
-	getSelection: function()
-	{
-		if(this.mNsIHtmlEditor)
-			return this.mNsIHtmlEditor.selection;
-	},
-
-	getSelectedElement: function(aTagName)
-	{
-		if(this.mNsIHtmlEditor)
-			return this.mNsIHtmlEditor.getSelectedElement (aTagName);
-	},
-
-	getSelectedControl: function()
-	{
-		if(this.mNsIHtmlEditor) {
-			var selectedElement = this.getSelectedElement ('');
-			if(selectedElement && this.nodeIsControl (selectedElement))
-				return selectedElement;
-			else
-				return null;
-		}
-	},
-
 	hideResizers: function()
 	{
 		this.mNsIHtmlEditor.hideResizers ();
 	},
 
-	selectElement: function(aElement)
+	getSelectedControl: function()
 	{
-		this.mNsIHtmlEditor.selectElement (aElement);
-	},
-  
-	deleteSelection: function()
-	{
-		this.mNsIHtmlEditor.deleteSelection (1);
-	},
-
-	setCaretAfterElement: function(aElement)
-	{
-		this.mNsIHtmlEditor.setCaretAfterElement (aElement);
-	},
-
-	selectAll: function(aElement)
-	{
-		this.mNsIHtmlEditor.selectAll (aElement);
-	},
-
-	hideSelection: function()
-	{
-		if(this.mNsIHtmlEditor)
-			this.mNsIHtmlEditor.selectionController.setDisplaySelection (0);
-	},
-
-	highlightOnCanDrop: function(aElement)
-	{
-		var oldElement = this.mDropInElement;
-		if(oldElement != aElement) {
-			if(oldElement) {
-				dump ('ajacent can drop');
-				this.mShell.repaintElement (oldElement);
-				this.mShell.drawElementOutline (aElement);
-				this.mDropInElement = aElement;
-			}
-			else {
-				dump ('enter new can drop ' +
-					oldElement + aElement);
-				this.mDropInElement = aElement;
-				this.mShell.drawElementOutline (aElement);
-			}
-			//dump ('can drop in this ' + aElement.nodeName);
-		}
-	},
-
-	repaintElement: function(aElementId)
-	{
-		var element = this.getElementById (aElementId);
-		if(element && this.mWillFlash)
-			this.mShell.repaintElement (element);
-	},
-
-	highlightOffCanDrop: function()
-	{
-		var restore = this.mDropInElement;
-		if(restore) {
-			this.mShell.repaintElement (restore);
-			this.mDropInElement = null;
+		if(this.mNsIHtmlEditor) {
+			var selectedElement =
+				this.base.getSelectedElement ('');
+			if(selectedElement && this.nodeIsControl (selectedElement))
+				return selectedElement;
+			else
+				return null;
 		}
 	},
 
@@ -1390,10 +1247,6 @@ aspNetEditor.prototype =
 		}
 		return null;
 	},
-
-	getElementById: function(aElementId) {
-		return this.getDocument ().getElementById (aElementId);
-	}
 };
 
 //* ___________________________________________________________________________
@@ -1401,16 +1254,16 @@ aspNetEditor.prototype =
 //_____________________________________________________________________________
 function selectFromClick(aEvent)
 {
-	control = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
-			aEvent.target);
+	control = editor.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
+					aEvent.target);
 
 	if(control) {
 		if(editor.getSelectAll (control)) {
-			editor.setDragState (false);
+			editor.dragState = false;
 			editor.setSelectNone (control);
 		}
 
-		if(editor.getResizedObject ()) {
+		if(editor.base.resizedObject) {
 			editor.hideResizers ();
 			editor.hideTableUI ();
 		}
@@ -1420,8 +1273,8 @@ function selectFromClick(aEvent)
 }
 
 function suppressMouseUp(aEvent) {
-	if(editor.getResizedObject ()) {
-		var object = editor.getResizedObject ();
+	if(editor.base.resizedObject) {
+		var object = editor.base.resizedObject;
 		dump ('handles around <' + object.tagName + ' id=' +
 			object.getAttribute(ID) + '>');
 	}
@@ -1429,7 +1282,7 @@ function suppressMouseUp(aEvent) {
 
 function handleDragStart(aEvent) {
 	// If we are resizing, do nothing - false call
-	if(editor.getInResize ())
+	if(editor.inResize)
 		return;
 
 	// Controls are "-moz-user-select: none" by default. Here we switch to
@@ -1438,7 +1291,8 @@ function handleDragStart(aEvent) {
 	// which is the real end of a Drag&Drop operation
 	editor.hideResizers ();
 	var selectedControl = editor.getSelectedControl ();
-	var controls = editor.getDocument ().getElementsByTagName (CONTROL_TAG_NAME);
+	var controls =
+		editor.base.document.getElementsByTagName (CONTROL_TAG_NAME);
 	if(controls.length > 0) {
 		var i = 0;
 		while(controls [i]) {
@@ -1448,7 +1302,7 @@ function handleDragStart(aEvent) {
 		}
 	}
 
-	editor.setDragState (true);
+	editor.dragState = true;
 	dump ('Begin drag.');
 }
 
@@ -1458,8 +1312,9 @@ function handleDrop(aEvent) {
 
 function handleSingleClick(aButton, aTarget) {
 	if(!gCancelClick) {
-		control = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
-				aTarget);
+		control =
+			editor.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
+						aTarget);
 		var controlId =
 			(control) ? control.getAttribute (ID) : '';
 
@@ -1485,14 +1340,14 @@ function detectSingleClick(aEvent)
 function detectDoubleClick(aEvent)
 {
 	gCancelClick = true;
-	control = editor.getElementOrParentByTagName(CONTROL_TAG_NAME,
-			aEvent.target);
+	control = editor.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
+					aEvent.target);
 	var controlId =
 		(control) ? control.getAttribute (ID) : '';
 
 
 	host.click (DOUBLE_CLICK, controlId);
-	//alert (editor.getPage ());
+	alert (editor.getPage ());
 }
 
 function handleContextMenu(aEvent)
@@ -1508,13 +1363,13 @@ function handleContextMenu(aEvent)
 function handleKeyPress(aEvent) {
 	// Handle cut
 	if(aEvent.ctrlKey && aEvent.charCode == 120) {
-		editor.cut ();
+		editor.doCommand (CUT);
 		aEvent.stopPropagation ();
 		aEvent.preventDefault ();
 	}
 	// Handle copy
 	else if(aEvent.ctrlKey && aEvent.charCode == 99) {
-		editor.copy ();
+		editor.doCommand (COPY);
 		aEvent.stopPropagation ();
 		aEvent.preventDefault ();
 	}
@@ -1527,7 +1382,7 @@ function handleKeyPress(aEvent) {
 	// Handle delete
 	else if(aEvent.keyCode == aEvent.DOM_VK_DELETE) {
 		var control = editor.getSelectedControl ();
-		var resizedObject = editor.getResizedObject ();
+		var resizedObject = editor.base.resizedObject;
 
 		// Special case: if we have resizers shown, but no single control
 		// is selected we should reselect the control with resizers so it
@@ -1552,7 +1407,8 @@ function handleKeyPress(aEvent) {
 			// If next sibling is a control, we should select it so
 			// it gets entirely deleted
 			if(editor.nextSiblingIsControl ()) {
-				var focusNode = editor.getSelection ().focusNode;
+				var focusNode =
+					editor.base.selection.focusNode;
 				control = focusNode.nextSibling;
 				var controlId = control.getAttribute (ID);
 				editor.selectControl (controlId);
@@ -1563,7 +1419,7 @@ function handleKeyPress(aEvent) {
 	// Backspace
 	else if (aEvent.keyCode == aEvent.DOM_VK_BACK_SPACE) {
 		var control = editor.getSelectedControl ();
-		var resizedObject = editor.getResizedObject ();
+		var resizedObject = editor.base.resizedObject;
 
 		// Special case: if we have resizers shown, but no single control
 		// is selected we should reselect the control with resizers so it
@@ -1572,7 +1428,7 @@ function handleKeyPress(aEvent) {
 		if(resizedObject && !control) {
 			editor.selectControl(resizedObject.getAttribute(ID));
 			editor.hideResizers ();
-			editor.setSelectAll (editor.getResizedObject ());
+			editor.setSelectAll (resizedObject);
 		}
 
 		// If we have a single element selected and it happens to be a
@@ -1588,7 +1444,8 @@ function handleKeyPress(aEvent) {
 			// If previous sibling is a control, we should select
 			// it so it gets entirely deleted
 			if(editor.previousSiblingIsControl ()) {
-				var focusNode = editor.getSelection ().focusNode;
+				var focusNode =
+					editor.base.selection.focusNode;
 				var control = focusNode.previousSibling;
 				var controlId = control.getAttribute (ID);
 				editor.selectControl (controlId);
