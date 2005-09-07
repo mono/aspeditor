@@ -188,6 +188,20 @@ namespace AspNetEdit.SampleHost
 			leftBox.Pack1 (toolbox, false, false);
 			toolboxService.PopulateFromAssembly (System.Reflection.Assembly.GetAssembly (typeof (System.Web.UI.Control)));
 			toolboxService.AddToolboxItem (new TextToolboxItem ("<table><tr><td></td><td></td></tr><tr><td></td><td></td></tr></table>", "Table"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<div style=\"width: 100px; height: 100px;\"></div>", "Div"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<hr />", "Horizontal Rule"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<select><option></option></select>", "Select"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<img src=\"\" />", "Image"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<textarea cols=\"20\" rows=\"2\"></textarea>", "Textarea"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"hidden\" />", "Input [Hidden]"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"radio\" />", "Input [Radio]"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"checkbox\" />", "Input [Checkbox]"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"password\" />", "Input [Password]"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"file\" />", "Input [File]"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"text\" />", "Input [Text]"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"submit\" value=\"submit\" />", "Input [Submit]"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"reset\" value=\"reset\" />", "Input [Reset]"), "Html");
+			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"button\" value=\"button\" />", "Input [Button]"), "Html");
 			toolbox.UpdateCategories ();
 			
 			#endregion
