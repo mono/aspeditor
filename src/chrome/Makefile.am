@@ -11,6 +11,7 @@ content_files =	\
 		$(srcdir)/content/aspdesigner.js	\
 		$(srcdir)/../jscall/Resources/JSCall.js	\
 		$(srcdir)/content/aspdesigner.xul	\
+		$(srcdir)/content/editorContent.css	\
 		$(srcdir)/content/contents.rdf
 
 
