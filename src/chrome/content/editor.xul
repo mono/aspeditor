@@ -7,11 +7,8 @@
         xmlns:html = "http://www.w3.org/1999/xhtml"
         onload     = "aspNetEditor_initialize();">
 
-<script type="application/x-javascript" src="chrome://aspdesigner/content/aspdesigner.js"/>
+<script type="application/x-javascript" src="chrome://aspdesigner/content/editor.js"/>
 <script type="application/x-javascript" src="chrome://aspdesigner/content/JSCall.js"/>
-<script type="application/x-javascript" src="chrome://inspector/content/Flasher.js"/>
-<script type="application/x-javascript" src="chrome://inspector/content/jsutil/xpcom/XPCU.js"/>
-
 
 <hbox flex="4">
   <vbox flex="15">
