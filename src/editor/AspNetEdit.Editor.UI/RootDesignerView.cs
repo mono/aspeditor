@@ -42,7 +42,7 @@ namespace AspNetEdit.Editor.UI
 {
 	public class RootDesignerView : Gecko.WebControl
 	{
-		private const string geckoChrome = "chrome://aspdesigner/content/aspdesigner.xul"; 
+		private const string geckoChrome = "chrome://aspdesigner/content/editor.xul"; 
 		private CommandManager comm;
 		private DesignerHost host;
 		private IComponentChangeService changeService;

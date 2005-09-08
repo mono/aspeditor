@@ -7,9 +7,9 @@ chrome_install_text =	"content,install,url,resource:/chrome/aspdesigner/content/
 contentdir = $(chromedir)/content
 content_DATA = $(content_files)
 content_files =	\
-		$(srcdir)/content/aspdesigner.js	\
+		$(srcdir)/content/editor.js	\
 		$(srcdir)/../jscall/Resources/JSCall.js	\
-		$(srcdir)/content/aspdesigner.xul	\
+		$(srcdir)/content/editor.xul	\
 		$(srcdir)/content/editorContent.css	\
 		$(srcdir)/content/contents.rdf
 
