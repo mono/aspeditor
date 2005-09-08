@@ -61,6 +61,22 @@ table {
     border			: 1px dotted red;
 }
 
+/* Cancell the above rules in case the table is in control
+*/
+ aspcontrol table[empty-cells],
+ aspcontrol table[border="0"],
+  /* next two selectors on line below for the case where tbody is omitted */
+  aspcontrol table[border="0"] > tr > td, aspcontrol table[border="0"] > tr > th,
+  aspcontrol table[border="0"] > thead > tr > td, aspcontrol table[border="0"] > tbody > tr > td, aspcontrol table[border="0"] > tfoot > tr > td,
+  aspcontrol table[border="0"] > thead > tr > th, aspcontrol table[border="0"] > tbody > tr > th, aspcontrol table[border="0"] > tfoot > tr > th,
+  aspcontrol table:not([border]),
+  /* next two selectors on line below for the case where tbody is omitted */
+  aspcontrol table:not([border]) > tr > td, aspcontrol table:not([border]) > tr >  th,
+  aspcontrol table:not([border]) > thead > tr > td, aspcontrol table:not([border]) > tbody > tr > td, aspcontrol table:not([border]) > tfoot > tr > td,
+  aspcontrol table:not([border]) > thead > tr > th, aspcontrol table:not([border]) > tbody > tr > th, aspcontrol table:not([border]) > tfoot > tr > th {
+    border			: 0;
+}
+
 /* give a green dashed border to forms otherwise they are invisible
 */
 form {

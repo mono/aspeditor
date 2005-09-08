@@ -79,6 +79,25 @@ const REDO                             = 'cmd_redo';
 // Implementations of some XPCOM interfaces, to observe various editor events
 // and actions. Do not remove any of the methods entirely or Mozilla will choke
 //_____________________________________________________________________________
+// nsIObserver implementation
+var gNsIObserverImplementation = {
+	// Tel the host command status has changed.
+	observe: function (aSubject, aTopic, aData)
+	{
+		switch (aTopic) {
+		case 'cmd_bold':
+			break;
+		case 'cmd_italics':
+			break;
+		case 'cmd_underline':
+			break;
+		case 'cmd_indent':
+			break;
+		case 'cmd_outdent':
+			break;
+		}
+	}
+}
 
 // nsISelectionListener implementation
 // TODO: Redo this one, accounting for recursive calls
@@ -403,6 +422,7 @@ aspNetHost.prototype =
 		JSCallRegisterClrHandler ('SelectControl', JSCall_SelectControl);
 		// HTML editing
 		JSCallRegisterClrHandler ('DoCommand', JSCall_DoCommand);
+		JSCallRegisterClrHandler ('IsCommandEnabled', JSCall_IsCommandEnabled);
 		JSCallRegisterClrHandler ('InsertFragment', JSCall_InsertFragment);
 
 		//tell the host we're ready for business
@@ -496,9 +516,13 @@ function JSCall_LoadPage (arg) {
 
 function JSCall_DoCommand (arg) {
 	var command = arg [0];
-	dump ('Executing command "' + command +'"...');
 	editor.doCommand (command);
 	return "";
+}
+
+function JSCall_IsCommandEnabled (arg) {
+	var command = arg [0];
+	return editor.isCommandEnabled (command);
 }
 
 function JSCall_InsertFragment (arg) {
@@ -638,35 +662,14 @@ aspNetEditor.prototype =
 		selectionPrivate.addSelectionListener (gNsISelectionListenerImplementation);
 		this.mNsIHtmlEditor.addObjectResizeEventListener (gNsIHTMLObjectResizeListenerImplementation);
 		this.mNsIHtmlEditor.addEditActionListener (gNsIEditActionListenerImplementation);
+		this.mNsICommandManager.addCommandObserver (gNsIObserverImplementation, 'cmd_bold');
+		this.mNsICommandManager.addCommandObserver (gNsIObserverImplementation, 'cmd_italics');
+		this.mNsICommandManager.addCommandObserver (gNsIObserverImplementation, 'cmd_underline');
+		this.mNsICommandManager.addCommandObserver (gNsIObserverImplementation, 'cmd_indent');
+		this.mNsICommandManager.addCommandObserver (gNsIObserverImplementation, 'cmd_outdent');
 		// ?????????????????????????????????????????????????????????????????????????
 		// Bug in Mozilla's InsertHTMLWithContext?
 		//this.mNsIHtmlEditor.addInsertionListener (gNsIContentFilterImplementation);
-
-		// All of our event listeners are added to the document here
-		this.base.document.addEventListener ('mousedown',
-						selectFromClick,
-						true);
-		this.base.document.addEventListener ('mouseup',
-						suppressMouseUp,
-						true);
-		this.base.document.addEventListener ('click',
-						detectSingleClick,
-						true);
-		this.base.document.addEventListener ('dblclick',
-						detectDoubleClick,
-						true);
-		this.base.document.addEventListener ('contextmenu',
-						handleContextMenu,
-						true);
-		this.base.document.addEventListener ('draggesture',
-						handleDragStart,
-						true);
-		this.base.document.addEventListener ('dragdrop',
-						handleDrop,
-						true);
-		this.base.document.addEventListener ('keypress',
-						handleKeyPress,
-						true);
 
 		this.mLastDeletedControls  = new Array();
 		this.mLastSelectedControls = new Array();
@@ -915,6 +918,30 @@ aspNetEditor.prototype =
 										0);
 				}
 
+				// All of our event listeners are added to the
+				// document here
+				this.base.document.addEventListener ('mousedown',
+						selectFromClick,
+						true);
+				this.base.document.addEventListener ('click',
+						detectSingleClick,
+						true);
+				this.base.document.addEventListener ('dblclick',
+						detectDoubleClick,
+						true);
+				this.base.document.addEventListener ('contextmenu',
+						handleContextMenu,
+						true);
+				this.base.document.addEventListener ('draggesture',
+						handleDragStart,
+						true);
+				this.base.document.addEventListener ('dragdrop',
+						handleDrop,
+						true);
+				this.base.document.addEventListener ('keypress',
+						handleKeyPress,
+						true);
+
 				// Load editing stylesheet
 				var baseEditor = this.base;
 				baseEditor.QueryInterface(STYLE_SHEETS);
@@ -1033,18 +1060,81 @@ aspNetEditor.prototype =
 		this.showResizers (controlRef);
 	},
 
+	// Misc
 	// TODO: Handle commands on controls independently
 	doCommand: function (aCommand)
 	{
 		this.inCommandExec = true;
-		if (this.mNsICommandManager.isCommandSupported (aCommand, this.mEditorWindow))
-			this.mNsICommandManager.doCommand (aCommand, null,
+		if (this.mNsICommandManager.isCommandSupported (aCommand, this.mEditorWindow)) {
+			switch (aCommand) {
+			case 'cmd_bold':
+				this.mNsICommandManager.doCommand (aCommand,
+							null,
 							this.mEditorWindow);
+				break;
+			case 'cmd_italics':
+				this.mNsICommandManager.doCommand (aCommand,
+							null,
+							this.mEditorWindow);
+				break;
+			case 'cmd_underline':
+				this.mNsICommandManager.doCommand (aCommand,
+							null,
+							this.mEditorWindow);
+				break;
+			case 'cmd_indent':
+				this.mNsICommandManager.doCommand (aCommand,
+							null,
+							this.mEditorWindow);
+				break;
+			case 'cmd_outdent':
+				this.mNsICommandManager.doCommand (aCommand,
+							null,
+							this.mEditorWindow);
+				break;
+			case 'cmd_cut':
+				break;
+			case 'cmd_copy':
+				break;
+			case 'cmd_paste':
+				var focusNode = this.base.selection.focusNode;
+				var control =
+					this.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
+							focusNode);
+				if(control) {
+					var controlId = control.getAttribute (ID);
+					this.selectControl (controlId);
+				}
+				this.collapseBeforeInsertion ("end");
+				if(this.mNsIEditor.canPaste (1))
+					this.mNsIEditor.paste (1);
+				break;
+			default:
+				this.mNsICommandManager.doCommand (aCommand,
+							null,
+							this.mEditorWindow);
+				break;
+			}
+		}
 		else
 			host.throwException ('doCommand (' + aCommand + ')',
 					'Command not supported');
 		dump ("Executed command: " + aCommand);
 		this.inCommandExec = false;
+	},
+
+	isCommandEnabled: function (aCommand)
+	{
+		var commandManager = this.mNsICommandManager;
+		if (commandManager.isCommandSupported (aCommand, this.mEditorWindow))
+			if (commandManager.isCommandEnabled (aCommand, this.mEditorWindow))
+				return true;
+			else
+				return false;
+		else
+			host.throwException ('doCommand (' + aCommand + ')',
+					'Command not supported');
+			
 	},
 
 	insertFragment: function (aHtml)
@@ -1158,36 +1248,6 @@ aspNetEditor.prototype =
 		aElement.style.setProperty ('-moz-user-select', 'none', '');
 	},
 
-	// TODO: Check if we have any copy-control transaction, and
-	// if we are pasting those same controls. If yes, notify host
-	// (it will create new objects), get new element id's from it,
-	// proceed to paste, and then change pasted controls' id's.
-	//
-	// If we are pasting controls, but no copy-control transaction
-	// has been started, then they are probably coming from cut, so
-	// notify host of new controls and paste them.
-	//
-	// If a copy-control transaction has been started, but not controls are
-	// pasted, then the transaction is obsolite and we should terminate
-	// transaction.
-	//
-	// If no controls are pasted and no copy-control transaction started,
-	// proceed with pasting and do nothing else.
-	paste: function(aEvent)
-	{
-		var focusNode = this.base.selection.focusNode;
-		var control =
-			this.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
-						focusNode);
-		if(control) {
-			var controlId = control.getAttribute (ID);
-			this.selectControl (controlId);
-		}
-		this.collapseBeforeInsertion ("end");
-		if(this.mNsIEditor.canPaste (1))
-			this.mNsIEditor.paste (1);
-	},
-
 	serializePage: function()
 	{
 		var xml =
@@ -1272,14 +1332,6 @@ function selectFromClick(aEvent)
 	}
 }
 
-function suppressMouseUp(aEvent) {
-	if(editor.base.resizedObject) {
-		var object = editor.base.resizedObject;
-		dump ('handles around <' + object.tagName + ' id=' +
-			object.getAttribute(ID) + '>');
-	}
-}
-
 function handleDragStart(aEvent) {
 	// If we are resizing, do nothing - false call
 	if(editor.inResize)
@@ -1347,7 +1399,7 @@ function detectDoubleClick(aEvent)
 
 
 	host.click (DOUBLE_CLICK, controlId);
-	alert (editor.getPage ());
+	//alert (editor.getPage ());
 }
 
 function handleContextMenu(aEvent)
@@ -1375,7 +1427,7 @@ function handleKeyPress(aEvent) {
 	}
 	// Handle paste
 	else if(aEvent.ctrlKey && aEvent.charCode == 118) {
-		editor.paste ();
+		editor.doCommand (PASTE);
 		aEvent.stopPropagation ();
 		aEvent.preventDefault ();
 	}
