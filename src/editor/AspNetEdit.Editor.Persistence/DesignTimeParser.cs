@@ -133,6 +133,11 @@ namespace AspNetEdit.Editor.Persistence
 					throw new NotImplementedException ("Server comments have not yet been implemented: " + location.PlainText);
 					break;
 				case TagType.Tag:
+					//TODO: don't do this for XHTML
+					if ((string.Compare (tagid, "br", true) == 0)
+						|| (string.Compare (tagid, "hr", true) == 0))
+						goto case TagType.SelfClosing;
+					
 					openObject = openObject.CreateChildParsingObject(location, tagid, attributes);
 					break;
 				case TagType.SelfClosing:

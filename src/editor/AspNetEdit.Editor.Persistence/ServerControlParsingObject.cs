@@ -52,12 +52,17 @@ namespace AspNetEdit.Editor.Persistence
 			: base (tagid, parent)
 		{
 			//create the object
-			obj = Activator.CreateInstance (type);
+			if (type.GetInterface ("System.ComponentModel.IComponent") != null)
+				obj = base.DesignerHost.CreateComponent (type, attributes["ID"] as string);
+			else
+				obj = Activator.CreateInstance (type);
 
 			//and populate it from the attributes
 			pdc = TypeDescriptor.GetProperties (obj);
 			foreach (DictionaryEntry de in attributes) {
 				if (0 == string.Compare((string)de.Key, "runat"))
+					continue;
+				if (0 == string.Compare((string)de.Key, "ID"))
 					continue;
 				//use the dash subproperty syntax
 				string[] str = ((string)de.Key).Split ('-');
@@ -83,7 +88,7 @@ namespace AspNetEdit.Editor.Persistence
 				{
 					if (pd == null)
 						throw new Exception ("Could not find property " + (string)de.Key);
-
+					Console.WriteLine (pd.Converter.ToString() + " " + pd.Name);
 					if (i == str.Length - 1) {
 						pd.SetValue (obj, pd.Converter.ConvertFromString ((string) de.Value));
 						break;
@@ -189,7 +194,7 @@ namespace AspNetEdit.Editor.Persistence
 			//FIME: what if it isn't?
 			if (obj is Control)
 				base.AddText ( Document.RenderDesignerControl ((Control)obj));
-			base.AddControl (obj);
+			//base.AddControl (obj);
 			return base.CloseObject (closingTagText);
 		}
 

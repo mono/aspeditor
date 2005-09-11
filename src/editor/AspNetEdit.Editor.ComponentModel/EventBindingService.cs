@@ -33,6 +33,7 @@ using System.ComponentModel.Design;
 using System.ComponentModel;
 using System.Collections;
 using System.Reflection;
+using System.Globalization;
 
 namespace AspNetEdit.Editor.ComponentModel
 {
@@ -160,6 +161,7 @@ namespace AspNetEdit.Editor.ComponentModel
 	internal class EventPropertyDescriptor : PropertyDescriptor
 	{
 		private EventDescriptor eDesc;
+		private TypeConverter tc;
 	
 		public EventPropertyDescriptor (EventDescriptor eDesc)
 			: base (eDesc)
@@ -210,7 +212,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			return true;
 		}
 		
-		IDictionaryService GetDictionaryService (object component)
+		internal static IDictionaryService GetDictionaryService (object component)
 		{
 			if (component == null)
 				throw new ArgumentNullException ("component");
@@ -223,6 +225,14 @@ namespace AspNetEdit.Editor.ComponentModel
 				throw new InvalidOperationException ("could not obtain IDictionaryService implementation");
 				
 			return dict;
+		}
+		
+		public override TypeConverter Converter {
+			get {
+				if (tc == null)
+					tc = TypeDescriptor.GetConverter (string.Empty);
+				return tc;
+			}
 		}
 		
 		internal EventDescriptor InternalEventDescriptor {

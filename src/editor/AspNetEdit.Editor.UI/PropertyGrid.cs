@@ -67,7 +67,7 @@ namespace AspNetEdit.Editor.UI
 
 			this.PackStart (combo, false, false, 3);
 			
-			//for selecting nothing
+			//for selecting nothing, i.e. deselect all
 			components.AppendValues (new object[] { "", null} );
 
 			combo.Changed += new EventHandler (combo_Changed);
@@ -83,7 +83,7 @@ namespace AspNetEdit.Editor.UI
 			IComponent comp = (IComponent) components.GetValue(t, 1);
 
 			//Tell everybody about the new selection. We'll hear about this too.
-			selectionService.SetSelectedComponents (new IComponent[] { comp });
+			selectionService.SetSelectedComponents ((comp == null)? null : new IComponent[] { comp });
 		}
 		
 		// We need these services to be present, but we cache references for efficiency

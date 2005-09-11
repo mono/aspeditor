@@ -81,7 +81,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			if (componentClass == null)
 				throw new ArgumentNullException ("componentClass");
 			if (!componentClass.IsSubclassOf (typeof (System.Web.UI.Control)) && componentClass != typeof (System.Web.UI.Control))
-				throw new ArgumentException ("componentClass must be a subclass of System.Web.UI.Control", "componentClass");
+				throw new ArgumentException ("componentClass must be a subclass of System.Web.UI.Control, but is a " + componentClass.ToString (), "componentClass");
 
 			if (componentClass.IsSubclassOf (typeof (System.Web.UI.Page)))
 				throw new InvalidOperationException ("You cannot directly add a page to the host. Use NewFile() instead");
@@ -92,9 +92,10 @@ namespace AspNetEdit.Editor.ComponentModel
 			//and add to container
 			container.Add (component, name);
 
-			//add to document
+			//add to document, unless loading
 			((Control)RootComponent).Controls.Add ((Control) component);
-			RootDocument.AddControl ((Control)component);
+			if (RootDocument != null)
+				RootDocument.AddControl ((Control)component);
 			
 			//select it
 			ISelectionService sel = this.GetService (typeof (ISelectionService)) as ISelectionService;
