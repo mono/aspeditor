@@ -60,7 +60,7 @@ namespace AspNetEdit.JSCall
 			if (!webControl.Title.StartsWith ("JSCall"))
 				return;
 			
-			string[] call = webControl.Title.Split ('|');
+			string[] call = webControl.Title.Split ((char)234);
 			if (call.Length < 2)
 				throw new Exception ("Too few parameters in call from JavaScript");
 				

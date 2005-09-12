@@ -87,13 +87,13 @@ function JSCallHandler(e)
 
 
 function JSCallPlaceClrCall(fn, returnTo, args) {
-	str = "JSCall|" + fn + "|" + returnTo + "|";
+	var delimiter = unescape ("%ea");
+	str = "JSCall" + delimiter + fn + delimiter + returnTo + delimiter;
 	
 	if (args && args.length > 0)
 	{
-		str += args.join("|");
+		str += args.join(delimiter);
 	}
-	
 	document.title= str;
 	
 }
