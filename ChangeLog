@@ -1,0 +1,4 @@
+2005-09-16  Everaldo Canuto  <everaldo@smios.org>
+
+	* autogen.sh: Fix command order in autogen.sh, aclocal need to be run 
+	first.
