@@ -1,0 +1,3 @@
+2005-09-18 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* Toolbox.cs: Use System.Web.UI.ToolboxDataAttribute when inserting Web Controls, if present
