@@ -199,35 +199,38 @@ namespace AspNetEdit.Editor.UI
 					if (args.Event.Time - lastClickTime <= Settings.DoubleClickTime) {
 					
 						//web controls have sample HTML that need to be deserialised
-						//TODO: Fix WebControlToolboxItem so we don't have to mess around with type lookups and attributes here
+						//TODO: Fix WebControlToolboxItem so we don't have to mess around with type lookups and attributes here					
+						if (item.AssemblyName != null && item.TypeName != null) {
+							//look up and register the type
+							ITypeResolutionService typeRes = host.GetService(typeof(ITypeResolutionService)) as ITypeResolutionService;
+							if (typeRes == null)
+								throw new Exception("Host does not provide an ITypeResolutionService");
 						
-						//look up and register the type
-						ITypeResolutionService typeRes = host.GetService(typeof(ITypeResolutionService)) as ITypeResolutionService;
-						if (typeRes == null)
-							throw new Exception("Host does not provide an ITypeResolutionService");
-						System.Reflection.Assembly assembly = typeRes.GetAssembly(item.AssemblyName, true);
-						typeRes.ReferenceAssembly (item.AssemblyName);					
-						Type controlType = typeRes.GetType (item.TypeName, true);
+							typeRes.ReferenceAssembly (item.AssemblyName);					
+							Type controlType = typeRes.GetType (item.TypeName, true);
 						
-						//read the WebControlToolboxItem data from the attribute
-						AttributeCollection atts = TypeDescriptor.GetAttributes (controlType);
-						System.Web.UI.ToolboxDataAttribute tda = (System.Web.UI.ToolboxDataAttribute) atts[typeof(System.Web.UI.ToolboxDataAttribute)];
-						
-						//if it's present
-						if (tda != null && tda.Data.Length > 0) {
-							//look up the tag's prefix and insert it into the data						
-							System.Web.UI.Design.IWebFormReferenceManager webRef = host.GetService (typeof (System.Web.UI.Design.IWebFormReferenceManager)) as System.Web.UI.Design.IWebFormReferenceManager;
-							if (webRef == null)
-								throw new Exception("Host does not provide an IWebFormReferenceManager");
-							string aspText = String.Format (tda.Data, webRef.GetTagPrefix (controlType));
-							System.Diagnostics.Trace.WriteLine ("Toolbox processing ASP.NET item data: " + aspText);
+							//read the WebControlToolboxItem data from the attribute
+							AttributeCollection atts = TypeDescriptor.GetAttributes (controlType);
+							System.Web.UI.ToolboxDataAttribute tda = (System.Web.UI.ToolboxDataAttribute) atts[typeof(System.Web.UI.ToolboxDataAttribute)];
 							
-							//and add it to the document
-							host.RootDocument.DeserializeAndAdd (aspText);
+							//if it's present
+							if (tda != null && tda.Data.Length > 0) {
+								//look up the tag's prefix and insert it into the data						
+								System.Web.UI.Design.IWebFormReferenceManager webRef = host.GetService (typeof (System.Web.UI.Design.IWebFormReferenceManager)) as System.Web.UI.Design.IWebFormReferenceManager;
+								if (webRef == null)
+									throw new Exception("Host does not provide an IWebFormReferenceManager");
+								string aspText = String.Format (tda.Data, webRef.GetTagPrefix (controlType));
+								System.Diagnostics.Trace.WriteLine ("Toolbox processing ASP.NET item data: " + aspText);
+							
+								//and add it to the document
+								host.RootDocument.DeserializeAndAdd (aspText);
+								toolboxService.SelectedToolboxItemUsed ();
+								return;
+							}
 						}
-						//else get the toolboxitem to do the work for us
-						else
-							item.CreateComponents (host);
+
+						//No ToolboxDataAttribute? Get the ToolboxItem to create the components itself
+						item.CreateComponents (host);
 						
 						toolboxService.SelectedToolboxItemUsed ();
 						return;

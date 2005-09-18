@@ -1,3 +1,7 @@
+2005-09-19 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* Toolbox.cs: Oops, broke TextToolboxItem functionality. Fix not to look up types if ToolboxItem has null TypeName.
+
 2005-09-18 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* Toolbox.cs: Use System.Web.UI.ToolboxDataAttribute when inserting Web Controls, if present
