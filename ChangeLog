@@ -1,3 +1,7 @@
+2005-09-17  Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* INSTALL: updated instructions regarding Mozilla extensions
+
 2005-09-16  Everaldo Canuto  <everaldo@smios.org>
 
 	* autogen.sh: Fix command order in autogen.sh, aclocal need to be run 
