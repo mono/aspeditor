@@ -98,7 +98,7 @@ namespace AspNetEdit.JSCall
 				argsOut +=  args[0];
 				for (int i = 1; i <= args.Length - 1; i++)
 				{
-					argsOut += "|" + args[i];
+					argsOut += (char)234 + args[i];
 				}
 			}
 			

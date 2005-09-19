@@ -29,6 +29,7 @@
  */
  
 var JSCallFunctions;
+var delimiter = unescape ("%ea");
 
 function JSCallInit()
 {
@@ -61,7 +62,7 @@ function JSCallHandler(e)
 	if ( e.target.nodeName == "infunction" && e.target.nodeType == 1 ){	
 		fn = e.target.attributes[0].value;
 		returnTo = e.target.attributes[1].value;
-		args = e.target.attributes[2].value.split('|');
+		args = e.target.attributes[2].value.split(delimiter);
 		
 		try {
 		if(JSCallFunctions[fn]) {
@@ -87,7 +88,6 @@ function JSCallHandler(e)
 
 
 function JSCallPlaceClrCall(fn, returnTo, args) {
-	var delimiter = unescape ("%ea");
 	str = "JSCall" + delimiter + fn + delimiter + returnTo + delimiter;
 	
 	if (args && args.length > 0)
