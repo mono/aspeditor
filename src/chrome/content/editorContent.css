@@ -1,9 +1,9 @@
  /*
- * editorContent.css - Some styles rules for elements in edit mode
+ * editorContent.css - Some style~="border"s rules for elements in edit mode
  * Original Code:
  *  Daniel Glazman <glazman@netscape.com>
  * 
- * Contributor(s): 
+ * Authors:
  *  Blagovest Dachev <blago@dachev.com>
  *
  * This sourcecode is licenced under The MIT License:
@@ -27,7 +27,6 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-@import url(chrome://communicator/skin/smileys.css);
 
 a[name] {
   min-height			: 17px; margin-left: 2px; margin-top: 2px;
@@ -47,40 +46,26 @@ table {
 /* give a red dotted border to tables and cells with no border
    otherwise they are invisible
 */
- table[empty-cells],
- table[border="0"],
+ table[empty-cells]:not([cancelUI]),
+ table[border="0"]:not([cancelUI]),
   /* next two selectors on line below for the case where tbody is omitted */
-  table[border="0"] > tr > td, table[border="0"] > tr > th,
-  table[border="0"] > thead > tr > td, table[border="0"] > tbody > tr > td, table[border="0"] > tfoot > tr > td,
-  table[border="0"] > thead > tr > th, table[border="0"] > tbody > tr > th, table[border="0"] > tfoot > tr > th,
-  table:not([border]),
+  table[border="0"]:not([cancelUI]) > tr > td, table[border="0"]:not([cancelUI]) > tr > th,
+  table[border="0"]:not([cancelUI]) > thead > tr > td, table[border="0"]:not([cancelUI]) > tbody > tr > td, table[border="0"]:not([cancelUI]) > tfoot > tr > td,
+  table[border="0"]:not([cancelUI]) > thead > tr > th, table[border="0"]:not([cancelUI]) > tbody > tr > th, table[border="0"]:not([cancelUI]) > tfoot > tr > th,
+  table:not([border]):not([cancelUI]),
   /* next two selectors on line below for the case where tbody is omitted */
-  table:not([border]) > tr > td, table:not([border]) > tr >  th,
-  table:not([border]) > thead > tr > td, table:not([border]) > tbody > tr > td, table:not([border]) > tfoot > tr > td,
-  table:not([border]) > thead > tr > th, table:not([border]) > tbody > tr > th, table:not([border]) > tfoot > tr > th {
-    border			: 1px dotted red;
-}
-
-/* Cancell the above rules in case the table is in control
-*/
- aspcontrol table[empty-cells],
- aspcontrol table[border="0"],
-  /* next two selectors on line below for the case where tbody is omitted */
-  aspcontrol table[border="0"] > tr > td, aspcontrol table[border="0"] > tr > th,
-  aspcontrol table[border="0"] > thead > tr > td, aspcontrol table[border="0"] > tbody > tr > td, aspcontrol table[border="0"] > tfoot > tr > td,
-  aspcontrol table[border="0"] > thead > tr > th, aspcontrol table[border="0"] > tbody > tr > th, aspcontrol table[border="0"] > tfoot > tr > th,
-  aspcontrol table:not([border]),
-  /* next two selectors on line below for the case where tbody is omitted */
-  aspcontrol table:not([border]) > tr > td, aspcontrol table:not([border]) > tr >  th,
-  aspcontrol table:not([border]) > thead > tr > td, aspcontrol table:not([border]) > tbody > tr > td, aspcontrol table:not([border]) > tfoot > tr > td,
-  aspcontrol table:not([border]) > thead > tr > th, aspcontrol table:not([border]) > tbody > tr > th, aspcontrol table:not([border]) > tfoot > tr > th {
-    border			: 0;
+  table:not([border]):not([cancelUI]) > tr > td, table:not([border]):not([cancelUI]) > tr >  th,
+  table:not([border]):not([cancelUI]) > thead > tr > td, table:not([border]):not([cancelUI]) > tbody > tr > td, table:not([border]):not([cancelUI]) > tfoot > tr > td,
+  table:not([border]):not([cancelUI]) > thead > tr > th, table:not([border]):not([cancelUI]) > tbody > tr > th, table:not([border]):not([cancelUI]) > tfoot > tr > th
+ {
+    border			: 1px dotted #d59408;
 }
 
 /* give a green dashed border to forms otherwise they are invisible
 */
 form {
-  border			: 2px dashed green;
+  border			: 2px dashed #9c9d83;
+  min-height			: 20px;
 }
 /* give a green dotted border to labels otherwise they are invisible
 */
@@ -91,12 +76,21 @@ label {
 img {
   -moz-force-broken-image-icon: 1;
 }
-/* give a green dotted border to labels otherwise they are invisible
+/* Some <aspcontrol> properties that will persist
 */
 aspcontrol {
-  border			: 1px solid #ff0000;
+  border			: 1px solid #7f9db9;
   display			: -moz-inline-box;
   vertical-align		: text-bottom;
   z-index			: 1;
   position			: relative;
+  /*-moz-binding			: url("chrome://aspdesigner/content/editor.xml#aspcontrol");*/
+}
+
+span.onionOne {
+  display: block; position: relative;
+}
+
+span.onionTwo {
+  position: absolute; display: block; z-index: -1;
 }

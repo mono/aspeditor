@@ -1,5 +1,5 @@
  /*
- * aspdesigner.js - The asp editor object
+ * editor.js - The asp editor object
  * 
  * Authors: 
  *  Blagovest Dachev <blago@dachev.com>
@@ -30,370 +30,9 @@
 
 var editor                 = null;
 var host                   = null;
-var gCancelClick           = false;
 var gDirectivePlaceholder  = '';
 
-const DEBUG                            = true;
-const ID                               = 'id';
-const WIDTH                            = 'width';
-const HEIGHT                           = 'height';
-const MIN_WIDTH                        = 'min-width';
-const MIN_HEIGHT                       = 'min-height';
-const DISPLAY                          = 'display';
-const BORDER                           = 'border';
-const VERTICAL_ALIGN                   = 'vertical-align';
-const POSITION                         = 'position';
-const Z_INDEX                          = 'z-index';
-const BORDER_CAN_DROP_COLOR            = '#ee0000';
-const BORDER_CAN_DROP_THICK            = '2';
-const BORDER_CAN_DROP_INVERT           = false;
-const DIRECTIVE_PLACE_HOLDER_EXP       = /(<directiveplaceholder.[^(><.)]+\/>)/g;
-const SCRIPT_PLACE_HOLDER_EXP          = /(<scriptblockplaceholder.[^(><.)]+\/>)/g;
-const STRIP_SCRIPT_PLACE_HOLDER_EXP    = /<!(?:--(<scriptblockplaceholder[\s\S]*?)--\s*)?>\s*/g;
-const CONTROL_TAG_NAME                 = 'aspcontrol';
-const BEGIN_CONTROL_TAG_EXP            = /(<aspcontrol.[^(><.)]+>)/g;
-const END_CONTROL_TAG_EXP              = /<\/aspcontrol>/g;
-const STRIP_CONTROL_EXP                = /(<span class="ballast".*?><span.*?><div>.*?[\s\S]*?.*?<\/div><\/span><\/span>)/g;
-const APPEND_TO_CONTROL_END            = '</div></span></span>';
-const APPEND_TO_CONTROL_BEGIN          = "<span class=\"ballast\" style=\"display: block; position: relative\"><span style=\"position: absolute; display: block; z-index: -1;\"><div>";
-const EMPTY_CONTROL_MSG                = '<span style=\"color: #bb0000;\">This control has no HTML<br>representation associated.</span>';
-const SINGLE_CLICK                     = 'single';
-const DOUBLE_CLICK                     = 'double';
-const RIGHT_CLICK                      = 'right';
-const OBJECT_RESIZER                   = Components.interfaces.nsIHTMLObjectResizer;
-const INLINE_TABLE_EDITOR              = Components.interfaces.nsIHTMLInlineTableEditor;
-const TABLE_EDITOR                     = Components.interfaces.nsITableEditor;
-const EDITOR                           = Components.interfaces.nsIEditor;
-const SELECTION_PRIVATE                = Components.interfaces.nsISelectionPrivate;
-const STYLE_SHEETS                     = Components.interfaces.nsIEditorStyleSheets;
-const EDITOR_CONTENT_STYLE             = 'chrome://aspdesigner/content/editorContent.css';
-const OBJECT                           = 'object';
-const CUT                              = 'cmd_cut';
-const COPY                             = 'cmd_copy';
-const PASTE                            = 'cmd_paste';
-const UNDO                             = 'cmd_undo';
-const REDO                             = 'cmd_redo';
 
-
-//* ___________________________________________________________________________
-// Implementations of some XPCOM interfaces, to observe various editor events
-// and actions. Do not remove any of the methods entirely or Mozilla will choke
-//_____________________________________________________________________________
-// nsIObserver implementation
-var gNsIObserverImplementation = {
-	// Tel the host command status has changed.
-	observe: function (aSubject, aTopic, aData)
-	{
-		switch (aTopic) {
-		case 'cmd_bold':
-			break;
-		case 'cmd_italics':
-			break;
-		case 'cmd_underline':
-			break;
-		case 'cmd_indent':
-			break;
-		case 'cmd_outdent':
-			break;
-		}
-	}
-}
-
-// nsISelectionListener implementation
-// TODO: Redo this one, accounting for recursive calls
-var gNsISelectionListenerImplementation = {
-	notifySelectionChanged: function(doc, sel, reason)
-	{
-		// Make sure we can't focus a control
-		//TODO: make it account for md-can-drop="true" controls, which
-		// should be able to recieve focus
-		if(sel.isCollapsed) {
-			var focusNode = sel.focusNode;
-			var parentControl =
-				editor.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
-							focusNode);
-			if(parentControl) {
-				editor.base.setCaretAfterElement (parentControl);
-			}
-		}
-	}
-}
-
-// nsIEditActionListener implementation
-var gNsIEditActionListenerImplementation = {
-	DidCreateNode: function(tag, node, parent, position, result)
-	{
-		//alert('did create node');
-	},
-
-	// TODO: Check if deleted node contains a control, not only if it is one
-	DidDeleteNode: function(child, result)
-	{
-		if(!editor.inResize && !editor.dragState &&
-		   !editor.inUpdate && !editor.inCommandExec) {
-			var control = editor.removeLastDeletedControl ();
-			if(control) {
-				var deletionStr = 'deleteControl(s):';
-				deletionStr += ' id=' + control + ',';
-				editor.removeFromControlTable (control);
-				host.removeControl (control);
-				dump (deletionStr +
-					' Message source: DidDeleteNode()');
-				dump ('There is/are '
-					+ editor.controlCount()
-					+ ' controls left in the page');
-			}
-		}
-	},
-
-	// For each element in to-be-deleted array, remove control from the control
-	// table, let the host know we have deleted a control by calling the
-	// respective method, and remove from to-be-deleted array.
-	DidDeleteSelection: function(selection)
-	{
-		if(!editor.inResize && !editor.dragState &&
-		   !editor.inUpdate && !editor.inCommandExec) {
-			var control = editor.removeLastDeletedControl ();
-			if(control) {
-				var deletionStr = 'Did delete control(s):';
-				while(control) {
-					deletionStr += ' id=' + control + ',';
-					editor.removeFromControlTable (control);
-					host.removeControl (control);
-					control = editor.removeLastDeletedControl ();
-				}
-				dump (deletionStr +
-					' Message source: DidDeleteSelection()');
-				dump ('There is/are ' +
-					editor.controlCount() +
-					' controls left in the page');
-			}
-		}
-	},
-
-	DidDeleteText: function(textNode, offset, length, result)
-	{
-	
-	},
-
-	// Make sure to check node contents for controls too. The node could be
-	// a table (or any other element) with a control inside.
-	DidInsertNode: function(node, parent, position, result)
-	{
-		var dumpStr = 'Did insert node ' + node.nodeName;
-		dumpStr += (node.nodeType == 1) ?
-			', id=' + node.getAttribute(ID) :
-			'';
-		dump (dumpStr);
-
-		// Check to see if we have inserted a new controls. We need to
-		// add'em to the control table. Also update reference to all
-		// existing controls
-		var controls =
-			editor.base.document.getElementsByTagName (CONTROL_TAG_NAME);
-		if(controls.length > 0) {
-			var i = 0;
-			var width, height;
-			while(controls [i]) {
-				if(editor.getControlTable ().getById (controls [i].getAttribute (ID))) {
-					editor.getControlTable ().update (controls [i].getAttribute (ID),
-									controls [i]);
-					dump ('Did update control(id=' +
-						controls [i].getAttribute (ID) +
-						') reference in table');
-				}
-				else {
-					editor.insertInControlTable (controls [i].getAttribute (ID),
-							controls [i]);
-					dump ('New control (id=' +
-						controls [i].getAttribute (ID) +
-						') inserted');
-					dump ('There is/are ' +
-						editor.controlCount() +
-						' controls in the page');
- 				}
-				editor.setSelectNone (controls [i]);
-				width = controls [i].getAttribute(WIDTH);
-				height = controls [i].getAttribute(HEIGHT);
-				controls [i].style.setProperty (MIN_WIDTH,
-							width, '');
-				controls [i].style.setProperty (MIN_HEIGHT,
-							height, '');
-				controls [i].style.setProperty (DISPLAY,
-							'-moz-inline-box', '');
-				controls [i].style.setProperty (BORDER,
-							'1px solid #ff0000', '');
-				controls [i].style.setProperty (VERTICAL_ALIGN,
-							'text-bottom', '');
-				controls [i].style.setProperty (POSITION,
-							'relative', '');
-				controls [i].style.setProperty (Z_INDEX,
-							'1', '');
-				i++;
-			}
-		}
-
-		if(editor.dragState) {
-			dump ('End drag');
-		}
-
-		if(editor.nodeIsControl (node) &&
-		   (node.nodeType == 1 || node.nodeType == 3)) {
-			//editor.selectControl (node.getAttribute (ID));
-		}
-		if(editor.dragState)
-			editor.dragState = false;
-	},
-
-	DidInsertText: function(textNode, offset, string, result)
-	{
-	
-	},
-
-	DidJoinNodes: function(leftNode, rightNode, parent, result)
-	{
-		//alert('did join nodes');
-	},
-
-	DidSplitNode: function(existingRightNode, offset, newLeftNode, result)
-	{
-		//alert('did split node');
-	},
-
-	WillCreateNode: function(tag, parent, position)
-	{
-		//alert ('Will create node');
-	},
-
-	WillDeleteNode: function(child)
-	{
-		dump ('will delete node-----------------------');
-		if(!editor.inResize && !editor.dragState &&
-		   !editor.inUpdate && !editor.inCommandExec) {
-			var deletionStr = 'Will delete control(s):';
-			var i       = 0;
-
-			// is the node itself control?
-			if(editor.nodeIsControl (child)) {
-					deletionStr += ' id=' +
-						child.getAttribute (ID) + ',';
-					editor.addLastDeletedControl (child.getAttribute (ID));
-			}
-
-			// does the node contain any controls?
-			var control = editor.getControlFromTableByIndex (i);
-			while(control) {
-				if(editor.isControlChildOf (child, control)) {
-					deletionStr += ' id=' +
-						control.getAttribute (ID) + ',';
-					editor.addLastDeletedControl (control.getAttribute (ID));
-				}
-				i++;
-				control = editor.getControlFromTableByIndex (i);
-			}
-			if(deletionStr != 'Will delete control(s):')
-				dump (deletionStr +
-					' Message source: WillDeleteNode()');
-		}
-	},
-
-	// Check if the selection to be deleted contains controls and prepare
-	//for deletion. Load all to-be-deleted controls in an array, so we can
-	// access them after actual deletion in order to notify the host.
-	WillDeleteSelection: function(selection)
-	{
-		dump ('will delete selection-----------------------');
-		if(!editor.inResize && !editor.dragState &&
-		   !editor.inUpdate && !editor.inCommandExec) {
-			var i       = 0;
-			var control = editor.getControlFromTableByIndex (i);
-			var deletionStr = 'Will delete control(s):';
-			if(control) {
-				while(control) {
-					if(selection.containsNode (control, true)) {
-						deletionStr += ' id=' +
-							control.getAttribute (ID) + ',';
-						editor.addLastDeletedControl (control.getAttribute (ID));
-					}
-					i++;
-					control = editor.getControlFromTableByIndex (i);
-				}
-				if(deletionStr != 'Will delete control(s):')
-					dump (deletionStr +
-						' Message source: WillDeleteSelection()');
-			}
-		}
-	},
-
-	WillDeleteText: function(textNode, offset, length)
-	{
-	
-	},
-
-	WillInsertNode: function(node, parent, position)
-	{
-
-	},
-
-	WillInsertText: function(textNode, offset, string)
-	{
-	
-	},
-
-	WillJoinNodes: function(leftNode, rightNode, parent)
-	{
-		//alert ('Will join node');
-	},
-
-	WillSplitNode: function(existingRightNode, offset)
-	{
-		//alert ('Will split node');
-	},
-}
-
-// nsIHTMLObjectResizeListener implementation
-var gNsIHTMLObjectResizeListenerImplementation = {
-	onEndResizing: function(element, oldWidth, oldHeight, newWidth, newHeight)
-	{
-		if(editor.nodeIsControl (element)) {
-			var id = element.getAttribute (ID);
-			host.resizeControl (id, newWidth, newHeight);
-		}
-		editor.inResize = false;
-		dump ('End resize.');
-	},
-
-	onStartResizing: function(element)
-	{
-		if(editor.nodeIsControl (element)) {
-			editor.beginBatch ();
-		}
-		editor.inResize = true;
-		dump ('Begin resize.');
-	}
-}
-
-// nsIContentFilter implementation
-// In future we should use this one to manage all insertion coming from
-// paste, drag&drop, insertHTML(), and page load. Currently not working.
-// Mozilla throws an INVALID_POINTER exception
-var gNsIContentFilterImplementation = {
-	notifyOfInsertion: function(mimeType,
-				    contentSourceURL,
-				    sourceDocument,
-				    willDeleteSelection,
-				    docFragment,
-				    contentStartNode,
-				    contentStartOffset,
-				    contentEndNode,
-				    contentEndOffset,
-				    insertionPointNode,
-				    insertionPointOffset,
-				    continueWithInsertion)
-	{
-		
-	}
-}
 
 //* ___________________________________________________________________________
 // This class is responsible for communication with the host system and
@@ -406,6 +45,9 @@ function aspNetHost()
 }
 aspNetHost.prototype =
 {
+	mSerializedContent                     : '',
+	mDeserializedContent                   : '',
+
 	initialize: function()
 	{
 		// Register our interface methods with the host
@@ -421,9 +63,17 @@ aspNetHost.prototype =
 		// Control selection
 		JSCallRegisterClrHandler ('SelectControl', JSCall_SelectControl);
 		// HTML editing
-		JSCallRegisterClrHandler ('DoCommand', JSCall_DoCommand);
-		JSCallRegisterClrHandler ('IsCommandEnabled', JSCall_IsCommandEnabled);
-		JSCallRegisterClrHandler ('InsertFragment', JSCall_InsertFragment);
+		JSCallRegisterClrHandler ('DoCommand',
+			JSCall_DoCommand);
+		JSCallRegisterClrHandler ('IsCommandEnabled',
+			JSCall_IsCommandEnabled);
+		JSCallRegisterClrHandler ('InsertFragment',
+			JSCall_InsertFragment);
+		// Misc
+		JSCallRegisterClrHandler ('SerializeReturn',
+			JSCall_SerializeReturn);
+		JSCallRegisterClrHandler ('DeserializeAndAddReturn',
+			JSCall_DeserializeAndAddReturn);
 
 		//tell the host we're ready for business
 		JSCallPlaceClrCall ('Activate', '', '');
@@ -444,10 +94,12 @@ aspNetHost.prototype =
 		}
 		
  		if(!aControlId) {
-			dump (clickType + ' click over no control; deselecting all controls');
+			dump (clickType +
+				' click over no control; deselecting all controls');
 		}
 		else {
-			dump (clickType + " click over aspcontrol \"" + aControlId + "\"");
+			dump (clickType + " click over aspcontrol \"" +
+				aControlId + "\"");
 		}
 		
 		JSCallPlaceClrCall ('Click', '', new Array(clickType, aControlId));
@@ -456,20 +108,62 @@ aspNetHost.prototype =
 
 	resizeControl: function(aControlId, aWidth, aHeight)
 	{
-		JSCallPlaceClrCall ('ResizeControl', '', new Array(aControlId, aWidth, aHeight));
 		dump ('Outbound call to ResizeControl() id=' + aControlId +
 			', new size ' + aWidth + 'x' + aHeight);
-	},
-	
-	throwException: function (location, msg)
-	{
-		JSCallPlaceClrCall ('ThrowException', '', new Array(location, msg));
+		JSCallPlaceClrCall ('ResizeControl', '',
+			new Array(aControlId, aWidth, aHeight));
 	},
 	
 	removeControl: function (aControlId)
 	{
-		JSCallPlaceClrCall ('RemoveControl', '', new Array(aControlId));
 		dump ('Outbound call to removeControl() id=' + aControlId);
+		JSCallPlaceClrCall ('RemoveControl', '', new Array(aControlId));
+	},
+	
+	serialize: function (aClipboardContent, aReturn)
+	{
+		// On first invocation we call the host. It then returns to
+		// SerializeReturn which in turn invokes this method again
+		// and sets the member var with the new clipboard content
+		// ("else" block). First-invocation execution picks up after
+		// the host call, and we are able to return the new content
+		// (mSerializedContent) to the caller.
+		if (!aReturn) {
+			dump ('Outbound call to Serialize() content=' +
+				aClipboardContent);
+			JSCallPlaceClrCall ('Serialize', 'SerializeReturn',
+				new Array(aClipboardContent));
+			return this.mSerializedContent;
+		}
+		else {
+			this.mSerializedContent = aClipboardContent;
+		}
+	},
+	
+	deserializeAndAdd: function (aClipboardContent, aReturn)
+	{
+		// On first invocation we call the host. It then returns to
+		// SerializeReturn which in turn invokes this method again
+		// and sets the member var with the new clipboard content
+		// ("else" block). First-invocation execution picks up after
+		// the host call, and we are able to return the new content
+		// (mDeserializedContent) to the caller.
+		if (!aReturn) {
+			dump ('Outbound call to DeserializeAndAdd() content=' +
+				aClipboardContent);
+			JSCallPlaceClrCall ('DeserializeAndAdd',
+					'DeserializeAndAddReturn',
+					new Array(aClipboardContent));
+			return this.mDeserializedContent;
+		}
+		else {
+			this.mDeserializedContent = aClipboardContent;
+		}
+	},
+
+	throwException: function (location, msg)
+	{
+		JSCallPlaceClrCall ('ThrowException', '', new Array(location, msg));
 	},
 }
 
@@ -527,6 +221,14 @@ function JSCall_IsCommandEnabled (arg) {
 
 function JSCall_InsertFragment (arg) {
 	return editor.insertFragment (arg [0]);
+}
+
+function JSCall_SerializeReturn (arg) {
+	host.serialize (arg [0], true);
+}
+
+function JSCall_DeserializeAndAddReturn (arg) {
+	host.deserializeAndAdd (arg [0], true);
 }
 
 //* ___________________________________________________________________________
@@ -605,7 +307,6 @@ var controlTable = {
 function aspNetEditor_initialize()
 {
 	dump ("Initialising...");
-	dump ("\tCreating host...");
 	editor = new aspNetEditor ();
 	dump ("\tCreated editor, initialising...");
 	editor.initialize ();
@@ -613,6 +314,9 @@ function aspNetEditor_initialize()
 	host = new aspNetHost ();
 	dump ("\tHost created, initialising...");
 	host.initialize ();
+	dump ("\tHost initialised, creating clipboard...");
+	clip = new clipboard ();
+	dump ("\tClipboard created.");
 	dump ("Initialised.");
 }
 
@@ -623,33 +327,37 @@ function aspNetEditor()
 
 aspNetEditor.prototype = 
 {
-	mNsIHtmlEditor            : null,
-	mNsIEditor                : null,
-	mNsIHtmlObjectResizer     : null,
-	mNsIHTMLInlineTableEditor : null,
-	mNsIEditorStyleSheets     : null,
-	mNsICommandManager        : null,
+	mNsIHtmlEditor                : null,
+	mNsIEditor                    : null,
+	mNsIHtmlObjectResizer         : null,
+	mNsIHTMLInlineTableEditor     : null,
+	mNsIEditorStyleSheets         : null,
+	mNsICommandManager            : null,
 
-	mEditorWindow             : null,
-	mDropInElement            : null,
-	mControlTable             : null,
-	mLastDeletedControls      : null,
-	mLastSelectedControls     : null,
-	mInResize                 : false,
-	mInCommandExec            : false,
-	mInUpdate                 : false,
-	mInDrag                   : false,
+	mEditorElement                : null,
+	mEditorWindow                 : null,
+	mDropInElement                : null,
+	mControlTable                 : null,
+	mLastDeletedControls          : null,
+	mLastSelectedControls         : null,
+	mCancelClick                  : false,
+	mInResize                     : false,
+	mInCommandExec                : false,
+	mInUpdate                     : false,
+	mInDrag                       : false,
+
+	mLastClipboardUpdateCommand   : '',
 
 	initialize: function()
 	{
-		var editorElement = document.getElementById ('aspeditor');
-		editorElement.makeEditable ('html', false);
+		this.mEditorElement = document.getElementById ('aspeditor');
+		this.mEditorElement.makeEditable ('html', false);
 
-		this.mEditorWindow = editorElement.contentWindow;
+		this.mEditorWindow = this.mEditorElement.contentWindow;
 		this.mNsIHtmlEditor =
-			editorElement.getHTMLEditor(this.mEditorWindow);
+			this.mEditorElement.getHTMLEditor(this.mEditorWindow);
 		this.mNsICommandManager =
-			editorElement.commandManager;
+			this.mEditorElement.commandManager;
 		this.mNsIEditor =
 			this.mNsIHtmlEditor.QueryInterface(EDITOR);
 		this.mNsIHTMLInlineTableEditor =
@@ -688,8 +396,24 @@ aspNetEditor.prototype =
 	get inCommandExec()      { return this.mInCommandExec },
 	set inCommandExec(aBool) { this.mInCommandExec = aBool },
 
-	get base()               { return this.mNsIHtmlEditor },
-	get controlCount()       { return this.mControlTable.getCount () },
+	get cancelClick()        { return this.mCancelClick },
+	set cancelClick(aBool)   { this.mCancelClick = aBool },
+
+	get controlCount()       { return this.mControlTable.getCount (); },
+	get editorWindow()       { return this.mEditorWindow },
+
+	get base()
+	{
+		var editor;
+		try {
+			editor = this.mEditorElement.getEditor (this.mEditorWindow);
+
+			editor instanceof Components.interfaces.nsIPlaintextEditor;
+			editor instanceof Components.interfaces.nsIHTMLEditor;
+		} catch (e) {}
+
+		return editor;
+	},
 
 	beginBatch: function()
 	{
@@ -845,7 +569,7 @@ aspNetEditor.prototype =
 	{
 		// Give controls a default value
 		var emptyControl =
-			aHTML.match(/(<aspcontrol.[^(><.)]+><\/aspcontrol>)/g);
+			aHTML.match(EMPTY_CONTROL_EXP);
 		var controlBegin = "$&" + APPEND_TO_CONTROL_BEGIN;
 		controlBegin = (emptyControl) ?
 					controlBegin + EMPTY_CONTROL_MSG :
@@ -900,6 +624,8 @@ aspNetEditor.prototype =
 	{
 		if(aHtml) {
 			try {
+				this.base.selectAll ();
+				this.base.deleteSelection (1);
 				var html = this.transformBeforeInput(aHtml, true);
 				dump ("Loading page: " + html);
 				this.mNsIHtmlEditor.rebuildDocumentFromSource (html);
@@ -1064,7 +790,8 @@ aspNetEditor.prototype =
 	// TODO: Handle commands on controls independently
 	doCommand: function (aCommand)
 	{
-		this.inCommandExec = true;
+		if(aCommand != CUT)
+			this.inCommandExec = true;
 		if (this.mNsICommandManager.isCommandSupported (aCommand, this.mEditorWindow)) {
 			switch (aCommand) {
 			case 'cmd_bold':
@@ -1093,8 +820,16 @@ aspNetEditor.prototype =
 							this.mEditorWindow);
 				break;
 			case 'cmd_cut':
+				this.mNsICommandManager.doCommand (aCommand,
+							null,
+							this.mEditorWindow);
+				this.mLastClipboardUpdateCommand = CUT;
 				break;
 			case 'cmd_copy':
+				this.mNsICommandManager.doCommand (aCommand,
+							null,
+							this.mEditorWindow);
+				this.mLastClipboardUpdateCommand = COPY;
 				break;
 			case 'cmd_paste':
 				var focusNode = this.base.selection.focusNode;
@@ -1106,8 +841,20 @@ aspNetEditor.prototype =
 					this.selectControl (controlId);
 				}
 				this.collapseBeforeInsertion ("end");
-				if(this.mNsIEditor.canPaste (1))
-					this.mNsIEditor.paste (1);
+
+				// We shouldn't paste directlly since there
+				// might be ASP controls in the clipboard.
+				// Get the design-time HTML with proper, new
+				// control ID's from the host, then paste it
+				// and restore the original clipboard content.
+				var content = clip.getClipboard ();
+				var newContent = host.deserializeAndAdd (content);
+				//clip.setClipboard (newContent);
+				//this.mNsICommandManager.doCommand (PASTE,
+							//null,
+							//this.mEditorWindow);
+				//clip.setClipboard (content);
+
 				break;
 			default:
 				this.mNsICommandManager.doCommand (aCommand,
@@ -1307,6 +1054,26 @@ aspNetEditor.prototype =
 		}
 		return null;
 	},
+
+	clone: function (aObj)
+	{
+		var clone = {};
+		for (var i in aObj) {
+			if(typeof aObj [i] == OBJECT)
+				clone [i] = this.clone (aObj [i]);
+			else
+				clone [i] = aObj [i];
+		}
+		return clone;
+	},
+
+	cancelTableOverrideStyle: function (aTables)
+	{
+		var table;
+		while((table = aTables.nextNode ()) != null) {
+			table.setAttribute ('cancelUI', 'true');
+		}
+	},
 };
 
 //* ___________________________________________________________________________
@@ -1359,11 +1126,20 @@ function handleDragStart(aEvent) {
 }
 
 function handleDrop(aEvent) {
-	//Nothing special here for now
+	try {
+		//var tmp = aEvent.
+		//var evt = document.createEvent('UIEvents');
+		//evt.initMouseEvent("dragdrop", true, true, editor.editorWindow,
+			//1, 10, 50, 10, 50, false, false, false, false, 0, editor.base.rootElement);
+		aEvent.stopPropagation ();
+		aEvent.preventDefault ();
+		editor.base.insertFromDrop (aEvent);
+		editor.base.setShouldTxnSetSelection (false);
+	} catch (e) {alert (e)}
 }
 
 function handleSingleClick(aButton, aTarget) {
-	if(!gCancelClick) {
+	if(!editor.cancelClick) {
 		control =
 			editor.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
 						aTarget);
@@ -1383,15 +1159,15 @@ function handleSingleClick(aButton, aTarget) {
 
 function detectSingleClick(aEvent)
 {
-	gCancelClick = false;
+	editor.cancelClick = false;
 	var button = aEvent.button;
 	var target = aEvent.target;
-	setTimeout (function() { handleSingleClick(button, target); }, 300);
+	setTimeout (function() { handleSingleClick(button, target); }, 100);
 }
 
 function detectDoubleClick(aEvent)
 {
-	gCancelClick = true;
+	editor.cancelClick = true;
 	control = editor.base.getElementOrParentByTagName (CONTROL_TAG_NAME,
 					aEvent.target);
 	var controlId =
@@ -1399,7 +1175,7 @@ function detectDoubleClick(aEvent)
 
 
 	host.click (DOUBLE_CLICK, controlId);
-	//alert (editor.getPage ());
+	alert (editor.getPage ());
 }
 
 function handleContextMenu(aEvent)
@@ -1545,6 +1321,24 @@ function handleKeyPress(aEvent) {
 			aEvent.preventDefault ();
 		}
 	}
+}
+
+function handleClipboardUpdate() {
+	var content = clip.getClipboard ();
+	content = editor.transformBeforeOutput (content, false);
+
+	alert (clip.getClipboard ());
+	var newContent = host.serialize (content);
+	clip.setClipboard (newContent);
+	alert (clip.getClipboard ());
+}
+
+// Define a NodeFilter function to accept only <table> elements
+function tableFilter(aNode) {
+	if (aNode.tagName.toLowerCase () == TABLE)
+		return NodeFilter.FILTER_ACCEPT;
+	else
+		return NodeFilter.FILTER_SKIP;
 }
 
 function dump(aTxtAppend) {
