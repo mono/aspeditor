@@ -1,0 +1,3 @@
+2005-10-5  Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* Makefile.am: Added .js files from Blago's reorganisation to the chrome deployment
