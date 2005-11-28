@@ -53,6 +53,9 @@ namespace AspNetEdit.Editor.Persistence
 		{
 			//create the object
 			if (type.GetInterface ("System.ComponentModel.IComponent") != null)
+				//note: this automatically adds to parent's container, as some controls
+				//need to be sited e.g. if they use site dictionaries
+				//TODO: should this action be passed up the tree so controls can intercept?
 				obj = base.DesignerHost.CreateComponent (type, attributes["ID"] as string);
 			else
 				obj = Activator.CreateInstance (type);
@@ -194,13 +197,12 @@ namespace AspNetEdit.Editor.Persistence
 			//FIME: what if it isn't?
 			if (obj is Control)
 				base.AddText ( Document.RenderDesignerControl ((Control)obj));
-			//base.AddControl (obj);
+			base.AddControl (obj);
 			return base.CloseObject (closingTagText);
 		}
 
 		public override ParsingObject CreateChildParsingObject (ILocation location, string tagid, TagAttributes attributes)
 		{
-			
 			switch (mode) {
 				case ParseChildrenMode.DefaultProperty:
 					//oops, we didn't need to tokenise this.

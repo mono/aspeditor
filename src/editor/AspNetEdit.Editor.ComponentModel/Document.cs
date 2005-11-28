@@ -262,7 +262,6 @@ namespace AspNetEdit.Editor.ComponentModel
 			
 			foreach (Control c in controls) {
 				OnInitMethodInfo.Invoke (c, new object[] {EventArgs.Empty});
-				host.Container.Add (c);
 			}
 			
 			return document;

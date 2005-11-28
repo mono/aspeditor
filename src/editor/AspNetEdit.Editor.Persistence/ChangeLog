@@ -1,0 +1,3 @@
+2005-11-28 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* ServerControlParsingObject.cs: Add child collection objects to parent control

@@ -1,0 +1,3 @@
+2005-11-28 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* Document.cs, DesignerHost.cs: avoid duplicating controls in container when loading and unloading

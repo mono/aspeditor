@@ -77,6 +77,7 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		public IComponent CreateComponent (Type componentClass, string name)
 		{
+			Console.WriteLine("Attempting to create component "+name);
 			//check arguments
 			if (componentClass == null)
 				throw new ArgumentNullException ("componentClass");
@@ -93,9 +94,10 @@ namespace AspNetEdit.Editor.ComponentModel
 			container.Add (component, name);
 
 			//add to document, unless loading
-			((Control)RootComponent).Controls.Add ((Control) component);
-			if (RootDocument != null)
+			if (RootDocument != null) {
+				((Control)RootComponent).Controls.Add ((Control) component);
 				RootDocument.AddControl ((Control)component);
+			}
 			
 			//select it
 			ISelectionService sel = this.GetService (typeof (ISelectionService)) as ISelectionService;
@@ -126,16 +128,16 @@ namespace AspNetEdit.Editor.ComponentModel
 			if (found) sel.SetSelectedComponents (null);
 						
 			if (component != RootComponent) {
-				//remove from component and dcument
+				//remove from component and document
 				((Control) RootComponent).Controls.Remove ((Control) component);
 				RootDocument.RemoveControl ((Control)component);
 			}
 
-			//remove from container
-			container.Remove (component);
+			//remove from container if still sited
+			if (component.Site != null)
+				container.Remove (component);
+			
 			component.Dispose ();
-			
-			
 		}
 
 		public IDesigner GetDesigner (IComponent component)

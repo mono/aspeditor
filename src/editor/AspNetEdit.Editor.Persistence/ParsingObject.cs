@@ -62,7 +62,7 @@ namespace AspNetEdit.Editor.Persistence
 		}
 
 		/// <summary>
-		/// Adds control to collection. Default implementation passes it up the tree.
+		/// Adds control to collection. Default implementation passes it up the tree towards RootParsingObject.
 		/// </summary>
 		protected virtual void AddControl (object control)
 		{
