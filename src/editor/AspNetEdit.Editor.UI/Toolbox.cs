@@ -41,11 +41,10 @@ namespace AspNetEdit.Editor.UI
 	public class Toolbox : ScrolledWindow
 	{
 		private ServiceContainer parentServices;
-		Hashtable expanders = new Hashtable ();
-		private VBox vbox;
 		ToolboxService toolboxService;
-
-
+		TreeStore treeStore;
+		TreeView treeView;
+		
 		public Toolbox(ServiceContainer parentServices)
 		{
 			this.parentServices = parentServices;
@@ -56,259 +55,220 @@ namespace AspNetEdit.Editor.UI
 				toolboxService = new ToolboxService ();
 				parentServices.AddService (typeof (IToolboxService), toolboxService);
 			}
+						
+			//Initialise model
+			treeStore = new TreeStore (	typeof (ToolboxItem),	//the item
+										typeof (Gdk.Pixbuf),	//its icon
+										typeof (string),		//the name label
+										typeof (int),			//weight, to highlight categories
+										typeof (Gdk.Color),		//bgcolor, to highlight categories
+										typeof (bool),			//visible, to hide icons for categories
+										typeof (bool));			//expandable, to hide expander
+										
+
 			
-			toolboxService.ToolboxChanged += new EventHandler (tbsChanged);
-
+			//initialise view
+			treeView = new TreeView (treeStore);
+			treeView.Selection.Mode = SelectionMode.Single;
+			treeView.HeadersVisible = false;
+			
+			//cell renderers
+			CellRendererPixbuf pixbufRenderer = new CellRendererPixbuf ();
+			CellRendererText textRenderer = new CellRendererText ();
+			textRenderer.Ellipsize = Pango.EllipsizeMode.End;
+			
+			//Main column with text, icons
+			TreeViewColumn col = new TreeViewColumn ();
+			
+			col.PackStart (pixbufRenderer, false);
+			col.SetAttributes (pixbufRenderer, "pixbuf", 1, "visible", 5, "cell-background-gdk", 4);
+			
+			col.PackEnd (textRenderer, true);
+			col.SetAttributes (textRenderer, "text", 2, "weight", 3, "cell-background-gdk", 4);
+			
+			treeView.AppendColumn (col);
+			
+			//Initialise self
 			base.VscrollbarPolicy = PolicyType.Automatic;
-			base.HscrollbarPolicy = PolicyType.Automatic;
+			base.HscrollbarPolicy = PolicyType.Never;
 			base.WidthRequest = 150;
-
-			vbox = new VBox ();
-			base.AddWithViewport (vbox);
+			base.AddWithViewport (treeView);
+			
+			//events
+			treeView.Selection.Changed += OnSelectionChanged;
+			treeView.RowActivated  += OnRowActivated;
+			
+			//update view when toolbox service updated
+			toolboxService.ToolboxChanged += new EventHandler (tbsChanged);
+			//toolboxService
+			Refresh ();
 		}
 		
-		public void tbsChanged (object sender, EventArgs e)
+		private void tbsChanged (object sender, EventArgs e)
 		{
-			UpdateCategories ();
+			Refresh ();
 		}
 		
-
 		#region GUI population
-
-		public void UpdateCategories ()
+		
+		public void Refresh ()
+		{
+			Repopulate (true);
+		}
+		
+		private void Repopulate	(bool categorised)
 		{
 			//get the services we need
 			IDesignerHost host = parentServices.GetService (typeof (IDesignerHost)) as IDesignerHost;
 			IToolboxService toolboxService = parentServices.GetService (typeof (IToolboxService)) as IToolboxService;
-			if (toolboxService == null || host == null) {
-				expanders.Clear ();
-				return;
-			}
-
-			CategoryNameCollection catNames = toolboxService.CategoryNames;
-
-			//clear out old categories
-			foreach (string name in expanders.Keys)
-			{
-				if (!catNames.Contains (name))
-					expanders.Remove (name);
-				vbox.Remove ((Expander) (expanders[name]));
-			}
-
-			//create expanders for new ones
-			foreach (string name in catNames) {
-				if (!expanders.ContainsKey (name))
-				{
-					Expander exp = new Expander ("<b>"+name+"</b>");
-					((Label) exp.LabelWidget).UseMarkup = true;
-					exp.Expanded = false;
-					exp.Add (new VBox());
-					expanders[name] = exp;
+			if (toolboxService == null || host == null) return;
+			
+			treeStore.Clear ();
+			
+			ToolboxItemCollection tools;
+			ToolboxItem[] toolsArr;
+			
+			if (categorised) {
+				CategoryNameCollection catNames = toolboxService.CategoryNames;
+				
+				foreach (string name in catNames) {				
+					tools = toolboxService.GetToolboxItems (name, host);
+					toolsArr = new ToolboxItem [tools.Count];
+					tools.CopyTo (toolsArr, 0);
+					Array.Sort (toolsArr, new SortByName ());
+					
+					AddToStore (name, toolsArr);
 				}
 			}
-
-			//repopulate all of the categories
-			foreach (string name in expanders.Keys)
-			{
-				vbox.PackStart ((Expander) (expanders[name]), false, false, 0);
-				ResetCategory (name);
+			else {
+				tools = toolboxService.GetToolboxItems (host);
+				
+				toolsArr = new ToolboxItem [tools.Count];
+				tools.CopyTo (toolsArr, 0);
+				Array.Sort (toolsArr, new SortByName ());
+				
+				AddToStore (toolsArr);
 			}
-
-			EventBox bottomWidget = new EventBox ();
-			bottomWidget.CanFocus = true;
-			vbox.PackEnd (bottomWidget, true, true, 0);
 		}
 		
-		public void ResetCategory (string category)
+		private void AddToStore (ToolboxItem[] items)
 		{
-			if (!expanders.ContainsKey(category))
-				return;
-
-			//get the services we need
-			IDesignerHost host = parentServices.GetService (typeof (IDesignerHost)) as IDesignerHost;
-			if (host == null) {
-				expanders.Clear ();
-				return;
+			foreach (ToolboxItem item in items) {
+				Gdk.Pixbuf icon = (item.Bitmap == null)?
+					this.RenderIcon (Stock.MissingImage, IconSize.SmallToolbar, string.Empty)
+					:ImageToPixbuf (item.Bitmap);
+					
+				treeStore.AppendValues (item, icon, "Hello" , 400, base.Style.Base (Gtk.StateType.Normal), true, false);
 			}
-			
-			//kill existing items
-			VBox vb = new VBox ();
-			((Expander) (expanders[category])).Child.Destroy ();
-			((Expander) (expanders[category])).Child = vb;
-			
-
-			//get the items and add them all
-			ToolboxItemCollection tools = toolboxService.GetToolboxItems (category, host);
-			
-			ToolboxItem[] toolsArr = new ToolboxItem[tools.Count];
-			tools.CopyTo (toolsArr, 0);
-			Array.Sort (toolsArr, new SortByName ());
-			
-			foreach (ToolboxItem item in toolsArr) {
-				ToolboxItemBox itemBox = new ToolboxItemBox (item);
-				itemBox.ButtonReleaseEvent += new ButtonReleaseEventHandler (itemBox_ButtonReleaseEvent);
-				itemBox.ButtonPressEvent += new ButtonPressEventHandler (itemBox_ButtonPressEvent);
-				itemBox.MotionNotifyEvent += new MotionNotifyEventHandler (itemBox_MotionNotifyEvent);
-				vb.PackEnd (itemBox, false, false, 0);
-			}
-			
-			vb.ShowAll ();
 		}
 		
+		private void AddToStore (string category, ToolboxItem[] items)
+		{
+			TreeIter parent = treeStore.AppendValues (null, null, category, 600, base.Style.Base (Gtk.StateType.Insensitive), false, true);
+			
+			foreach (ToolboxItem item in items) {
+				Gdk.Pixbuf icon = (item.Bitmap == null)?
+					this.RenderIcon (Stock.MissingImage, IconSize.SmallToolbar, string.Empty)
+					:ImageToPixbuf (item.Bitmap);
+				
+				
+				
+				treeStore.AppendValues (parent, item, icon, item.DisplayName, 400, base.Style.Base (Gtk.StateType.Normal), true, false);
+			}
+		}
+				
 		private class SortByName : IComparer
 		{
-			public int Compare(object x, object y)
+			public int Compare (object x, object y)
 			{
 				return ((ToolboxItem) y).DisplayName.CompareTo (((ToolboxItem) x).DisplayName);
 			}
 		}
-
-		#endregion
-
-		#region Click handlers, drag'n'drop source, selection state
-
-		public const string DragDropIdentifier = "aspnetedit_toolbox_item";
-		private const double DragSensitivity = 1;
-
-		private ToolboxItemBox selectedBox;
-
-		uint lastClickTime = 0;
-		bool dndPrimed;
-		double dndX, dndY;
-
-		void itemBox_ButtonPressEvent (object o, ButtonPressEventArgs args)
+		
+		private Gdk.Pixbuf ImageToPixbuf (System.Drawing.Image image)
 		{
-			if (args.Event.Type != Gdk.EventType.ButtonPress)
-				return;
-
-			//TODO: context menu for manipulation of items
-			if (args.Event.Button != 1)
-				return;
-
-			ToolboxItem item = ((ToolboxItemBox) o).ToolboxItem;
-
-			//get the services
-			DesignerHost host = parentServices.GetService (typeof (IDesignerHost)) as DesignerHost;
-			IToolboxService toolboxService = parentServices.GetService (typeof (IToolboxService)) as IToolboxService;
-			if (toolboxService == null || host == null)
-				return;
-
-			if (selectedBox == (ToolboxItemBox) o) {
-				//check for doubleclick and create an item
-				if (toolboxService.GetSelectedToolboxItem (host) == item) {
-					if (args.Event.Time - lastClickTime <= Settings.DoubleClickTime) {
+			using (System.IO.MemoryStream stream = new System.IO.MemoryStream ()) {
+				image.Save (stream, System.Drawing.Imaging.ImageFormat.Tiff);
+				stream.Position = 0;
+				return new Gdk.Pixbuf (stream);
+			}
+		}
+		
+		#endregion
+		
+		#region Click handlers, drag'n'drop source, selection state
+		
+		private void OnSelectionChanged (object sender, EventArgs e) {
+			TreeModel model;
+			TreeIter iter;
+			
+			if (treeView.Selection.GetSelected (out model, out iter)) {
+				ToolboxItem item = (ToolboxItem) model.GetValue (iter, 0);
+				
+				//if (item == null) return; //is category
+				
+				//get the services
+				DesignerHost host = parentServices.GetService (typeof (IDesignerHost)) as DesignerHost;
+				IToolboxService toolboxService = parentServices.GetService (typeof (IToolboxService)) as IToolboxService;
+				if (toolboxService == null || host == null)	return;
+				
+				toolboxService.SetSelectedToolboxItem (item);
+			}
+		}
+		
+		private void OnRowActivated (object sender, RowActivatedArgs e) {
+			TreeModel model;
+			TreeIter iter;
+			
+			if (treeView.Selection.GetSelected (out model, out iter)) {
+				ToolboxItem item = (ToolboxItem) model.GetValue (iter, 0);
+				
+				//get the services
+				DesignerHost host = parentServices.GetService (typeof (IDesignerHost)) as DesignerHost;
+				IToolboxService toolboxService = parentServices.GetService (typeof (IToolboxService)) as IToolboxService;
+				if (toolboxService == null || host == null)	return;
+				
+				toolboxService.SetSelectedToolboxItem (item);
+				
+				if (item == null) return; //is category
+				
+				//web controls have sample HTML that need to be deserialised
+				//TODO: Fix WebControlToolboxItem so we don't have to mess around with type lookups and attributes here					
+				if (item.AssemblyName != null && item.TypeName != null) {
+					//look up and register the type
+					ITypeResolutionService typeRes = host.GetService(typeof(ITypeResolutionService)) as ITypeResolutionService;
+					if (typeRes == null)
+						throw new Exception("Host does not provide an ITypeResolutionService");
 					
-						//web controls have sample HTML that need to be deserialised
-						//TODO: Fix WebControlToolboxItem so we don't have to mess around with type lookups and attributes here					
-						if (item.AssemblyName != null && item.TypeName != null) {
-							//look up and register the type
-							ITypeResolutionService typeRes = host.GetService(typeof(ITypeResolutionService)) as ITypeResolutionService;
-							if (typeRes == null)
-								throw new Exception("Host does not provide an ITypeResolutionService");
-						
-							typeRes.ReferenceAssembly (item.AssemblyName);					
-							Type controlType = typeRes.GetType (item.TypeName, true);
-						
-							//read the WebControlToolboxItem data from the attribute
-							AttributeCollection atts = TypeDescriptor.GetAttributes (controlType);
-							System.Web.UI.ToolboxDataAttribute tda = (System.Web.UI.ToolboxDataAttribute) atts[typeof(System.Web.UI.ToolboxDataAttribute)];
+					typeRes.ReferenceAssembly (item.AssemblyName);					
+					Type controlType = typeRes.GetType (item.TypeName, true);
+					
+					//read the WebControlToolboxItem data from the attribute
+					AttributeCollection atts = TypeDescriptor.GetAttributes (controlType);
+					System.Web.UI.ToolboxDataAttribute tda = (System.Web.UI.ToolboxDataAttribute) atts[typeof(System.Web.UI.ToolboxDataAttribute)];
+					
+					//if it's present
+					if (tda != null && tda.Data.Length > 0) {
+						//look up the tag's prefix and insert it into the data						
+						System.Web.UI.Design.IWebFormReferenceManager webRef = host.GetService (typeof (System.Web.UI.Design.IWebFormReferenceManager)) as System.Web.UI.Design.IWebFormReferenceManager;
+						if (webRef == null)
+							throw new Exception("Host does not provide an IWebFormReferenceManager");
+						string aspText = String.Format (tda.Data, webRef.GetTagPrefix (controlType));
+						System.Diagnostics.Trace.WriteLine ("Toolbox processing ASP.NET item data: " + aspText);
 							
-							//if it's present
-							if (tda != null && tda.Data.Length > 0) {
-								//look up the tag's prefix and insert it into the data						
-								System.Web.UI.Design.IWebFormReferenceManager webRef = host.GetService (typeof (System.Web.UI.Design.IWebFormReferenceManager)) as System.Web.UI.Design.IWebFormReferenceManager;
-								if (webRef == null)
-									throw new Exception("Host does not provide an IWebFormReferenceManager");
-								string aspText = String.Format (tda.Data, webRef.GetTagPrefix (controlType));
-								System.Diagnostics.Trace.WriteLine ("Toolbox processing ASP.NET item data: " + aspText);
-							
-								//and add it to the document
-								host.RootDocument.DeserializeAndAdd (aspText);
-								toolboxService.SelectedToolboxItemUsed ();
-								return;
-							}
-						}
-
-						//No ToolboxDataAttribute? Get the ToolboxItem to create the components itself
-						item.CreateComponents (host);
-						
+						//and add it to the document
+						host.RootDocument.DeserializeAndAdd (aspText);
 						toolboxService.SelectedToolboxItemUsed ();
 						return;
 					}
 				}
+				
+				//No ToolboxDataAttribute? Get the ToolboxItem to create the components itself
+				item.CreateComponents (host);
+				
+				toolboxService.SelectedToolboxItemUsed (); 
 			}
-			else {
-				//select item
-				if (selectedBox != null) {
-					selectedBox.DragDataGet -= selectedBox_DragDataGet;
-					selectedBox.Deselect ();
-				}
-
-				selectedBox = (ToolboxItemBox)o;
-				selectedBox.Select ();
-				selectedBox.DragDataGet += new DragDataGetHandler (selectedBox_DragDataGet);
-				toolboxService.SetSelectedToolboxItem (item);
-			}
-
-			lastClickTime = args.Event.Time;
-			dndPrimed = true;
-			dndX = args.Event.X;
-			dndY = args.Event.Y;
-		}
-
-		void selectedBox_DragDataGet (object o, DragDataGetArgs args)
-		{
-			ToolboxItemBox itemBox = (ToolboxItemBox) o;
-			
-			TextToolboxItem textItem = itemBox.ToolboxItem as TextToolboxItem;
-			
-			if (textItem != null)
-				args.SelectionData.Text = textItem.Text;
-			else
-				args.SelectionData.Text = (string) toolboxService.SerializeToolboxItem (itemBox.ToolboxItem);
-		}
-
-		void itemBox_ButtonReleaseEvent (object sender, ButtonReleaseEventArgs args)
-		{
-			dndPrimed = false;
-		}
-
-		void itemBox_MotionNotifyEvent (object o, MotionNotifyEventArgs args)
-		{
-			if (!dndPrimed 
-				|| Math.Abs (args.Event.X - dndX) < DragSensitivity 
-				|| Math.Abs (args.Event.Y - dndY) < DragSensitivity)
-				return;
-
-			ToolboxItemBox itemBox = (ToolboxItemBox) o;
-
-			TargetEntry te;
-			
-			if (itemBox.ToolboxItem is TextToolboxItem)
-				te = new TargetEntry ("text/plain", TargetFlags.App, 0);
-			else
-				te = new TargetEntry (DragDropIdentifier, TargetFlags.App, 0);
-			
-			
-			TargetList tl = new TargetList (new TargetEntry[] { te } );
-			
-			Gdk.DragContext context = Drag.Begin (itemBox,  tl, Gdk.DragAction.Copy, 1, args.Event);
-
-			Image im = itemBox.Image;
-			switch (im.StorageType)
-			{
-				case ImageType.Stock:
-					Drag.SetIconStock (context, im.Stock, 0, 0);
-					break;
-				case ImageType.Pixmap:
-					Drag.SetIconPixmap (context, im.Colormap, im.Pixmap, im.Mask, 0, 0);
-					break;
-				case ImageType.Pixbuf:
-					Drag.SetIconPixbuf (context, im.Pixbuf, -8, -8);
-					break;
-			}
-		}
-
-		#endregion
+		}	
+		#endregion	
 	}
 }
