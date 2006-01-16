@@ -183,7 +183,7 @@ namespace AspNetEdit.Editor.UI
 		
 		internal void RenameControl (string oldName, string newName)
 		{
-			throw new NotImplementedException ();
+			throw new NotImplementedException ("Renaming controls not supported yet");
 		}
 		
 		internal string GetDocument ()

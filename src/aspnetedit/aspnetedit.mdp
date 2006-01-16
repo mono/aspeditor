@@ -16,12 +16,14 @@
   <DeploymentInformation strategy="File">
     <excludeFiles>
       <ExcludeFile file="./AssemblyInfo.cs.in" />
+      <ExcludeFile file="./ChangeLog" />
     </excludeFiles>
   </DeploymentInformation>
   <Contents>
     <File name="./SampleHost.cs" subtype="Code" buildaction="Compile" />
     <File name="./AssemblyInfo.cs" subtype="Code" buildaction="Compile" />
     <File name="./AssemblyInfo.cs.in" subtype="Code" buildaction="Exclude" />
+    <File name="./ChangeLog" subtype="Code" buildaction="Exclude" />
   </Contents>
   <References>
     <ProjectReference type="Project" localcopy="True" refto="editor" />

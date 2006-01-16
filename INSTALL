@@ -5,7 +5,7 @@ You will need:
 	Gtk# 2.5.5.99
 	Gecko# 0.10
 	GCC 3.3
-	Gtk+ 2.6.4 + developer headers
+	Gtk+ 2.6 + developer headers
 	Mozilla 1.7.10 + developer headers
 
 Newer versions should work; if they don't, it's a bug.
@@ -34,7 +34,7 @@ You can run AspNetEdit out of the build directory with the command
 
 make run
 
-However, the Mozilla extension must be installed first, so this command is only useful for running updated builds of the Mono-based components without reinstalling the whole application.
+However, the Mozilla extension *must* be installed first, so this command is only useful for running updated builds of the Mono-based components without reinstalling the whole application.
 
 
 

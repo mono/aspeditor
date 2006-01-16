@@ -1,3 +1,8 @@
+2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* ToolboxItem.cs: cleanup redundant file
+	* RootDesignerView.cs: make exception more informative
+
 2005-11-28 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* Toolbox.cs: initial migration to GTK# TreeView

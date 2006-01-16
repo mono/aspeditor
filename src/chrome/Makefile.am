@@ -1,6 +1,6 @@
 packagename = aspdesigner
 chromedir = $(MOZILLA_HOME)/chrome/$(packagename)
-chrome_install_file = /var/lib/mozilla/chrome/installed-chrome.txt
+chrome_install_file = $(MOZILLA_HOME)/chrome/installed-chrome.txt
 chrome_install_text =	"content,install,url,resource:/chrome/aspdesigner/content/"		\
 			"locale,install,url,resource:/chrome/aspdesigner/locale/en-US/"
 
@@ -23,12 +23,11 @@ locale_files =	\
 		$(srcdir)/locale/contents.rdf
 
 install-data-hook:
-	if test -f $(chrome_install_file); then f=$(chrome_install_file); else f=/opt/mozilla/lib/chrome/installed-chrome.txt; fi; \
-	cp $$f /tmp/chrome.old; \
-	sudo bash -c "sed -e'/aspdesigner/d' /tmp/chrome.old > $$f"; \
+	cp $(INSTALLED_CHROME) /tmp/chrome.old; \
+	sudo bash -c "sed -e'/aspdesigner/d' /tmp/chrome.old > $(INSTALLED_CHROME)"; \
 	for CHRM in $(chrome_install_text); do \
-		cp $$f /tmp/chrome.old; \
-		sudo bash -c "sed -e'\$$a$$CHRM' /tmp/chrome.old > $$f"; \
+		cp $(INSTALLED_CHROME) /tmp/chrome.old; \
+		sudo bash -c "sed -e'\$$a$$CHRM' /tmp/chrome.old > $(INSTALLED_CHROME)"; \
 		rm /tmp/chrome.old; \
 	done;
 

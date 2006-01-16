@@ -16,6 +16,10 @@
   <DeploymentInformation strategy="File">
     <excludeFiles>
       <ExcludeFile file="./AssemblyInfo.cs.in" />
+      <ExcludeFile file="./ChangeLog" />
+      <ExcludeFile file="./Resources/ChangeLog" />
+      <ExcludeFile file="./jscallglue/ChangeLog" />
+      <ExcludeFile file="./AspNetEdit.JSCall/ChangeLog" />
     </excludeFiles>
   </DeploymentInformation>
   <Contents>
@@ -27,6 +31,10 @@
     <File name="./Resources/JSCall.js" subtype="Code" buildaction="Exclude" />
     <File name="./jscallglue/README" subtype="Code" buildaction="Exclude" />
     <File name="./jscallglue/jscallglue.cpp" subtype="Code" buildaction="Exclude" />
+    <File name="./ChangeLog" subtype="Code" buildaction="Exclude" />
+    <File name="./AspNetEdit.JSCall/ChangeLog" subtype="Code" buildaction="Exclude" />
+    <File name="./Resources/ChangeLog" subtype="Code" buildaction="Exclude" />
+    <File name="./jscallglue/ChangeLog" subtype="Code" buildaction="Exclude" />
   </Contents>
   <References>
     <ProjectReference type="Gac" localcopy="True" refto="System, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />

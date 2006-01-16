@@ -75,13 +75,23 @@ namespace AspNetEdit.UI.PropertyEditors
 		{
 			//Catching all exceptions is bad, but converter can throw all sorts of exception
 			//with invalid entries. We just want to ignore bad entries.
+			string text = ((Entry) sender).Text;
 			try {
-				string text = ((Entry) sender).Text;
 				//if value was null and new value is empty, leave as null
 				if (!(text == "" && parentRow.PropertyValue== null))
 					parentRow.PropertyValue = parentRow.PropertyDescriptor.Converter.ConvertFromString (((Entry) sender).Text);
 			}
-			catch (Exception ex) { }
+			catch (Exception ex)
+			{
+				//we want to give a helpful error message: even if we ignore these exceptions
+				//most of the time, the error may still be useful when debugging controls
+				System.Diagnostics.Trace.WriteLine (
+					"PropertyGrid String Editor: TypeConverter could not convert string \"" + text +
+					"\" to " + parentRow.PropertyDescriptor.PropertyType.ToString () +
+					" for property \"" + parentRow.PropertyDescriptor.DisplayName + "\".\n" +
+					"Error details: "+ ex.Message
+				);
+			}
 		}
 
 		public override bool DialogueEdit {

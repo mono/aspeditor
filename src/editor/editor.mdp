@@ -16,6 +16,10 @@
   <DeploymentInformation strategy="File">
     <excludeFiles>
       <ExcludeFile file="./AssemblyInfo.cs.in" />
+      <ExcludeFile file="./AspNetEdit.Editor.Persistence/ChangeLog" />
+      <ExcludeFile file="./AspNetEdit.Editor.UI/ChangeLog" />
+      <ExcludeFile file="./ChangeLog" />
+      <ExcludeFile file="./AspNetEdit.Editor.ComponentModel/ChangeLog" />
     </excludeFiles>
   </DeploymentInformation>
   <Contents>
@@ -38,7 +42,6 @@
     <File name="./AspNetEdit.Editor.ComponentModel/WebFormReferenceManager.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.UI/RootDesignerView.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.UI/Toolbox.cs" subtype="Code" buildaction="Compile" />
-    <File name="./AspNetEdit.Editor.UI/ToolboxItemBox.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/Document.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/DocumentDirective.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.Persistence/AspParser.cs" subtype="Code" buildaction="Compile" />
@@ -57,6 +60,11 @@
     <File name="./AspNetEdit.Editor.Persistence/TagAttributes.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.Persistence/TagType.cs" subtype="Code" buildaction="Compile" />
     <File name="./AspNetEdit.Editor.ComponentModel/TextToolboxItem.cs" subtype="Code" buildaction="Compile" />
+    <File name="./ChangeLog" subtype="Code" buildaction="Exclude" />
+    <File name="./AspNetEdit.Editor.ComponentModel/ChangeLog" subtype="Code" buildaction="Exclude" />
+    <File name="./AspNetEdit.Editor.Persistence/ChangeLog" subtype="Code" buildaction="Exclude" />
+    <File name="./AspNetEdit.Editor.UI/ChangeLog" subtype="Code" buildaction="Exclude" />
+    <File name="./AspNetEdit.Editor.UI/ToolboxItemStore.cs" subtype="Code" buildaction="Compile" />
   </Contents>
   <References>
     <ProjectReference type="Project" localcopy="True" refto="jscall" />
@@ -72,5 +80,6 @@
     <ProjectReference type="Gac" localcopy="True" refto="gdk-sharp, Version=2.6.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
     <ProjectReference type="Gac" localcopy="True" refto="gecko-sharp, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ccf7d78a55e9f021" />
     <ProjectReference type="Gac" localcopy="True" refto="atk-sharp, Version=2.6.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <ProjectReference type="Gac" localcopy="True" refto="pango-sharp, Version=2.6.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
   </References>
 </Project>

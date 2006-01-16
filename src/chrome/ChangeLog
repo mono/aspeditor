@@ -1,3 +1,8 @@
+2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* Makefile.am: find installed-chrome.txt in correct location
+
+
 2005-10-5  Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* Makefile.am: Added .js files from Blago's reorganisation to the chrome deployment

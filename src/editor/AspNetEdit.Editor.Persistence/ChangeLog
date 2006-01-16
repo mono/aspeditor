@@ -1,3 +1,7 @@
+2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* DesignTimeParser.cs: Reduce trivial warnings
+
 2005-11-28 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* ServerControlParsingObject.cs: Add child collection objects to parent control

@@ -1,3 +1,8 @@
+2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* config.in, INSTALL: update dependencies for new Toolbox
+	*config.in: check for missing build directories, check for installed_chrome.txt
+
 2005-09-17  Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* INSTALL: updated instructions regarding Mozilla extensions

@@ -1,0 +1,3 @@
+2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* SampleHost.cs: Refresh toolbox - no-one noticed breakage!

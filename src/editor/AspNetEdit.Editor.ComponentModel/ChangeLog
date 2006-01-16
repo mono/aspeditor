@@ -1,3 +1,7 @@
+2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* MenuCommandService.cs, WebFormPage.cs, Document.cs: Reduce trivial warnings
+
 2005-11-28 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* Document.cs, DesignerHost.cs: avoid duplicating controls in container when loading and unloading

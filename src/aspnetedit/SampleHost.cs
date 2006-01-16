@@ -202,7 +202,7 @@ namespace AspNetEdit.SampleHost
 			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"submit\" value=\"submit\" />", "Input [Submit]"), "Html");
 			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"reset\" value=\"reset\" />", "Input [Reset]"), "Html");
 			toolboxService.AddToolboxItem (new TextToolboxItem ("<input type=\"button\" value=\"button\" />", "Input [Button]"), "Html");
-			toolbox.UpdateCategories ();
+			toolbox.Refresh ();
 			
 			#endregion
 			

@@ -44,7 +44,7 @@ namespace AspNetEdit.Editor.ComponentModel
 {
 	internal class WebFormPage : System.Web.UI.Page
 	{
-		private HttpRequest httpRequest;
+		//private HttpRequest httpRequest;
 		
 		public WebFormPage ()
 		{

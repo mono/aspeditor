@@ -116,22 +116,22 @@ namespace AspNetEdit.Editor.Persistence
 					break;
 				case TagType.CodeRender:
 					throw new NotImplementedException ("Code render expressions have not yet been implemented: " + location.PlainText);
-					break;
+					//break;
 				case TagType.CodeRenderExpression:
 					throw new NotImplementedException ("Code render expressions have not yet been implemented: " + location.PlainText);
-					break;
+					//break;
 				case TagType.DataBinding:
 					throw new NotImplementedException("Data binding expressions have not yet been implemented: " + location.PlainText);
-					break;
+					//break;
 				case TagType.Directive:
 					ProcessDirective (tagid, attributes);
 					break;
 				case TagType.Include:
 					throw new NotImplementedException ("Server-side includes have not yet been implemented: " + location.PlainText);
-					break;
+					//break;
 				case TagType.ServerComment:
 					throw new NotImplementedException ("Server comments have not yet been implemented: " + location.PlainText);
-					break;
+					//break;
 				case TagType.Tag:
 					//TODO: don't do this for XHTML
 					if ((string.Compare (tagid, "br", true) == 0)
@@ -149,7 +149,7 @@ namespace AspNetEdit.Editor.Persistence
 					break;
 				case TagType.Text:
 					throw new NotImplementedException("Text tagtypes have not yet been implemented: " + location.PlainText);
-					break;
+					//break;
 			}
 		}
 

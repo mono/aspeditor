@@ -105,7 +105,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			// Delegate doesn't accept the data pointer...?!
 			this.x = x;
 			this.y = y;
-			contextMenu.Popup(null, null, new MenuPositionFunc (positionFunc), new System.IntPtr (), 2, Gtk.Global.CurrentEventTime); 
+			contextMenu.Popup(null, null, new MenuPositionFunc (positionFunc), 2, Gtk.Global.CurrentEventTime);
 		}
 
 		private void positionFunc (Gtk.Menu menu, out int x, out int y, out bool pushIn)

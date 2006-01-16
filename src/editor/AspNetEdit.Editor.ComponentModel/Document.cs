@@ -77,10 +77,10 @@ namespace AspNetEdit.Editor.ComponentModel
 				this.document = DeserializeAndAdd (reader.ReadToEnd ());
 			}
 			catch (ParseException ex) {
-				this.document = string.Format ("<html><head></head><body><h1>{0}</h1><p>{1}</p></body></html>", ex.Title, ex.Message);
+				this.document = ConstructErrorDocument (ex.Title, ex.Message);
 			}
 			catch (Exception ex) {
-				this.document = string.Format ("<html><head></head><body><h1>{0}</h1><p>{1}</p><p>{2}</p></body></html>", "Error loading document", ex.Message, ex.StackTrace);
+				this.document = ConstructErrorDocument ("Error loading document", ex.Message + ex.StackTrace);
 			}
 
 			GetView ();
@@ -367,7 +367,7 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		#endregion
 
-		private string ErrorDocument(string errorTitle, string errorDetails)
+		private string ConstructErrorDocument (string errorTitle, string errorDetails)
 		{
 			return "<html><body fgcolor='red'><h1>"
 				+ errorTitle
