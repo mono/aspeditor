@@ -1,3 +1,8 @@
+2006-04-26  Michael Hutchinson <m.j.hutchinson@gmail.com> 
+
+	* ToolboxService.cs: Convert the TooboxItem arrays properly or they become
+	null when empty, and ToolboxItemCollection gets unhappy. 
+
 2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* MenuCommandService.cs, WebFormPage.cs, Document.cs: Reduce trivial warnings

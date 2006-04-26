@@ -151,7 +151,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			
 			ArrayList tools = (ArrayList) categories[category];
 
-			return new ToolboxItemCollection (tools.ToArray () as ToolboxItem[]);
+			return new ToolboxItemCollection ((ToolboxItem[]) tools.ToArray (typeof (ToolboxItem)));
 		}
 
 		public ToolboxItemCollection GetToolboxItems (System.ComponentModel.Design.IDesignerHost host)
@@ -164,7 +164,7 @@ namespace AspNetEdit.Editor.ComponentModel
 					if (toolboxUser.GetToolSupported (tool))
 						tools.Add (tool);
 
-			return new ToolboxItemCollection(tools.ToArray () as ToolboxItem[]);
+			return new ToolboxItemCollection ((ToolboxItem[]) tools.ToArray (typeof (ToolboxItem)));
 		}
 
 		public ToolboxItemCollection GetToolboxItems ()
@@ -174,7 +174,7 @@ namespace AspNetEdit.Editor.ComponentModel
 			foreach (ArrayList arr in categories.Values)
 				tools.AddRange (arr);
 
-			return new ToolboxItemCollection(tools.ToArray () as ToolboxItem[]);
+			return new ToolboxItemCollection ((ToolboxItem[]) tools.ToArray (typeof (ToolboxItem)));
 		}
 
 		public bool IsSupported (object serializedObject, System.ComponentModel.Design.IDesignerHost host)
