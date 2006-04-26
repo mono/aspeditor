@@ -33,6 +33,7 @@ using Gtk;
 using GtkSharp;
 using AspNetEdit.Editor;
 using AspNetEdit.Editor.UI;
+using AspNetEdit.Gui.Toolbox;
 using AspNetEdit.Editor.ComponentModel;
 using System.ComponentModel;
 using System.ComponentModel.Design;

@@ -107,6 +107,12 @@ namespace AspNetEdit.Editor.UI
 				changeService.ComponentAdded += new ComponentEventHandler (changeService_ComponentAdded);
 				changeService.ComponentRemoved += new ComponentEventHandler (changeService_ComponentRemoved);
 				changeService.ComponentRename += new ComponentRenameEventHandler (changeService_ComponentRename);
+				changeService.ComponentChanged += new ComponentChangedEventHandler (changeService_updateValues);
+				/*TODO: should we also monitor these?
+				changeService.ComponentAdding
+				changeService.ComponentChanging
+				changeService.ComponentRemoving
+				*/
 			}
 
 			//get existing components for combo list
@@ -114,6 +120,11 @@ namespace AspNetEdit.Editor.UI
 			if (host != null)
 				foreach (IComponent comp in host.Container.Components)
 					changeService_ComponentAdded(host.Container, new ComponentEventArgs (comp));
+		}
+		
+		void changeService_updateValues (object sender, ComponentChangedEventArgs e)
+		{
+			grid.Refresh ();
 		}
 
 		

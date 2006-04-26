@@ -1,0 +1,10 @@
+2006-04-26  Michael Hutchinson <m.j.hutchinson@gmail.com> 
+
+	* BaseToolboxNode.cs:
+	* CategoryToolboxNode.cs:
+	* ItemToolboxNode.cs:
+	* TextToolboxNode.cs:
+	* Toolbox.cs:
+	* ToolboxItemToolboxNode.cs:
+	* ToolboxStore.cs: Add new NodeStore-based Toolbox
+

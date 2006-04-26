@@ -1,3 +1,8 @@
+2006-04-26  Michael Hutchinson <m.j.hutchinson@gmail.com> 
+
+	* ToolboxItemBox.cs: redundant, deleted
+	* Toolbox.cs: Moved to ../AspNetEdit.Gui.Toolbox as part of redesign
+
 2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* ToolboxItem.cs: cleanup redundant file

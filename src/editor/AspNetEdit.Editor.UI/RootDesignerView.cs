@@ -356,6 +356,9 @@ namespace AspNetEdit.Editor.UI
 			//set the values
 			pdc_w.SetValue (wc, pdc_w.Converter.ConvertFromInvariantString(args[1]));
 			pdc_h.SetValue (wc, pdc_h.Converter.ConvertFromInvariantString(args[2]));
+			
+			System.Diagnostics.Trace.WriteLine (
+				String.Format ("Javascript requesting size change to w:{0} h:{1} for control {2}.", args[1], args[2], args[0]));
 
 			return string.Empty;
 		}
