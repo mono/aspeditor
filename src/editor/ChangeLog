@@ -1,0 +1,4 @@
+2006-04-26  Michael Hutchinson <m.j.hutchinson@gmail.com> 
+
+	* Makefile.am: ToolboxNodeManager.cs is not needed yet, so remove from 
+	build.

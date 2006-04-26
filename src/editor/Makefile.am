@@ -59,7 +59,6 @@ EDITOR_CSFILES =									\
 	$(srcdir)/AspNetEdit.Gui.Toolbox/TextToolboxNode.cs \
 	$(srcdir)/AspNetEdit.Gui.Toolbox/Toolbox.cs \
 	$(srcdir)/AspNetEdit.Gui.Toolbox/ToolboxItemToolboxNode.cs \
-	$(srcdir)/AspNetEdit.Gui.Toolbox/ToolboxNodeManager.cs \
 	$(srcdir)/AspNetEdit.Gui.Toolbox/ToolboxStore.cs
 
 
