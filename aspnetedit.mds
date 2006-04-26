@@ -1,16 +1,16 @@
 <Combine name="aspnetedit" fileversion="2.0">
   <Configurations active="Debug">
     <Configuration name="Debug" ctype="CombineConfiguration">
-      <Entry configuration="Debug" build="True" name="aspnetedit" />
-      <Entry configuration="Debug" build="True" name="editor" />
-      <Entry configuration="Debug" build="True" name="propertygrid" />
-      <Entry configuration="Debug" build="True" name="jscall" />
+      <Entry build="True" name="aspnetedit" configuration="Debug" />
+      <Entry build="True" name="editor" configuration="Debug" />
+      <Entry build="True" name="propertygrid" configuration="Debug" />
+      <Entry build="True" name="jscall" configuration="Debug" />
     </Configuration>
     <Configuration name="Release" ctype="CombineConfiguration">
-      <Entry configuration="Release" build="True" name="aspnetedit" />
-      <Entry configuration="Release" build="True" name="editor" />
-      <Entry configuration="Release" build="True" name="propertygrid" />
-      <Entry configuration="Release" build="True" name="jscall" />
+      <Entry build="True" name="aspnetedit" configuration="Release" />
+      <Entry build="True" name="editor" configuration="Release" />
+      <Entry build="True" name="propertygrid" configuration="Release" />
+      <Entry build="True" name="jscall" configuration="Release" />
     </Configuration>
   </Configurations>
   <StartMode startupentry="aspnetedit" single="True">

@@ -1,0 +1,3 @@
+2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* StringEditor.cs: write helpful trace message after swallowing PropertyConverter failure

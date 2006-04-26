@@ -6,6 +6,7 @@ REWRITE = \
         sed -e "s|\@prefix\@|$(prefix)|g"               \
             -e "s|\@pkglibdir\@|$(pkglibdir)|g"         \
             -e "s|\@bindir\@|$(bindir)|g"		\
+            -e "s|\@MOZILLA_HOME\@|$(MOZILLA_HOME)|g"		\
 	    -e "s|\@MONO\@|$(MONO)|g" 
 
 $(bin_SCRIPTS): $(srcdir)/script.in Makefile

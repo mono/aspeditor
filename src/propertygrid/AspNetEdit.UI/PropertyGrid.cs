@@ -326,7 +326,12 @@ public class PropertyGrid : Gtk.VBox
 		scrolledWindow.AddWithViewport (expanderBox);
 		expanderBox.ShowAll ();
 	}
-
+	
+	//TODO: add more intelligence for editing state etc. Maybe need to know which property has changed, then just update that
+	public void Refresh ()
+	{
+		Populate ();
+	}
 
 	private Table BuildTable (ArrayList arr)
 	{

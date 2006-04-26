@@ -1,0 +1,4 @@
+2006-04-26  Michael Hutchinson <m.j.hutchinson@gmail.com> 
+
+	* PropertyGrid.cs:	Add Refresh method as interim workaround for not being
+	able to track externally changed values of properties.
