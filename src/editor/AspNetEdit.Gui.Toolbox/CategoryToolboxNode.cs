@@ -66,6 +66,18 @@ namespace AspNetEdit.Gui.Toolbox
 			OnChildRemoved (child, pos);
 		}
 		
+		public void Clear ()
+		{
+			for (int i = 0; i < children.Count; i++)
+			{
+				ItemToolboxNode child = (ItemToolboxNode) children[i];
+				child.SetParent (null);
+				OnChildRemoved (child, i);
+			}
+				
+			children.Clear ();
+		}
+		
 		//return true if the search is successful
 		//should remove children if they fail test
 		public override bool Filter (string keyword)

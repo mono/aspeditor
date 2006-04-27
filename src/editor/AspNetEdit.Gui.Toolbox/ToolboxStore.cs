@@ -79,10 +79,14 @@ namespace AspNetEdit.Gui.Toolbox
 			filter = (keyword == null)? "" : keyword.ToLower ();
 			
 			//run filtering on existing nodes if it's a more vicious filter
-			if (filter.IndexOf (oldfilter) > 0) {
+			if (filter.IndexOf (oldfilter) >= 0) {
+				ArrayList toRemove = new ArrayList ();
 				foreach (BaseToolboxNode node in this)
 					if (!node.Filter (filter))
-						base.RemoveNode (node);
+						toRemove.Add (node);
+				//have to remove nodes outside of foreach, or we break things
+				foreach (BaseToolboxNode node in toRemove)
+					base.RemoveNode (node);
 			}
 			//different or shorter filter, so may have to add nodes - rebuild
 			else
@@ -111,7 +115,6 @@ namespace AspNetEdit.Gui.Toolbox
 				}
 				else
 					base.AddNode (node);
-				
 			}
 			
 			if (categorised) {

@@ -44,6 +44,8 @@ namespace AspNetEdit.Gui.Toolbox
 		ToolboxService toolboxService;
 		ToolboxStore store;
 		NodeView nodeView;
+		BaseToolboxNode selectedNode;
+		Hashtable expandedCategories = new Hashtable ();
 		
 		private ScrolledWindow scrolledWindow;
 		private Toolbar toolbar;
@@ -136,6 +138,10 @@ namespace AspNetEdit.Gui.Toolbox
 			toolboxService.ToolboxChanged += new EventHandler (tbsChanged);
 			Refresh ();
 			
+			//track expanded state of nodes
+			nodeView.RowCollapsed += new RowCollapsedHandler (whenRowCollapsed);
+			nodeView.RowExpanded += new RowExpandedHandler (whenRowExpanded);
+			
 			//set initial state
 			filterToggleButton.Active = false;
 			catToggleButton.Active = true;
@@ -165,11 +171,14 @@ namespace AspNetEdit.Gui.Toolbox
 		private void toggleCategorisation (object sender, EventArgs e)
 		{
 			store.SetCategorised (catToggleButton.Active);
+			EnsureState ();
+			
 		}
 		
 		private void filterTextChanged (object sender, EventArgs e)
 		{
 			store.SetFilter (filterEntry.Text);
+			EnsureState ();
 		}
 		
 		#endregion
@@ -194,80 +203,100 @@ namespace AspNetEdit.Gui.Toolbox
 			
 			ArrayList nodes = new ArrayList (tools.Count);
 			
-			foreach (ToolboxItem ti in tools) {
-				nodes.Add (new ToolboxItemToolboxNode (ti));
+			CategoryNameCollection catNames = toolboxService.CategoryNames;
+				
+			foreach (string name in catNames) {				
+				tools = toolboxService.GetToolboxItems (name, host);
+				foreach (ToolboxItem ti in tools) {
+					ToolboxItemToolboxNode node = new ToolboxItemToolboxNode (ti);
+					node.Category = name;
+					nodes.Add (node);
+				}
 			}
 			
 			store.SetNodes (nodes);
-			
-				
-				
-		/*	//get the services we need
-			IDesignerHost host = parentServices.GetService (typeof (IDesignerHost)) as IDesignerHost;
-			IToolboxService toolboxService = parentServices.GetService (typeof (IToolboxService)) as IToolboxService;
-			if (toolboxService == null || host == null) return;
-			
-			treeStore.Clear ();
-			
-			ToolboxItemCollection tools;
-			ToolboxItem[] toolsArr;
-			
-			if (categorised) {
-				CategoryNameCollection catNames = toolboxService.CategoryNames;
-				
-				foreach (string name in catNames) {				
-					tools = toolboxService.GetToolboxItems (name, host);
-					toolsArr = new ToolboxItem [tools.Count];
-					tools.CopyTo (toolsArr, 0);
-					Array.Sort (toolsArr, new SortByName ());
-					
-					AddToStore (name, toolsArr);
+			EnsureState ();
+		}
+		
+		#endregion
+		
+		#region Maintain state
+		
+		private void EnsureState ()
+		{
+			if (store.Categorised) {
+				//LAMESPEC: why can't we just get a TreePath or a count from the NodeStore?
+				TreePath tp = new Gtk.TreePath ("0");
+				CategoryToolboxNode node = (CategoryToolboxNode) store.GetNode (tp);
+				while (node != null) {
+					if (expandedCategories [node.Label] != null)
+						nodeView.ExpandRow (tp, false);
+					tp.Next ();
+					node = (CategoryToolboxNode) store.GetNode (tp);
 				}
 			}
-			else {
-				tools = toolboxService.GetToolboxItems (host);
-				
-				toolsArr = new ToolboxItem [tools.Count];
-				tools.CopyTo (toolsArr, 0);
-				Array.Sort (toolsArr, new SortByName ());
-				
-				AddToStore (toolsArr);
-			}*/
+			
+			if (selectedNode != null) {
+				//LAMESPEC: why oh why is there no easy way to find if a node is in the store?
+				//FIXME: This doesn't survive all store rebuilds, for some reason
+				foreach (BaseToolboxNode b in store)
+					if (b == selectedNode) {
+						nodeView.NodeSelection.SelectNode (selectedNode);
+						break;
+					}
+			}
 		}
+		
+		private void whenRowCollapsed (object o, RowCollapsedArgs rca)
+		{
+			CategoryToolboxNode node =  store.GetNode (rca.Path) as CategoryToolboxNode;
+			if (node != null)
+			        expandedCategories [node.Label] = null;
+		}
+		
+		private void whenRowExpanded (object o, RowExpandedArgs rea)
+		{
+			CategoryToolboxNode node =  store.GetNode (rea.Path) as CategoryToolboxNode;
+			if (node != null)
+				expandedCategories [node.Label] = true;
+		}
+		
 		
 		#endregion
 		
 		#region Activation/selection handlers, drag'n'drop source, selection state
 		
-		private void OnSelectionChanged (object sender, EventArgs e) {
+		private void OnSelectionChanged (object sender, EventArgs e)
+		{
+			selectedNode = nodeView.NodeSelection.SelectedNode as BaseToolboxNode;
 			
-			ItemToolboxNode selected = nodeView.NodeSelection.SelectedNode as ItemToolboxNode;
-			ToolboxItemToolboxNode tb = selected as ToolboxItemToolboxNode;
-			
-			if (tb != null) {
+			if (selectedNode is ToolboxItemToolboxNode) {
 				//get the services
 				DesignerHost host = parentServices.GetService (typeof (IDesignerHost)) as DesignerHost;
 				IToolboxService toolboxService = parentServices.GetService (typeof (IToolboxService)) as IToolboxService;
 				if (toolboxService == null || host == null)	return;
 				
-				//toolboxService.SetSelectedToolboxItem (tb.);
+				toolboxService.SetSelectedToolboxItem (((ToolboxItemToolboxNode) selectedNode).ToolboxItem);
 			}
 		}
 		
 		private void OnRowActivated (object sender, RowActivatedArgs e)
 		{
-			ItemToolboxNode selected = nodeView.NodeSelection.SelectedNode as ItemToolboxNode;
+			ItemToolboxNode activatedNode = store.GetNode(e.Path) as ItemToolboxNode;
 			
-			if (selected == null) return;
-			
-			//get the services
 			DesignerHost host = parentServices.GetService (typeof (IDesignerHost)) as DesignerHost;
 			IToolboxService toolboxService = parentServices.GetService (typeof (IToolboxService)) as IToolboxService;
-			if (toolboxService == null || host == null)	return;
 			
-			//toolboxService.SetSelectedToolboxItem (item);
-			selected.Activate (host);
-			//toolboxService.SelectedToolboxItemUsed ();
+			//toolboxitem needs to trigger extra events from toolboxService
+			if (selectedNode is ToolboxItemToolboxNode) {
+				if (toolboxService == null || host == null)	return;
+				toolboxService.SetSelectedToolboxItem (((ToolboxItemToolboxNode) activatedNode).ToolboxItem);
+				activatedNode.Activate (host);
+				toolboxService.SelectedToolboxItemUsed ();
+			}
+			else {
+				activatedNode.Activate (host);
+			}
 		}	
 		#endregion	
 	}

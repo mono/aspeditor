@@ -38,7 +38,7 @@ namespace AspNetEdit.Gui.Toolbox
 {
 	public class ToolboxItemToolboxNode : ItemToolboxNode
 	{
-		protected ToolboxItem item;
+		private ToolboxItem item;
 		
 		public ToolboxItemToolboxNode (ToolboxItem item)
 		{
@@ -53,6 +53,14 @@ namespace AspNetEdit.Gui.Toolbox
 					.GetType (item.TypeName)
 					.GetCustomAttributes (typeof (System.ComponentModel.CategoryAttribute), true))
 					this.Category = ca.Category;
+		}
+		
+		public ToolboxItem ToolboxItem
+		{
+			get {
+				//TODO: load assembly and then item, if not already done
+				return item;
+			}
 		}
 		
 		#region Behaviours
