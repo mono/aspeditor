@@ -1,5 +1,9 @@
 2006-04-27  Michael Hutchinson <m.j.hutchinson@gmail.com> 
 
+	* CategoryToolboxNode.cs: Make sure we cover all items in filtering loop
+
+2006-04-27  Michael Hutchinson <m.j.hutchinson@gmail.com> 
+
 	* ToolboxItemToolboxNode.cs: Accessor for ToolboxItem.
 	* ToolboxStore.cs: Don't rebuild after blank filter.
 	* CategoryToolboxNode.cs: Add Clear () method to remove all children.

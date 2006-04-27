@@ -91,7 +91,9 @@ namespace AspNetEdit.Gui.Toolbox
 					Remove ((ItemToolboxNode) children[pos]);
 					target --;
 				}
-				pos++;
+				else {
+					pos++;
+				}
 			}
 			
 			return (children.Count > 0);
