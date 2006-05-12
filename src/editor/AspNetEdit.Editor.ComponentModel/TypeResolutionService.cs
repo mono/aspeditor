@@ -76,13 +76,19 @@ namespace AspNetEdit.Editor.ComponentModel
 
 		public Type GetType (string name, bool throwOnError, bool ignoreCase)
 		{
-			Type t = null;
+			//try to get assembly-qualified types
+			Type t = Type.GetType (name, false, ignoreCase);
+			if (t != null) return t;
+			
+			//look in referenced assemblies
 			foreach (Assembly a in referencedAssemblies.Values)
 			{
-				t = a.GetType (name, throwOnError, ignoreCase);
+				t = a.GetType (name, false, ignoreCase);
 				if (t != null) break;
 			}
-
+			
+			if (throwOnError && (t == null))
+					throw new Exception ("The type " + name + "was not found in the referenced assemblies.");
 			return t;
 		}
 

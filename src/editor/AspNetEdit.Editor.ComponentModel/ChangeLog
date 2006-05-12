@@ -1,3 +1,8 @@
+2006-05-12  Michael Hutchinson <m.j.hutchinson@gmail.com> 
+
+	* TypeResolutionService.cs: Don't error out too easily when looking up 
+	types. Also, resolve assembly-qualified type names.
+
 2006-04-26  Michael Hutchinson <m.j.hutchinson@gmail.com> 
 
 	* ToolboxService.cs: Convert the TooboxItem arrays properly or they become
