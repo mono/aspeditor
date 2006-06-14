@@ -40,9 +40,12 @@
 #include <nsIDOMNode.h>
 #include <nsIDOMNodeList.h>
 
+#include <nsIDOMHTMLScriptElement.h>
+
 extern "C"
 {
   int PlaceFunctionCall(GtkMozEmbed *embed, const PRUnichar *call, const PRUnichar *returnto, const PRUnichar *args);
+  int ExecuteScript(GtkMozEmbed *embed, const PRUnichar *script);
 }
 
 
@@ -109,5 +112,48 @@ int PlaceFunctionCall(GtkMozEmbed *embed, const PRUnichar *call, const PRUnichar
     result = jscall->AppendChild(domNodeInfunction, getter_AddRefs(outchild));
     if(NS_FAILED(result) || !jscall) return 9;
     
+    return 0;
+}
+
+// Inspiration from
+// http://kmeleon.cvs.sourceforge.net/kmeleon/k-meleon/BrowserViewUtils.cpp?revision=1.53&view=markup
+int ExecuteScript(GtkMozEmbed *embed, const PRUnichar *script)
+{
+    nsresult result;
+    
+    nsCOMPtr<nsIDOMDocument> doc = GetIDOMDocument(embed);
+    
+    if (doc == NULL)
+        return 1;
+    
+    // Create the script node
+    nsCOMPtr<nsIDOMElement> scriptDOMElement;
+    result = doc->CreateElement(NS_ConvertUTF8toUTF16("script"), getter_AddRefs(scriptDOMElement));
+    if (NS_FAILED(result) || !scriptDOMElement)
+       return 2;
+       
+    // and the content
+    nsCOMPtr<nsIDOMHTMLScriptElement> scriptE = do_QueryInterface(scriptDOMElement);
+    if (!scriptE)
+        return 3;
+
+    scriptE->SetText(nsDependentString(script));
+    scriptE->SetType(NS_ConvertUTF8toUTF16("text/javascript"));
+
+    // find the body node.
+    nsCOMPtr<nsIDOMElement> body;
+    result = doc->GetDocumentElement(getter_AddRefs(body));
+    if (NS_FAILED(result) || !body)
+        return 4;
+
+    // add the element to the body
+    nsCOMPtr<nsIDOMNode> unused;
+    result = body->AppendChild(scriptE, getter_AddRefs(unused));
+    if (NS_FAILED(result))
+        return 5;
+
+    // gecko has executed the element, we can remove it now
+    result = body->RemoveChild(scriptE, getter_AddRefs(unused));
+
     return 0;
 }

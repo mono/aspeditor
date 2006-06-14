@@ -44,6 +44,10 @@ namespace AspNetEdit.JSCall
 			[MarshalAs(UnmanagedType.LPWStr)] string returnto,
 			[MarshalAs(UnmanagedType.LPWStr)] string args);
 		
+		[DllImport ("jscallglue.dll")]
+		static extern int ExecuteScript (IntPtr embed,
+			[MarshalAs(UnmanagedType.LPWStr)] string script);
+		
 		private Hashtable functions;
 		private WebControl webControl;
 
@@ -78,7 +82,7 @@ namespace AspNetEdit.JSCall
 
 			if (returnTo.Length == 0)
 			{
-				string result = clrCall (args);
+				clrCall (args);
 			}
 			else
 			{
@@ -87,7 +91,39 @@ namespace AspNetEdit.JSCall
 			}
 		}
 		
-		
+		public void JSEval (string script)
+		{
+			int result = ExecuteScript (webControl.Handle, script);
+			string err;
+			
+			switch (result)
+			{
+				case 0:
+					return;
+				
+				case 1:
+					err = "Could not obtain IDOMDocument from GtkMozEmbed. Have you shown the window yet?";
+					break;
+				
+				case 2:
+					err = "Could not create script element.";
+					break;
+				
+				case 3:
+					err = "Could not cast script element to nsIDOMHTMLScriptElement.";
+					break;
+				
+				case 4:
+					err = "Could not locate body element.";
+					break;
+					
+				case 5:
+					err = "Could not append script element to body.";
+					break;
+			}
+			
+			throw new Exception ("Glue function ExecuteScript: " + err);
+		}
 
 		public void JSCall (string function, string returnTo, params string[] args)
 		{

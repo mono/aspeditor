@@ -1,0 +1,6 @@
+2006-06-14  Chris Howie <cdhowie@nerdshack.com> 
+
+	* jscallglue/jscallglue.cpp,
+	  AspNetEdit.JSCall/CommandManager.cs:
+	  
+	  Add a method "JSEval" to execute arbitrary JavaScript in the browser.
