@@ -48,14 +48,15 @@ namespace AspNetEdit.JSCall
 		static extern int ExecuteScript (IntPtr embed,
 			[MarshalAs(UnmanagedType.LPWStr)] string script);
 		
-		private Hashtable functions;
+		private Hashtable functions = new Hashtable ();
 		private WebControl webControl;
 
-		public CommandManager (WebControl w)
+		public CommandManager (WebControl control)
 		{
-			functions = new Hashtable();		
-
-			webControl = w;
+			if (control == null)
+				throw new ArgumentNullException ("The Command Manager must be bound to a WebControl instance.", "control");
+			
+			webControl = control;
 			webControl.TitleChange += new EventHandler (webControl_ECMAStatus);	
 		}
 		
@@ -66,7 +67,7 @@ namespace AspNetEdit.JSCall
 			
 			string[] call = webControl.Title.Split ((char)234);
 			if (call.Length < 2)
-				throw new Exception ("Too few parameters in call from JavaScript");
+				throw new Exception ("Too few parameters in call from JavaScript.");
 				
 			string function = call[1];
 			string returnTo = call[2];
@@ -75,7 +76,7 @@ namespace AspNetEdit.JSCall
 			System.Array.Copy (call, 3, args, 0, (call.Length - 3));
 			
 			if (!functions.Contains (function))
-				throw new Exception ("Unknown function name called from JavaScript");
+				throw new Exception ("Unknown function name called from JavaScript.");
 			
 			ClrCall clrCall = (ClrCall) functions[function];
 			
@@ -93,6 +94,9 @@ namespace AspNetEdit.JSCall
 		
 		public void JSEval (string script)
 		{
+			if ((script == null) || (script.Length < 1))
+				throw new ArgumentNullException ("A null or empty script cannot be executed.", "script");
+			
 			int result = ExecuteScript (webControl.Handle, script);
 			string err;
 			
@@ -127,18 +131,20 @@ namespace AspNetEdit.JSCall
 
 		public void JSCall (string function, string returnTo, params string[] args)
 		{
+			if ((function==null) || (function.Length < 1))
+				throw new ArgumentException ("A function name must be specified.", "function");
+				
+			if (returnTo == null) returnTo = string.Empty;
+			
 			string argsOut = String.Empty;
-
-			if (args != null)
-			{
+			
+			if (args != null) {
 				argsOut +=  args[0];
-				for (int i = 1; i <= args.Length - 1; i++)
-				{
+				for (int i = 1; i <= args.Length - 1; i++) {
 					argsOut += (char)234 + args[i];
 				}
 			}
 			
-			if (returnTo == null) returnTo = string.Empty;
 			int result = PlaceFunctionCall (webControl.Handle, function, returnTo, argsOut);
 			
 			string err;
@@ -200,7 +206,7 @@ namespace AspNetEdit.JSCall
 			}
 			else
 			{
-				throw new Exception ("A handler with this name already exists");
+				throw new Exception ("A handler with this name already exists.");
 			}
 
 		}
@@ -213,7 +219,7 @@ namespace AspNetEdit.JSCall
 			}
 			else
 			{
-				throw new IndexOutOfRangeException ("A function with this name has not been registered");
+				throw new IndexOutOfRangeException ("A function with this name has not been registered.");
 			}
 		}
 

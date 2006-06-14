@@ -1,3 +1,8 @@
+2006-06-14  Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* AspNetEdit.JSCall/CommandManager.cs: Null input checking to avoid 
+	segfaults, general cleanup.
+
 2006-06-14  Chris Howie <cdhowie@nerdshack.com> 
 
 	* jscallglue/jscallglue.cpp,
