@@ -27,6 +27,10 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+ 
+//FIXME: uses internal string functions, so have to define this in newer Mozillas
+//But we can only migrate to nsStringAPI.h in FF1.5/Mozilla 1.7+
+#define MOZILLA_INTERNAL_API
 
 #include <gtkmozembed.h>
 #include <gtkmozembed_internal.h>
@@ -41,6 +45,9 @@
 #include <nsIDOMNodeList.h>
 
 #include <nsIDOMHTMLScriptElement.h>
+
+
+
 
 extern "C"
 {

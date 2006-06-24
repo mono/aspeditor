@@ -1,3 +1,9 @@
+2006-06-24  Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* jscallglue/jscallglue.cpp: Fix build on Gecko 1.8+ browsers. Not a
+	long-term solution -- need to re-work Mozilla string conversions to use
+	the new frozen interfaces, but that will break backwards compatibility.
+
 2006-06-14  Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* AspNetEdit.JSCall/CommandManager.cs: Null input checking to avoid 

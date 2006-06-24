@@ -1,3 +1,7 @@
+2006-06-24 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* configure.in: Allow choice of either Firefox or Mozilla
+
 2006-04-26  Michael Hutchinson <m.j.hutchinson@gmail.com> 
 
 	* Makefile.am, script.in: Use the MOZILLA_HOME determined by configure

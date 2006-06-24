@@ -12,8 +12,9 @@ MONO_REQUIRED_VERSION=1.1.9
 GTKSHARP_REQUIRED_VERSION=2.5.5.99
 GECKOSHARP_REQUIRED_VERSION=0.10
 
-GTK_VERSION=2.6.0
-MOZILLA_VERSION=1.6
+m4_define(gtk_required_version,               2.6.0)
+m4_define(mozilla_required_version,           1.6)
+m4_define(firefox_required_version,           1.0)
 
 
 ### Check for pkg-config
@@ -57,22 +58,63 @@ AC_SUBST(MCS_OPTIONS)
 PKG_CHECK_MODULES(GTKSHARP, gtk-sharp-2.0 >= $GTKSHARP_REQUIRED_VERSION)
 PKG_CHECK_MODULES(GECKOSHARP, gecko-sharp-2.0 >= $GECKOSHARP_REQUIRED_VERSION)
 
-### Check c++ dependencies   
-PKG_CHECK_MODULES(JSGLUEDEPS, mozilla-xpcom >= $MOZILLA_VERSION gtk+-2.0 >= $GTK_VERSION mozilla-gtkmozembed >= $MOZILLA_VERSION)
+### Check for C++/Mozilla dependencies (inspired by gnome-python-extras)
+AC_ARG_WITH(gtkmozembed, AS_HELP_STRING(
+                         [--with-gtkmozembed=mozilla|firefox],
+                         [package that provides libgtkmozembed]),
+            [mozpackage=$withval], [mozpackage=any])
 
-### Find the Mozilla directory to install chrome
-MOZILLA_HOME="`$PKG_CONFIG --variable=libdir mozilla-gtkmozembed`"
-AC_SUBST(MOZILLA_HOME)
-
-AC_MSG_CHECKING(for installed-chrome.txt)
-INSTALLED_CHROME="$MOZILLA_HOME/chrome/installed-chrome.txt"
-if test -f "$INSTALLED_CHROME"; then
-	AC_MSG_RESULT(yes)
-	AC_SUBST(INSTALLED_CHROME)
-else
-	AC_MSG_RESULT(no)
-	AC_MSG_ERROR([Your Mozilla installation has an unexpected structure])
+if test $mozpackage = any ; then
+	AC_MSG_CHECKING(for Gecko development files)
+	if $PKG_CONFIG --exists mozilla-gtkmozembed; then
+	    AC_MSG_RESULT([Mozilla detected])
+	    mozpackage=mozilla
+	else
+	    if $PKG_CONFIG --exists firefox-gtkmozembed; then
+	        AC_MSG_RESULT([Firefox detected])
+	        mozpackage=firefox
+	    else
+	        AC_MSG_ERROR([Neither Firefox nor Mozilla development packages were detected])
+	    fi
+	fi
 fi
+
+case $mozpackage in
+     firefox) mozpackage_required_version=firefox_required_version ;;
+     mozilla) mozpackage_required_version=mozilla_required_version ;;
+     *) AC_MSG_ERROR([--with-gtkmozembed argument must be either 'mozilla' or 'firefox'])
+esac
+
+PKG_CHECK_MODULES(JSGLUEDEPS, [$mozpackage-gtkmozembed >= $mozpackage_required_version,
+                               $mozpackage-xpcom >= $mozpackage_required_version
+                               gtk+-2.0                >= gtk_required_version])
+
+
+### Find the Mozilla directory to install chrome, and how we need to install the 
+### chrome -- the installation mechanism changed from FF 1.0 to FF 1.5
+MOZILLA_HOME="`$PKG_CONFIG --variable=libdir $mozpackage-gtkmozembed`"
+
+AC_MSG_CHECKING([method of Mozilla extension installation])
+if test -f "$CHROME_FOLDER/installed-chrome.txt"; then
+	EXTENSION_DIR="$MOZILLA_HOME/chrome"
+	AC_MSG_RESULT([installed-chrome.txt])
+else
+	EXTENSION_DIR="$MOZILLA_HOME/extensions"
+	AC_MSG_RESULT([manifest file])
+fi
+
+###FIXME: we should be able to install this as an extension, not into the chrome, 
+###       but gtkmozembed does not appear to load extensions at all.
+###       This probably needs some permissions-elevating C++ glue, so that the XUL
+###       document can be stored elsewhere on the disc, rather than the profile...
+EXTENSION_DIR="$MOZILLA_HOME/chrome"
+
+AC_SUBST(MOZILLA_HOME)
+AC_SUBST(EXTENSION_DIR)
+
+# get zip to create jar/xpi for chrome
+AC_PATH_PROG(ZIP, zip)
+
 
 ### Create build directories, as tarballs seem to ignore them despite being in svn
 AC_MSG_CHECKING(for build directory)
@@ -108,5 +150,6 @@ echo ""
 echo "   * Installation prefix = $prefix"
 echo "   * C# compiler = $MCS"
 echo "   * C# compiler options = $MCS_OPTIONS"
-echo "   * Mozilla home: $MOZILLA_HOME"
+echo "   * Gecko libraries from:  $mozpackage"
+echo "   * $mozpackage home: $MOZILLA_HOME"
 echo ""

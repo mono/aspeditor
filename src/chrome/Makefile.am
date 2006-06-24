@@ -1,39 +1,71 @@
 packagename = aspdesigner
-chromedir = $(MOZILLA_HOME)/chrome/$(packagename)
+extension_guid="{d7d824a2-030d-11db-9804-b622a1ef5492}"
+chromedir = $(EXTENSION_DIR)
 chrome_install_file = $(MOZILLA_HOME)/chrome/installed-chrome.txt
 chrome_install_text =	"content,install,url,resource:/chrome/aspdesigner/content/"		\
 			"locale,install,url,resource:/chrome/aspdesigner/locale/en-US/"
 
-contentdir = $(chromedir)/content
-content_DATA = $(content_files)
-content_files =	\
-		$(srcdir)/../jscall/Resources/JSCall.js	\
-		$(srcdir)/content/contents.rdf \
-		$(srcdir)/content/editor.xul \
-		$(srcdir)/content/editorContent.css \
-		$(srcdir)/content/editor.js \
-		$(srcdir)/content/clipboard.js \
-		$(srcdir)/content/constants.js \
-		$(srcdir)/content/xpcom.js
+jar_files =	\
+		content/JSCall.js	\
+		content/contents.rdf \
+		content/editor.xul \
+		content/editorContent.css \
+		content/editor.js \
+		content/clipboard.js \
+		content/constants.js \
+		content/xpcom.js \
+		locale/en-US/contents.rdf
 
+xpi_files = \
+		chrome/$(packagename).jar \
+		chrome.manifest \
+		install.rdf
 
-localedir = $(chromedir)/locale/en-US
-locale_DATA = $(locale_files)
-locale_files =	\
-		$(srcdir)/locale/contents.rdf
+all: $(packagename).xpi
 
-install-data-hook:
-	cp $(INSTALLED_CHROME) /tmp/chrome.old; \
-	sudo bash -c "sed -e'/aspdesigner/d' /tmp/chrome.old > $(INSTALLED_CHROME)"; \
-	for CHRM in $(chrome_install_text); do \
-		cp $(INSTALLED_CHROME) /tmp/chrome.old; \
-		sudo bash -c "sed -e'\$$a$$CHRM' /tmp/chrome.old > $(INSTALLED_CHROME)"; \
-		rm /tmp/chrome.old; \
+$(packagename).xpi: $(xpi_files)
+	$(ZIP) -q9 $@ $^
+
+content/JSCall.js: ../jscall/Resources/JSCall.js
+	cp $^ $@
+
+chrome/$(packagename).jar: $(jar_files)
+	-@mkdir -p chrome
+	$(ZIP) -q9 $@ $^
+
+install-data-hook: install-files install-text
+
+uninstall-hook: uninstall_files uninstall-text
+
+install-files:
+	mkdir -p $(chromedir)/chrome; \
+	for file in $(xpi_files); do \
+		cp $$file $(chromedir)/$$file; \
 	done;
 
-uninstall-hook:
-	cp $(chrome_install_file) /tmp/chrome.old; \
-	sudo bash -c "sed -e'/aspdesigner/d' /tmp/chrome.old > $(chrome_install_file)"; \
-	rm /tmp/chrome.old;
+uninstall-files:
+	rm -rf $(chromedir)
 
-EXTRA_DIST = $(content_files) $(locale_files)
+install-text:
+	if test -f $(chrome_install_file); then \
+		cp $(chrome_install_file) /tmp/chrome.old; \
+		sudo bash -c "sed -e'/aspdesigner/d' /tmp/chrome.old > $(chrome_install_file)"; \
+		for CHRM in $(chrome_install_text); do \
+			cp $(chrome_install_file) /tmp/chrome.old; \
+			sudo bash -c "sed -e'\$$a$$CHRM' /tmp/chrome.old > $(chrome_install_file)"; \
+			rm /tmp/chrome.old; \
+		done; \
+	fi;
+
+uninstall-text:
+	if test -f $(chrome_install_file); then \
+		cp $(chrome_install_file) /tmp/chrome.old; \
+		sudo bash -c "sed -e'/aspdesigner/d' /tmp/chrome.old > $(chrome_install_file)"; \
+		rm /tmp/chrome.old;
+	fi;
+
+EXTRA_DIST = $(jar_files) $(xpi_files)
+
+CLEANFILES =			\
+	chrome/$(packagename).jar	\
+	$(packagename).xpi

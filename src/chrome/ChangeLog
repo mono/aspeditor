@@ -1,3 +1,12 @@
+2006-06-24 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* locale/en-US/contents.rdf
+	  install.rdf
+	  chrome.manifest
+	  Makefile.am: Make chrome installable on Firefox, and build an XPI
+	  extension. Unfortunately gtkmozembed doesn't appear to load 
+	  extensions, so we still have to install into the browser's chrome.
+
 2006-01-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* Makefile.am: find installed-chrome.txt in correct location
