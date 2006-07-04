@@ -1,3 +1,12 @@
+2006-07-04 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* configure.in:
+	* src/aspnetedit/Makefile.am: 
+	* src/editor/Makefile.am:
+	* src/Makefile.am:
+	* src/chrome/Makefile.am: Remove the JSCall library. Now locate it 
+	through pkg-config and take local copy (because it's unstable).
+
 2006-06-24 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* configure.in: Allow choice of either Firefox or Mozilla

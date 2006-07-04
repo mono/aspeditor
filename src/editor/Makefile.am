@@ -9,7 +9,7 @@ editor_DATA = $(ASSEMBLY).mdb
 EDITOR_REFERENCES =						\
 	$(GTKSHARP_LIBS)					\
 	$(GECKOSHARP_LIBS)					\
-	-r:$(top_builddir)/build/lib/jscall.dll			\
+	$(JSCALL_LIBS)						\
 	-r:$(top_builddir)/build/lib/propertygrid.dll		\
 	-r:System.Web						\
 	-r:System.Design					\

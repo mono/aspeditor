@@ -26,7 +26,7 @@ all: $(packagename).xpi
 $(packagename).xpi: $(xpi_files)
 	$(ZIP) -q9 $@ $^
 
-content/JSCall.js: ../jscall/Resources/JSCall.js
+content/JSCall.js: $(JSCALL_SCRIPT)
 	cp $^ $@
 
 chrome/$(packagename).jar: $(jar_files)
@@ -35,7 +35,7 @@ chrome/$(packagename).jar: $(jar_files)
 
 install-data-hook: install-files install-text
 
-uninstall-hook: uninstall_files uninstall-text
+uninstall-hook: uninstall-files uninstall-text
 
 install-files:
 	mkdir -p $(chromedir)/chrome; \
@@ -68,4 +68,5 @@ EXTRA_DIST = $(jar_files) $(xpi_files)
 
 CLEANFILES =			\
 	chrome/$(packagename).jar	\
-	$(packagename).xpi
+	$(packagename).xpi \
+	content/JSCall.js

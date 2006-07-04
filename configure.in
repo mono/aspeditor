@@ -4,15 +4,14 @@ AM_INIT_AUTOMAKE(aspnetedit, 0.0.1.0)
 AM_MAINTAINER_MODE
 
 AC_PROG_INSTALL
-AC_PROG_CXX
 
 ### Dependency version numbers
 
 MONO_REQUIRED_VERSION=1.1.9
 GTKSHARP_REQUIRED_VERSION=2.5.5.99
 GECKOSHARP_REQUIRED_VERSION=0.10
+JSCALL_REQUIRED_VERSION=0.0.2
 
-m4_define(gtk_required_version,               2.6.0)
 m4_define(mozilla_required_version,           1.6)
 m4_define(firefox_required_version,           1.0)
 
@@ -57,6 +56,17 @@ AC_SUBST(MCS_OPTIONS)
 
 PKG_CHECK_MODULES(GTKSHARP, gtk-sharp-2.0 >= $GTKSHARP_REQUIRED_VERSION)
 PKG_CHECK_MODULES(GECKOSHARP, gecko-sharp-2.0 >= $GECKOSHARP_REQUIRED_VERSION)
+PKG_CHECK_MODULES(JSCALL, jscall-sharp >= $JSCALL_REQUIRED_VERSION)
+
+### Get javascript file supplied by JSCall
+JSCALL_SCRIPT="`$PKG_CONFIG --variable=Script jscall-sharp`"
+AC_SUBST(JSCALL_SCRIPT)
+
+### find assembly paths for unstable installed assemblies that will be
+### copied into the installation directory for local usage with the app
+UNSTABLE_INSTALL_ASSEMBLIES="jscall-sharp"
+INSTALLED_ASSEMBLIES="`$PKG_CONFIG --variable=Libraries $UNSTABLE_INSTALL_ASSEMBLIES`"
+AC_SUBST(INSTALLED_ASSEMBLIES)
 
 ### Check for C++/Mozilla dependencies (inspired by gnome-python-extras)
 AC_ARG_WITH(gtkmozembed, AS_HELP_STRING(
@@ -84,10 +94,6 @@ case $mozpackage in
      mozilla) mozpackage_required_version=mozilla_required_version ;;
      *) AC_MSG_ERROR([--with-gtkmozembed argument must be either 'mozilla' or 'firefox'])
 esac
-
-PKG_CHECK_MODULES(JSGLUEDEPS, [$mozpackage-gtkmozembed >= $mozpackage_required_version,
-                               $mozpackage-xpcom >= $mozpackage_required_version
-                               gtk+-2.0                >= gtk_required_version])
 
 
 ### Find the Mozilla directory to install chrome, and how we need to install the 
@@ -134,9 +140,6 @@ Makefile
 src/Makefile
 src/propertygrid/Makefile
 src/propertygrid/AssemblyInfo.cs
-src/jscall/Makefile
-src/jscall/AssemblyInfo.cs
-src/jscall/jscallglue/Makefile
 src/editor/Makefile
 src/editor/AssemblyInfo.cs
 src/aspnetedit/Makefile
