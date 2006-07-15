@@ -1,3 +1,11 @@
+2006-07-15 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* locale/*:
+	* chrome/*:
+	* Makefile.am: Restructure jar to make it work with Mozilla. Fix nasty 
+	  bug that broke Mozilla installations. Note that this extension is 
+	  still unlikely to work with anything newer than Mozilla 1.6.
+
 2006-06-24 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* locale/en-US/contents.rdf
