@@ -1,3 +1,11 @@
+2007-02-16 Michael Hutchinson <m.j.hutchinson@gmail.com>
+
+	* README:
+	* configure.in: Add a notice informing users that AspNetEdit is now 
+	  maintained in MonoDevelop.
+	
+	* INSTALL: Fix longstanding typo.
+
 2006-07-04 Michael Hutchinson <m.j.hutchinson@gmail.com>
 
 	* configure.in:

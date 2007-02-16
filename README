@@ -1,8 +1,16 @@
+****************************** PLEASE NOTE *************************************
+*  AspNetEdit has now been merged into the MonoDevelop IDE                     *
+*  (http://www.monodevelop.com) and this standalone version has not been       *
+*  maintained since July 2006. If you would like to resurrect the standalone   *
+*  editor please contact Michael Hutchinson <m.j.hutchinson@gmail.com>.        *
+********************************************************************************
+
 Introduction
 ============
-This is a pre-release version of AspNetEdit, Mono's Graphical Editor for ASP.NET. This version is provided as a preview for curious developers only. Not all functionality is present or working, so please do not judge it until a final release is made.
-
-At the moment you will need the cutting edge subversion Mono class libraries (module mcs).
+This is a pre-release version of AspNetEdit, Mono's Graphical Editor for 
+ASP.NET. This version is provided as a preview for curious developers only. 
+Not all functionality is present or working, so please do not judge it until 
+a final release is made.
 
 
 Installation

@@ -15,7 +15,7 @@ Building AspNetEdit
 ===================
 Open a terminal in the root aspnetedit director and run the following commands
 
-./autoconf.sh --prefix=PREFIX
+./autogen.sh --prefix=PREFIX
 make
 
 
